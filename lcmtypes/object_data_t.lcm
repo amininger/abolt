@@ -1,0 +1,11 @@
+struct object_data_t
+{
+    int64_t utime;
+
+    int32_t id;
+
+    int32_t nj_len;
+    string nounjective[nj_len];
+
+    double pos[3]; // xyt
+}

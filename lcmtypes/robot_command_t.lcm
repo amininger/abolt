@@ -1,0 +1,10 @@
+struct robot_command_t
+{
+    int64_t utime;
+
+    double dest[3];// xyt -- set theta outside [-2pi, 2pi] range to indicate heading doesn't matter
+
+    string action; // turn off a switch: x"NAME=SWITCH,STATE=OFF"
+
+    boolean gripper_open; // false --  gripper is closed  true -- gripper is open
+}
