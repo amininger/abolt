@@ -215,6 +215,15 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
             double rpy[] = LinAlg.quatToRollPitchYaw(drive.poseTruth.orientation);
 
             ArrayList<object_data_t> obsList = new ArrayList<object_data_t>();
+            ArrayList<String> sensList = new ArrayList<String>();
+
+
+            // Always include the robot position
+            sensList.add(String.format("ROBOT_POS=[%.3f %.3f %.4f],BATTERY=%.1f",
+                                       pos[0],pos[1],rpy[2], 11.1));
+
+
+            // Stove
             if (pos[0] >  stove[0][0] && pos[0] < stove[1][0] &&
                 pos[1] > stove[0][1] && pos[1] < stove[1][1]) {
                 object_data_t stove_data = new object_data_t();
@@ -228,22 +237,20 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 obsList.add(stove_data);
             }
 
-
-            obs.observations = obsList.toArray(new object_data_t[0]);
-            obs.nobs = obs.observations.length;
-
-
-            ArrayList<String> sensList = new ArrayList<String>();
-            sensList.add(String.format("ROBOT_POS=[%.3f %.3f %.4f],BATTERY=%.1f",
-                                       pos[0],pos[1],rpy[2], 11.1));
+            // Kitchen
             if (pos[0] >  kitchen[0][0] && pos[0] < kitchen[1][0] &&
                 pos[1] > kitchen[0][1] && pos[1] < kitchen[1][1]) {
                 Calendar cal = Calendar.getInstance();
                 sensList.add(String.format("NAME=CLOCK,STATE=%dh%dm",cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)));
+                sensList.add("NAME=SWITCH,STATE="+(kitchenLight? "ON" : "OFF"));
             }
 
             obs.sensibles = sensList.toArray(new String[0]);
             obs.nsens = obs.sensibles.length;
+            obs.observations = obsList.toArray(new object_data_t[0]);
+            obs.nobs = obs.observations.length;
+
+
 
 
             lcm.publish("OBSERVATIONS",obs);
