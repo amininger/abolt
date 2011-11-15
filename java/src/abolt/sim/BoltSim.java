@@ -109,7 +109,7 @@ public class BoltSim
                 im.setRGB(0,0, SimBoltRobot.kitchenLight? 0xffffff00: 0x33333333);
                 // vb.addBack(
 
-                new VisLighting(false,new VzImage(new VisTexture(im,false),
+                new VisLighting(false,new VzImage(new VisTexture(im,VisTexture.NO_ALPHA_MASK),
                             SimBoltRobot.kitchenBox,
                             new double[][] { { 0, 0 },
                                              { 1, 0 },
