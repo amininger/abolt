@@ -46,7 +46,7 @@ public class BoltSim
             VzGrid.addGrid(vw).groundColor = Color.white;
         }
 
-        JFrame jf = new JFrame("VisTest");
+        JFrame jf = new JFrame("BOLT Simulator");
         jf.add(vc);
         jf.setSize(800,800);
         jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
