@@ -11,11 +11,12 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimPantry implements SimBoltObject, SimSensable
+public class SimPantry implements SimBoltObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
     ArrayList<String> featureVec;
+    ArrayList<String> stateVec;
     int id;
 
     static final double xextent = 0.2;
@@ -53,6 +54,9 @@ public class SimPantry implements SimBoltObject, SimSensable
         featureVec = new ArrayList<String>();
         featureVec.add("green");
         featureVec.add("stocked");
+
+        stateVec = new ArrayList<String>();
+        stateVec.add("door = CLOSED");
 
         Random r = new Random();
         id = r.nextInt();
@@ -115,5 +119,22 @@ public class SimPantry implements SimBoltObject, SimSensable
     {
         double[] obj_xyt = LinAlg.matrixToXYT(pose);
         return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
+    }
+
+    public String[] getAllowedStates()
+    {
+        String[] allStates = new String[stateVec.size()];
+        stateVec.toArray(allStates);
+        return allStates;
+    }
+
+    public String getState()
+    {
+        return stateVec.get(0); // XXX
+    }
+
+    public void setState(String newState)
+    {
+        stateVec.set(0, newState); // XXX
     }
 }

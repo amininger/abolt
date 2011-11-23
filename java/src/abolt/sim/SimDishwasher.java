@@ -11,11 +11,12 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimDishwasher implements SimBoltObject, SimSensable
+public class SimDishwasher implements SimBoltObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
     ArrayList<String> featureVec;
+    ArrayList<String> stateVec;
     int id;
 
     static final double extent = 0.2;
@@ -49,13 +50,14 @@ public class SimDishwasher implements SimBoltObject, SimSensable
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness
         featureVec.add("cyan");
         featureVec.add("square");
 
+        stateVec = new ArrayList<String>();
+        stateVec.add("washing = OFF");
+
         Random r = new Random();
         id = r.nextInt();
-
     }
 
     public double[][] getPose()
@@ -96,7 +98,7 @@ public class SimDishwasher implements SimBoltObject, SimSensable
 
     public int getID()
     {
-	return id;
+        return id;
     }
 
     public String getName()
@@ -115,5 +117,22 @@ public class SimDishwasher implements SimBoltObject, SimSensable
     {
         double[] obj_xyt = LinAlg.matrixToXYT(pose);
         return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
+    }
+
+    public String[] getAllowedStates()
+    {
+        String[] allStates = new String[stateVec.size()];
+        stateVec.toArray(allStates);
+        return allStates;
+    }
+
+    public String getState()
+    {
+        return stateVec.get(0); // XXX
+    }
+
+    public void setState(String newState)
+    {
+        stateVec.set(0, newState); // XXX
     }
 }
