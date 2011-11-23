@@ -23,9 +23,9 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     static {
         VisChain vc = new VisChain(LinAlg.scale(.01), // Now units are in centimeters
                                    LinAlg.translate(0,0,2),
-                                   new VzBox(10,10,4, Color.black),
+                                   new VzBox(10,10,4, new VzMesh.Style(Color.black)),
                                    LinAlg.translate(1.5,0,3),
-                                   new VzBox(6,4,2, Color.red),
+                                   new VzBox(6,4,2, new VzMesh.Style(Color.red)),
                                    LinAlg.translate(-5,0,-.99),
                                    LinAlg.rotateZ(Math.PI/2),
                                    LinAlg.scale(1.5/12),
@@ -41,7 +41,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     DifferentialDrive drive;
 
 
-    // The following are hacks!
+    // The following are hacks! XXX
     static double kitchen[][] = {{1,-.2},{1.5,.3}};
     static double stove[][] = {{1,-.2}, {1.25,.05}};
 
