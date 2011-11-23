@@ -15,6 +15,8 @@ public class SimLightSwitch implements SimBoltObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
+    HashMap<String, ArrayList<String> > actions = new HashMap<String, ArrayList<String> >();
+    HashMap<String, String> currentState = new HashMap<String, String>();
     ArrayList<String> featureVec;
     ArrayList<String> stateVec;
     int id;
@@ -58,6 +60,12 @@ public class SimLightSwitch implements SimBoltObject, SimSensable, SimActionable
 
         stateVec = new ArrayList<String>();
         stateVec.add("toggle = ON");
+
+        // Add actions
+        actions.put("TOGGLE", new ArrayList<String>());
+        actions.get("TOGGLE").add("ON");
+        actions.get("TOGGLE").add("OFF");
+        currentState.put("TOGGLE", "OFF");
 
         Random r = new Random();
         id = r.nextInt();
@@ -123,18 +131,29 @@ public class SimLightSwitch implements SimBoltObject, SimSensable, SimActionable
 
     public String[] getAllowedStates()
     {
-        String[] allStates = new String[stateVec.size()];
-        stateVec.toArray(allStates);
-        return allStates;
+        ArrayList<String> allStates = new ArrayList<String>();
+        for (String key: actions.keySet()) {
+            for (String value: actions.get(key)) {
+                allStates.add(key+"="+value);
+            }
+        }
+        String[] stateArray = allStates.toArray(new String[0]);
+        return stateArray;
     }
 
     public String getState()
     {
-        return stateVec.get(0); // XXX
+        StringBuilder state;
+        for (String key: currentState.keySet()) {
+            state.append(key+"="+currentState.get(key)+",");
+        }
+        return state.toString();
     }
 
+    // XXX Only lets you change one state at a time
     public void setState(String newState)
     {
-        stateVec.set(0, newState); // XXX
+        String[] keyValuePair = newState.split("=");
+        currentState.put(keyValuePair[0], keyValuePair[1]);
     }
 }
