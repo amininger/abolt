@@ -2,6 +2,7 @@ package abolt.sim;
 
 import java.awt.Color;
 import java.io.*;
+import java.util.*;
 
 import lcm.lcm.*;
 
@@ -10,9 +11,12 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimLightSwitch implements SimObject
+public class SimLightSwitch implements SimObject, SimSensable
 {
     double[][] pose;
+    String name;
+    ArrayList<String> featureVec;
+    int id;
 
     static final double baseExtent = 0.05;
     static final double switchRange = 0.1;
@@ -34,9 +38,19 @@ public class SimLightSwitch implements SimObject
         collisionShape = new SphereShape(-switchRange);
     }
 
-    public SimLightSwitch(SimWorld sw)
+    public SimLightSwitch(SimWorld sw, String _name)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
+        name = _name;
+
+        featureVec = new ArrayList<String>();
+        // Temporary: populated with object color and dimensions and then randomness                                                                                                                   
+	featureVec.add("beige");
+        featureVec.add("small");
+        featureVec.add("rectangular");
+
+        Random r = new Random();
+        id = r.nextInt();
     }
 
     public double[][] getPose()
@@ -73,5 +87,21 @@ public class SimLightSwitch implements SimObject
     public void setRunning(boolean run)
     {
 
+    }
+    public int getID()
+    {
+        return id;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public String[] getNounjectives()
+    {
+        String[] nounjectives = new String[featureVec.size()];
+        featureVec.toArray(nounjectives);
+	return nounjectives;
     }
 }

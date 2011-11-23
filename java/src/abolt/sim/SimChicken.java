@@ -2,6 +2,7 @@ package abolt.sim;
 
 import java.awt.Color;
 import java.io.*;
+import java.util.*;
 
 import lcm.lcm.*;
 
@@ -10,9 +11,12 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimChicken implements SimObject
+public class SimChicken implements SimObject, SimSensable
 {
     double[][] pose;
+    String name;
+    ArrayList<String> featureVec;
+    int id;
 
     static final double extent = 0.025;
 
@@ -29,9 +33,19 @@ public class SimChicken implements SimObject
         collisionShape = new SphereShape(-0.5*extent);
     }
 
-    public SimChicken(SimWorld sw)
+    public SimChicken(SimWorld sw, String _name)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
+        name = _name;
+
+        featureVec = new ArrayList<String>();
+        // Temporary: populated with object color and dimensions and then randomness                                                                                                                   
+        featureVec.add("brown");
+        featureVec.add("raw");
+	featureVec.add("dirty");
+
+        Random r = new Random();
+        id = r.nextInt();
     }
 
     public double[][] getPose()
@@ -68,5 +82,22 @@ public class SimChicken implements SimObject
     public void setRunning(boolean run)
     {
 
+    }
+
+    public int getID()
+    {
+        return id;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public String[] getNounjectives()
+    {
+        String[] nounjectives = new String[featureVec.size()];
+        featureVec.toArray(nounjectives);
+	return nounjectives;
     }
 }
