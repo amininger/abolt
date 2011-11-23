@@ -10,21 +10,17 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimDishwasher implements SimObject
+public class SimChicken implements SimObject
 {
     double[][] pose;
 
-    static final double extent = 0.2;
+    static final double extent = 0.025;
 
-    // Make Dishwasher model
+    // Make Chicken model
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.scale(extent),
-                                   new VzSquare(new VzLines.Style(Color.cyan,2)),
-                                   LinAlg.translate(0,-2*extent,0),
-                                   LinAlg.scale(.005),
-                                   new VzText(VzText.ANCHOR.CENTER,
-                                              "<<cyan>> dishwasher"));
+                                   new VzCylinder(new VzMesh.Style(new Color(0xC2B280))));
         visModel = vc;
     }
 
@@ -33,7 +29,7 @@ public class SimDishwasher implements SimObject
         collisionShape = new SphereShape(-0.5*extent);
     }
 
-    public SimDishwasher(SimWorld sw)
+    public SimChicken(SimWorld sw)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
     }

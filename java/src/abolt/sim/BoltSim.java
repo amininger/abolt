@@ -23,6 +23,7 @@ public class BoltSim extends Simulator
         }
 
         // Add our own objects to the world so we can track them
+        /*
         SimDishwasher dishwasher = new SimDishwasher(new double[] {1.1,.9,0});
         SimStove stove = new SimStove(new double[] {1.3,.9,0});
         SimPantry pantry = new SimPantry(new double[] {2.1,0,0});
@@ -32,7 +33,7 @@ public class BoltSim extends Simulator
             world.objects.add(stove);
             world.objects.add(pantry);
             world.objects.add(lightSwitch);
-        }
+        }*/
     }
 
     public static void main(String args[])

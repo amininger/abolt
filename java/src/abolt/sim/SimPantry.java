@@ -10,14 +10,14 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-class SimPantry implements SimObject
+public class SimPantry implements SimObject
 {
     double[][] pose;
 
     static final double xextent = 0.2;
     static final double yextent = 0.4;
 
-    // Make Dishwasher model
+    // Make Pantry model
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.scale(xextent, yextent, 1),
@@ -32,12 +32,12 @@ class SimPantry implements SimObject
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-Math.max(yextent,xextent));
+        collisionShape = new SphereShape(-0.5*Math.max(yextent,xextent));
     }
 
-    public SimPantry(double[] _xyt)
+    public SimPantry(SimWorld sw)
     {
-        pose = LinAlg.xytToMatrix(_xyt);
+        //pose = LinAlg.xytToMatrix(_xyt);
     }
 
     public double[][] getPose()

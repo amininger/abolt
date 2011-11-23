@@ -10,30 +10,27 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimDishwasher implements SimObject
+public class SimClock implements SimObject
 {
     double[][] pose;
 
-    static final double extent = 0.2;
+    static final double xextent = 0.1;
+    static final double yextent = 0.02;
 
     // Make Dishwasher model
     static VisObject visModel;
     static {
-        VisChain vc = new VisChain(LinAlg.scale(extent),
-                                   new VzSquare(new VzLines.Style(Color.cyan,2)),
-                                   LinAlg.translate(0,-2*extent,0),
-                                   LinAlg.scale(.005),
-                                   new VzText(VzText.ANCHOR.CENTER,
-                                              "<<cyan>> dishwasher"));
+        VisChain vc = new VisChain(LinAlg.scale(xextent, yextent, xextent),
+                                   new VzBox(new VzMesh.Style(Color.black)));
         visModel = vc;
     }
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-0.5*extent);
+        collisionShape = new SphereShape(-1);
     }
 
-    public SimDishwasher(SimWorld sw)
+    public SimClock(SimWorld sw)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
     }

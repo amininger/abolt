@@ -10,7 +10,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-class SimStove implements SimObject
+public class SimStove implements SimObject
 {
     double[][] pose;
 
@@ -31,12 +31,12 @@ class SimStove implements SimObject
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-extent);
+        collisionShape = new SphereShape(-0.5*extent);
     }
 
-    public SimStove(double[] _xyt)
+    public SimStove(SimWorld sw)
     {
-        pose = LinAlg.xytToMatrix(_xyt);
+        //pose = LinAlg.xytToMatrix(_xyt);
     }
 
     public double[][] getPose()

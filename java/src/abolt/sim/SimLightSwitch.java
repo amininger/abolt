@@ -10,7 +10,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-class SimLightSwitch implements SimObject
+public class SimLightSwitch implements SimObject
 {
     double[][] pose;
 
@@ -34,9 +34,9 @@ class SimLightSwitch implements SimObject
         collisionShape = new SphereShape(-switchRange);
     }
 
-    public SimLightSwitch(double[] _xyt)
+    public SimLightSwitch(SimWorld sw)
     {
-        pose = LinAlg.xytToMatrix(_xyt);
+        //pose = LinAlg.xytToMatrix(_xyt);
     }
 
     public double[][] getPose()
