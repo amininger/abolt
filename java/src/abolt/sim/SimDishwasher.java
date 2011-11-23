@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimDishwasher implements SimObject, SimSensable
+public class SimDishwasher implements SimBoltObject, SimSensable
 {
     double[][] pose;
     String name;
@@ -19,6 +19,7 @@ public class SimDishwasher implements SimObject, SimSensable
     int id;
 
     static final double extent = 0.2;
+    static final double sensingRange = 0.5;
 
     // Make Dishwasher model
     static VisObject visModel;
@@ -35,6 +36,11 @@ public class SimDishwasher implements SimObject, SimSensable
     static Shape collisionShape;
     static {
         collisionShape = new SphereShape(-0.5*extent);
+    }
+
+    public SimDishwasher(SimWorld sw)
+    {
+        this(sw, "DISHWASHER");
     }
 
     public SimDishwasher(SimWorld sw, String _name)
@@ -103,5 +109,11 @@ public class SimDishwasher implements SimObject, SimSensable
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
         return nounjectives;
+    }
+
+    public boolean inRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
     }
 }

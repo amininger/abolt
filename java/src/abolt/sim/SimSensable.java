@@ -2,7 +2,9 @@ package abolt.sim;
 
 public interface SimSensable
 {
-    String getName();
+    public String getName();
 
-    String[] getNounjectives();
+    public String[] getNounjectives();
+
+    public boolean inRange(double[] xyt);
 }

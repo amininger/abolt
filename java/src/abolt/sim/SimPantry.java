@@ -2,6 +2,7 @@ package abolt.sim;
 
 import java.awt.Color;
 import java.io.*;
+import java.util.*;
 
 import lcm.lcm.*;
 
@@ -10,12 +11,16 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimPantry implements SimObject
+public class SimPantry implements SimBoltObject, SimSensable
 {
     double[][] pose;
+    String name;
+    ArrayList<String> featureVec;
+    int id;
 
     static final double xextent = 0.2;
     static final double yextent = 0.4;
+    static final double sensingRange = 0.5;
 
     // Make Pantry model
     static VisObject visModel;
@@ -37,7 +42,20 @@ public class SimPantry implements SimObject
 
     public SimPantry(SimWorld sw)
     {
+        this(sw, "PANTRY");
+    }
+
+    public SimPantry(SimWorld sw, String _name)
+    {
+        name = _name;
         //pose = LinAlg.xytToMatrix(_xyt);
+
+        featureVec = new ArrayList<String>();
+        featureVec.add("green");
+        featureVec.add("stocked");
+
+        Random r = new Random();
+        id = r.nextInt();
     }
 
     public double[][] getPose()
@@ -74,5 +92,28 @@ public class SimPantry implements SimObject
     public void setRunning(boolean run)
     {
 
+    }
+
+    public int getID()
+    {
+        return id;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public String[] getNounjectives()
+    {
+        String[] nounjectives = new String[featureVec.size()];
+        featureVec.toArray(nounjectives);
+        return nounjectives;
+    }
+
+    public boolean inRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
     }
 }

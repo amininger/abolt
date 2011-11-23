@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimClock implements SimObject, SimSensable
+public class SimClock implements SimBoltObject, SimSensable
 {
     double[][] pose;
     String name;
@@ -21,7 +21,9 @@ public class SimClock implements SimObject, SimSensable
     static final double xextent = 0.1;
     static final double yextent = 0.02;
 
-    // Make Dishwasher model
+    static final double sensingRange = 1.0;
+
+    // Make SimClock model
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.scale(xextent, yextent, xextent),
@@ -31,7 +33,12 @@ public class SimClock implements SimObject, SimSensable
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-1);
+        collisionShape = new SphereShape(-xextent);
+    }
+
+    public SimClock(SimWorld sw)
+    {
+        this(sw, "CLOCK");
     }
 
     public SimClock(SimWorld sw, String _name)
@@ -40,7 +47,7 @@ public class SimClock implements SimObject, SimSensable
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness                                                                                                                   
+        // Temporary: populated with object color and dimensions and then randomness
 	featureVec.add("round");
         featureVec.add("black");
 
@@ -98,6 +105,12 @@ public class SimClock implements SimObject, SimSensable
     {
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
-	return nounjectives;
+        return nounjectives;
+    }
+
+    public boolean inRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt,2), LinAlg.resize(xyt,2)) < sensingRange;
     }
 }

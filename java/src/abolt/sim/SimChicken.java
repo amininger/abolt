@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimChicken implements SimObject, SimSensable
+public class SimChicken implements SimBoltObject, SimSensable
 {
     double[][] pose;
     String name;
@@ -19,6 +19,7 @@ public class SimChicken implements SimObject, SimSensable
     int id;
 
     static final double extent = 0.025;
+    static final double sensingRange = .5;
 
     // Make Chicken model
     static VisObject visModel;
@@ -33,13 +34,18 @@ public class SimChicken implements SimObject, SimSensable
         collisionShape = new SphereShape(-0.5*extent);
     }
 
+    public SimChicken(SimWorld sw)
+    {
+        this(sw, "CHICKEN");
+    }
+
     public SimChicken(SimWorld sw, String _name)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness                                                                                                                   
+        // Temporary: populated with object color and dimensions and then randomness
         featureVec.add("brown");
         featureVec.add("raw");
 	featureVec.add("dirty");
@@ -99,5 +105,11 @@ public class SimChicken implements SimObject, SimSensable
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
 	return nounjectives;
+    }
+
+    public boolean inRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
     }
 }

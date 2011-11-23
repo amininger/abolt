@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimStove implements SimObject, SimSensable
+public class SimStove implements SimBoltObject, SimSensable
 {
     double[][] pose;
     String name;
@@ -19,6 +19,7 @@ public class SimStove implements SimObject, SimSensable
     int id;
 
     static final double extent = 0.2;
+    static final double sensingRange = 0.5;
 
     // Make stove model
     static VisObject visModel;
@@ -38,13 +39,18 @@ public class SimStove implements SimObject, SimSensable
         collisionShape = new SphereShape(-0.5*extent);
     }
 
+    public SimStove(SimWorld sw)
+    {
+        this(sw, "STOVE");
+    }
+
     public SimStove(SimWorld sw, String _name)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness                            
+        // Temporary: populated with object color and dimensions and then randomness
         featureVec.add("red");
         featureVec.add("square");
 
@@ -103,5 +109,11 @@ public class SimStove implements SimObject, SimSensable
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
         return nounjectives;
+    }
+
+    public boolean inRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
     }
 }

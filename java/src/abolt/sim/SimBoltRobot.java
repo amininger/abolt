@@ -163,14 +163,14 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 if ((msg.buttons & 2048) == 2048) { // left stick button
                     if (released) {
 
-                        robot_command_t toggle_light = new robot_command_t();
+                        /*robot_command_t toggle_light = new robot_command_t();
                         toggle_light.dest = new double[3];
                         if (kitchenLight)
                             toggle_light.action =  "NAME=SWITCH,STATE=OFF";
                         else
                             toggle_light.action =  "NAME=SWITCH,STATE=ON";
 
-                        lcm.publish("ROBOT_COMMAND", toggle_light);
+                        lcm.publish("ROBOT_COMMAND", toggle_light);*/
                         released = false;
                    }
                 } else {
@@ -194,7 +194,20 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
         double pos[] = drive.poseTruth.pos;
 
         synchronized(sw) {
-
+            for (SimObject o: sw.objects) {
+                if (o instanceof SimActionable) {
+                    // XXX Right now, action have infinite range
+                    SimActionable a = (SimActionable)o;
+                    if (o instanceof SimSensable) {
+                        SimSensable s = (SimSensable)o;
+                        String name = s.getName();
+                        if (action.startsWith("NAME="+name+"STATE=")) {
+                            String act = action.substring(action.lastIndexOf("=") + 1);
+                            a.setState(act);
+                        }
+                    }
+                }
+            }
         }
         /*if (pos[0] >  kitchen[0][0] && pos[0] < kitchen[1][0] &&
             pos[1] > kitchen[0][1] && pos[1] < kitchen[1][1]) {
@@ -234,13 +247,28 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
             // we "sense" something if we're within its sensing radius,
             // regardless of line-of-sight
             synchronized (sw) {
-                double[] robot_xy = LinAlg.resize(pos, 2);
+                double[] robot_xyt = LinAlg.matrixToXYT(getPose());
                 for (SimObject o: sw.objects) {
                     if (o instanceof SimSensable) {
-                        // Ask object if we're close enough to sense it
+                        SimSensable s = (SimSensable)o;
+                        if (s.inRange(robot_xyt)) {
+                            object_data_t obj_data = new object_data_t();
+                            obj_data.utime = TimeUtil.utime();
+                            if (o instanceof SimBoltObject) {
+                                SimBoltObject sbo = (SimBoltObject)o;
+                                obj_data.id = sbo.getID();
+                            }
+                            obj_data.nounjectives = s.getNounjectives();
+                            obj_data.nj_len = obj_data.nounjectives.length;
+
+                            obj_data.pos = LinAlg.matrixToXYT(o.getPose()); // XXX Perfect positional info
+                            obsList.add(obj_data);
+                        }
                     }
                 }
             }
+
+            // XXX Need to come up with State information as seen in the sensables below. Ask Ed/Joho
 
             // Stove
             /*if (pos[0] >  stove[0][0] && pos[0] < stove[1][0] &&

@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimLightSwitch implements SimObject, SimSensable
+public class SimLightSwitch implements SimBoltObject, SimSensable
 {
     double[][] pose;
     String name;
@@ -20,6 +20,7 @@ public class SimLightSwitch implements SimObject, SimSensable
 
     static final double baseExtent = 0.05;
     static final double switchRange = 0.1;
+    static final double sensingRange = 0.3;
 
     // Make Dishwasher model
     static VisObject visModel;
@@ -38,13 +39,18 @@ public class SimLightSwitch implements SimObject, SimSensable
         collisionShape = new SphereShape(-switchRange);
     }
 
+    public SimLightSwitch(SimWorld sw)
+    {
+        this(sw, "LIGHT_SWITCH");
+    }
+
     public SimLightSwitch(SimWorld sw, String _name)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness                                                                                                                   
+        // Temporary: populated with object color and dimensions and then randomness
 	featureVec.add("beige");
         featureVec.add("small");
         featureVec.add("rectangular");
@@ -104,4 +110,11 @@ public class SimLightSwitch implements SimObject, SimSensable
         featureVec.toArray(nounjectives);
 	return nounjectives;
     }
+
+    public boolean inRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
+    }
+
 }
