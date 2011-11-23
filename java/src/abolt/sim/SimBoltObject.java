@@ -2,7 +2,8 @@ package abolt.sim;
 
 import april.sim.*;
 
-public interface SimBoltObject extends SimObject
+public interface SimBoltObject
 {
-    int getID();    
+    public String[] getNounjectives();
+    public int getID();
 }

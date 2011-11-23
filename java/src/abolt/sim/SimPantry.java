@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimPantry implements SimBoltObject, SimSensable, SimActionable
+public class SimPantry implements SimObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
@@ -108,11 +108,15 @@ public class SimPantry implements SimBoltObject, SimSensable, SimActionable
         return name;
     }
 
-    public String[] getNounjectives()
+    /*public String[] getNounjectives()
     {
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
         return nounjectives;
+    }*/
+    public String getProperties()
+    {
+        return null;
     }
 
     public boolean inRange(double[] xyt)

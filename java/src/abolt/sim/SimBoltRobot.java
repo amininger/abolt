@@ -258,8 +258,8 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                                 SimBoltObject sbo = (SimBoltObject)o;
                                 obj_data.id = sbo.getID();
                             }
-                            obj_data.nounjectives = s.getNounjectives();
-                            obj_data.nj_len = obj_data.nounjectives.length;
+                            //obj_data.nounjectives = s.getNounjectives();
+                            //obj_data.nj_len = obj_data.nounjectives.length;
 
                             obj_data.pos = LinAlg.matrixToXYT(o.getPose()); // XXX Perfect positional info
                             obsList.add(obj_data);

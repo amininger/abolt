@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimClock implements SimBoltObject, SimSensable
+public class SimClock implements SimObject, SimSensable
 {
     double[][] pose;
     String name;
@@ -101,11 +101,15 @@ public class SimClock implements SimBoltObject, SimSensable
         return name;
     }
 
-    public String[] getNounjectives()
+    /*public String[] getNounjectives()
     {
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
         return nounjectives;
+    }*/
+    public String getProperties()
+    {
+        return null;
     }
 
     public boolean inRange(double[] xyt)

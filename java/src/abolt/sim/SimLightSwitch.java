@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimLightSwitch implements SimBoltObject, SimSensable, SimActionable
+public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
@@ -116,11 +116,15 @@ public class SimLightSwitch implements SimBoltObject, SimSensable, SimActionable
         return name;
     }
 
-    public String[] getNounjectives()
+    /*public String[] getNounjectives()
     {
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
         return nounjectives;
+    }*/
+    public String getProperties()
+    {
+        return null;
     }
 
     public boolean inRange(double[] xyt)
@@ -143,7 +147,7 @@ public class SimLightSwitch implements SimBoltObject, SimSensable, SimActionable
 
     public String getState()
     {
-        StringBuilder state;
+        StringBuilder state = new StringBuilder();
         for (String key: currentState.keySet()) {
             state.append(key+"="+currentState.get(key)+",");
         }
