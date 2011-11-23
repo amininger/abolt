@@ -189,21 +189,39 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
 
     }
 
+    /** Process a single action of the form NAME=(OBJ_NAME),(ACTION)=(STATE).
+     *  If interacting with a "real" object, use ID=(#),(ACTION)=(STATE)
+     */
     public void processAction(String action)
     {
         double pos[] = drive.poseTruth.pos;
+
+        // Split up tokens
+        String[] pairs = action.split(",");
+        assert(pairs.length > 1);
 
         synchronized(sw) {
             for (SimObject o: sw.objects) {
                 if (o instanceof SimActionable) {
                     // XXX Right now, action have infinite range
                     SimActionable a = (SimActionable)o;
-                    if (o instanceof SimSensable) {
-                        SimSensable s = (SimSensable)o;
-                        String name = s.getName();
-                        if (action.startsWith("NAME="+name+"STATE=")) {
-                            String act = action.substring(action.lastIndexOf("=") + 1);
-                            a.setState(act);
+                    if (pairs[0].startsWith("NAME=")) {
+                        if (o instanceof SimSensable) {
+                            SimSensable s = (SimSensable)o;
+                            String name = s.getName();
+                            if (!pairs[0].equals("NAME="+name))
+                                continue;
+                            a.setState(pairs[1]);
+                        }
+                    } else if (pairs[0].startsWith("ID=")) {
+                        if (o instanceof SimBoltObject) {
+                            SimBoltObject bo = (SimBoltObject)o;
+                            int ID = bo.getID();
+                            String[] tokens = pairs[0].split("=");
+                            assert(tokens.length > 1);
+                            if (Integer.valueOf(tokens[1]) != ID)
+                                continue;
+                            a.setState(pairs[1]);
                         }
                     }
                 }
@@ -252,23 +270,27 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                     if (o instanceof SimSensable) {
                         SimSensable s = (SimSensable)o;
                         if (s.inRange(robot_xyt)) {
-                            object_data_t obj_data = new object_data_t();
-                            obj_data.utime = TimeUtil.utime();
-                            if (o instanceof SimBoltObject) {
-                                SimBoltObject sbo = (SimBoltObject)o;
-                                obj_data.id = sbo.getID();
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("NAME="+s.getName()+",");
+                            sb.append(s.getProperties());
+                            if (o instanceof SimActionable) {
+                                SimActionable a = (SimActionable)o;
+                                sb.append(a.getState());
                             }
-                            //obj_data.nounjectives = s.getNounjectives();
-                            //obj_data.nj_len = obj_data.nounjectives.length;
-
-                            obj_data.pos = LinAlg.matrixToXYT(o.getPose()); // XXX Perfect positional info
-                            obsList.add(obj_data);
+                            sensList.add(sb.toString());
                         }
+                    }
+                    if (o instanceof SimBoltObject) {
+                        SimBoltObject bo = (SimBoltObject)o;
+                        object_data_t obj_data = new object_data_t();
+                        obj_data.utime = TimeUtil.utime();
+                        obj_data.id = bo.getID();
+                        obj_data.nounjectives = bo.getNounjectives();   // XXX May change to doubles
+                        obj_data.nj_len = obj_data.nounjectives.length;
+                        obsList.add(obj_data);
                     }
                 }
             }
-
-            // XXX Need to come up with State information as seen in the sensables below. Ask Ed/Joho
 
             // Stove
             /*if (pos[0] >  stove[0][0] && pos[0] < stove[1][0] &&
