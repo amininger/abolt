@@ -11,11 +11,12 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimLightSwitch implements SimObject, SimSensable
+public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
     ArrayList<String> featureVec;
+    ArrayList<String> stateVec;
     int id;
 
     static final double baseExtent = 0.05;
@@ -44,10 +45,12 @@ public class SimLightSwitch implements SimObject, SimSensable
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness                                                                                                                   
 	featureVec.add("beige");
         featureVec.add("small");
         featureVec.add("rectangular");
+
+	stateVec = new ArrayList<String>();
+	stateVec.add("toggle = ON");
 
         Random r = new Random();
         id = r.nextInt();
@@ -103,5 +106,22 @@ public class SimLightSwitch implements SimObject, SimSensable
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
 	return nounjectives;
+    }
+
+    public String[] getAllowedStates()
+    {
+        String[] allStates = new String[stateVec.size()];
+	stateVec.toArray(allStates);
+        return allStates;
+    }
+
+    public String getState()
+    {
+        return stateVec.get(0); // XXX                                                                                                                                                                 
+    }
+
+    public void setState(String newState)
+    {
+        stateVec.set(0, newState); // XXX                                                                                                                                                              
     }
 }

@@ -16,6 +16,7 @@ public class SimStove implements SimObject, SimSensable
     double[][] pose;
     String name;
     ArrayList<String> featureVec;
+    ArrayList<String> stateVec;
     int id;
 
     static final double extent = 0.2;
@@ -43,10 +44,12 @@ public class SimStove implements SimObject, SimSensable
         //pose = LinAlg.xytToMatrix(_xyt);
         name = _name;
 
-        featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness                            
+        featureVec = new ArrayList<String>();                            
         featureVec.add("red");
         featureVec.add("square");
+
+	stateVec = new ArrayList<String>();
+        stateVec.add("Cooking = OFF");
 
         Random r = new Random();
         id = r.nextInt();
@@ -103,5 +106,22 @@ public class SimStove implements SimObject, SimSensable
         String[] nounjectives = new String[featureVec.size()];
         featureVec.toArray(nounjectives);
         return nounjectives;
+    }
+
+    public String[] getAllowedStates()
+    {
+        String[] allStates = new String[stateVec.size()];
+        stateVec.toArray(allStates);
+	return allStates;
+    }
+
+    public String getState()
+    {
+        return stateVec.get(0);// XXX                                                                                                                                                                 
+    }
+
+    public void setState(String newState)
+    {
+        stateVec.set(0, newState); // XXX
     }
 }
