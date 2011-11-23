@@ -42,6 +42,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
 
 
     // The following are hacks! XXX
+    /*
     static double kitchen[][] = {{1,-.2},{1.5,.3}};
     static double stove[][] = {{1,-.2}, {1.25,.05}};
 
@@ -57,9 +58,14 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
 
 
     static boolean kitchenLight = false;
+    */
+
+    SimWorld sw;
 
     public SimBoltRobot(SimWorld sw)
     {
+        this.sw = sw;
+
         drive = new DifferentialDrive(sw, this, new double[3]);
         drive.baseline = .1;
         drive.wheelDiameter = .04;
@@ -187,7 +193,10 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     {
         double pos[] = drive.poseTruth.pos;
 
-        if (pos[0] >  kitchen[0][0] && pos[0] < kitchen[1][0] &&
+        synchronized(sw) {
+
+        }
+        /*if (pos[0] >  kitchen[0][0] && pos[0] < kitchen[1][0] &&
             pos[1] > kitchen[0][1] && pos[1] < kitchen[1][1]) {
 
             if (action.startsWith("NAME=SWITCH,STATE=")) {
@@ -198,7 +207,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                     kitchenLight = false;
                 }
             }
-        }
+        }*/
     }
 
 
@@ -206,10 +215,8 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     {
         public void run(double dt)
         {
-
             observations_t obs = new observations_t();
             obs.utime = TimeUtil.utime();
-
 
             double pos[] = drive.poseTruth.pos;
             double rpy[] = LinAlg.quatToRollPitchYaw(drive.poseTruth.orientation);
@@ -223,8 +230,20 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                                        pos[0],pos[1],rpy[2], 11.1));
 
 
+            // Loop through the world and see if we sense anything. For now,
+            // we "sense" something if we're within its sensing radius,
+            // regardless of line-of-sight
+            synchronized (sw) {
+                double[] robot_xy = LinAlg.resize(pos, 2);
+                for (SimObject o: sw.objects) {
+                    if (o instanceof SimSensable) {
+                        // Ask object if we're close enough to sense it
+                    }
+                }
+            }
+
             // Stove
-            if (pos[0] >  stove[0][0] && pos[0] < stove[1][0] &&
+            /*if (pos[0] >  stove[0][0] && pos[0] < stove[1][0] &&
                 pos[1] > stove[0][1] && pos[1] < stove[1][1]) {
                 object_data_t stove_data = new object_data_t();
                 stove_data.utime = TimeUtil.utime();
@@ -244,14 +263,12 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 sensList.add(String.format("NAME=CLOCK,STATE=%dh%dm",cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)));
                 sensList.add("NAME=SWITCH,STATE="+(kitchenLight? "ON" : "OFF"));
             }
+            */
 
-            obs.sensibles = sensList.toArray(new String[0]);
-            obs.nsens = obs.sensibles.length;
+            obs.sensables = sensList.toArray(new String[0]);
+            obs.nsens = obs.sensables.length;
             obs.observations = obsList.toArray(new object_data_t[0]);
             obs.nobs = obs.observations.length;
-
-
-
 
             lcm.publish("OBSERVATIONS",obs);
         }
