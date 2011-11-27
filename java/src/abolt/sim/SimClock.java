@@ -47,9 +47,9 @@ public class SimClock implements SimObject, SimSensable
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness
-	featureVec.add("round");
-        featureVec.add("black");
+	featureVec.add("SHAPE=ROUND");
+        featureVec.add("COLOR=BLACK");
+        featureVec.add("SIZE=SMALL");
 
         Random r = new Random();
         id = r.nextInt();
@@ -101,15 +101,16 @@ public class SimClock implements SimObject, SimSensable
         return name;
     }
 
-    /*public String[] getNounjectives()
-    {
-        String[] nounjectives = new String[featureVec.size()];
-        featureVec.toArray(nounjectives);
-        return nounjectives;
-    }*/
     public String getProperties()
     {
-        return null;
+	StringBuilder properties = new StringBuilder();
+        for(int i=0; i<featureVec.size(); i++){
+            properties.append(featureVec.get(i)+",");
+        }
+        double[] xyt = LinAlg.matrixToXYT(pose);
+        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
+                                                                                                                      
+        return properties.toString();
     }
 
     public boolean inRange(double[] xyt)

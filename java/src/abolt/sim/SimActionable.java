@@ -5,4 +5,5 @@ public interface SimActionable
     String[] getAllowedStates();
     String getState();
     void setState(String newState);
+    public boolean inActionRange(double[] xyt);
 }

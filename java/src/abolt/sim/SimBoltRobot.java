@@ -269,7 +269,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 for (SimObject o: sw.objects) {
                     if (o instanceof SimSensable) {
                         SimSensable s = (SimSensable)o;
-                        if (s.inRange(robot_xyt)) {
+                        if (s.inSenseRange(robot_xyt)) {
                             StringBuilder sb = new StringBuilder();
                             sb.append("NAME="+s.getName()+",");
                             sb.append(s.getProperties());

@@ -18,12 +18,12 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
     HashMap<String, ArrayList<String> > actions = new HashMap<String, ArrayList<String> >();
     HashMap<String, String> currentState = new HashMap<String, String>();
     ArrayList<String> featureVec;
-    ArrayList<String> stateVec;
     int id;
 
     static final double baseExtent = 0.05;
     static final double switchRange = 0.1;
     static final double sensingRange = 0.3;
+    static final double actionRange = 0.1;
 
     // Make Dishwasher model
     static VisObject visModel;
@@ -49,17 +49,15 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 
     public SimLightSwitch(SimWorld sw, String _name)
     {
+
         //pose = LinAlg.xytToMatrix(_xyt);
         name = _name;
 
         featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness
-        featureVec.add("beige");
-        featureVec.add("small");
-        featureVec.add("rectangular");
-
-        stateVec = new ArrayList<String>();
-        stateVec.add("toggle = ON");
+        featureVec.add("COLOR=BEIGE");
+        featureVec.add("SIZE=SMALL");
+        featureVec.add("SHAPE=RECTANGLE");
+        featureVec.add("DEPTH=.02");
 
         // Add actions
         actions.put("TOGGLE", new ArrayList<String>());
@@ -116,21 +114,28 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
         return name;
     }
 
-    /*public String[] getNounjectives()
-    {
-        String[] nounjectives = new String[featureVec.size()];
-        featureVec.toArray(nounjectives);
-        return nounjectives;
-    }*/
+    // Return comma-separated properties and pose at end(separated by space)
     public String getProperties()
     {
-        return null;
+	StringBuilder properties = new StringBuilder();
+	for(int i=0; i<featureVec.size(); i++){
+	    properties.append(featureVec.get(i)+",");
+	}
+	double[] xyt = LinAlg.matrixToXYT(pose);
+        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
+        return properties.toString();
     }
 
-    public boolean inRange(double[] xyt)
+    public boolean inSenseRange(double[] xyt)
     {
         double[] obj_xyt = LinAlg.matrixToXYT(pose);
         return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
+    }
+
+    public boolean inActionRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < actionRange;
     }
 
     public String[] getAllowedStates()
@@ -154,10 +159,14 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
         return state.toString();
     }
 
-    // XXX Only lets you change one state at a time
     public void setState(String newState)
     {
-        String[] keyValuePair = newState.split("=");
-        currentState.put(keyValuePair[0], keyValuePair[1]);
-    }
+	String[] allkvpairs = newState.split(",");
+	for(int i=0; i<allkvpairs.length; i++){
+	    String[] keyValuePair = newState.split("=");
+	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+                currentState.put(keyValuePair[0], keyValuePair[1]);
+            }
+	}
+    } 
 }

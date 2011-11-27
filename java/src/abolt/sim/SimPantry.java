@@ -15,13 +15,15 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
 {
     double[][] pose;
     String name;
+    HashMap<String, ArrayList<String> > actions = new HashMap<String, ArrayList<String> >();
+    HashMap<String, String> currentState = new HashMap<String, String>();    
     ArrayList<String> featureVec;
-    ArrayList<String> stateVec;
     int id;
 
     static final double xextent = 0.2;
     static final double yextent = 0.4;
     static final double sensingRange = 0.5;
+    static final double actionRange = 0.15;
 
     // Make Pantry model
     static VisObject visModel;
@@ -52,11 +54,16 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
         //pose = LinAlg.xytToMatrix(_xyt);
 
         featureVec = new ArrayList<String>();
-        featureVec.add("green");
-        featureVec.add("stocked");
+        featureVec.add("COLOR=GREEN");
+        featureVec.add("SHAPE=CUBE");
+        featureVec.add("SIZE=LARGE");
+        featureVec.add("FULLNESS=STOCKED");
 
-        stateVec = new ArrayList<String>();
-        stateVec.add("door = CLOSED");
+        // Add actions
+        actions.put("DOOR", new ArrayList<String>());
+        actions.get("DOOR").add("OPEN");
+        actions.get("DOOR").add("OPEN");
+        currentState.put("DOOR", "CLOSED");
 
         Random r = new Random();
         id = r.nextInt();
@@ -108,37 +115,58 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
         return name;
     }
 
-    /*public String[] getNounjectives()
-    {
-        String[] nounjectives = new String[featureVec.size()];
-        featureVec.toArray(nounjectives);
-        return nounjectives;
-    }*/
     public String getProperties()
     {
-        return null;
+	StringBuilder properties = new StringBuilder();
+        for(int i=0; i<featureVec.size(); i++){
+            properties.append(featureVec.get(i)+",");
+        }
+        double[] xyt = LinAlg.matrixToXYT(pose);
+        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
+        return properties.toString();
     }
 
-    public boolean inRange(double[] xyt)
+    public boolean inSenseRange(double[] xyt)
     {
         double[] obj_xyt = LinAlg.matrixToXYT(pose);
         return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
     }
 
+    public boolean inActionRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < actionRange;
+    }
+
     public String[] getAllowedStates()
     {
-        String[] allStates = new String[stateVec.size()];
-        stateVec.toArray(allStates);
-        return allStates;
+        ArrayList<String> allStates = new ArrayList<String>();
+        for (String key: actions.keySet()) {
+            for (String value: actions.get(key)) {
+                allStates.add(key+"="+value);
+            }
+        }
+        String[] stateArray = allStates.toArray(new String[0]);
+        return stateArray;
     }
 
     public String getState()
     {
-        return stateVec.get(0); // XXX
+        StringBuilder state = new StringBuilder();
+        for (String key: currentState.keySet()) {
+            state.append(key+"="+currentState.get(key)+",");
+        }
+        return state.toString();
     }
 
     public void setState(String newState)
     {
-        stateVec.set(0, newState); // XXX
+        String[] allkvpairs = newState.split(",");
+        for(int i=0; i<allkvpairs.length; i++){
+            String[] keyValuePair = newState.split("=");
+	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+                currentState.put(keyValuePair[0], keyValuePair[1]);
+            }
+        }
     }
 }

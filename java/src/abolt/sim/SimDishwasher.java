@@ -16,11 +16,13 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
     double[][] pose;
     String name;
     ArrayList<String> featureVec;
-    ArrayList<String> stateVec;
+    HashMap<String, ArrayList<String> > actions = new HashMap<String, ArrayList<String> >();
+    HashMap<String, String> currentState = new HashMap<String, String>();
     int id;
 
     static final double extent = 0.2;
     static final double sensingRange = 0.5;
+    static final double actionRange = 0.15;
 
     // Make Dishwasher model
     static VisObject visModel;
@@ -50,12 +52,22 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
         name = _name;
 
         featureVec = new ArrayList<String>();
-        featureVec.add("cyan");
-        featureVec.add("square");
+        featureVec.add("COLOR=CYAN");
+        featureVec.add("SHAPE=CUBE");
+        featureVec.add("FULL=FALSE");
+        featureVec.add("SHAPE=CUBE");
 
-        stateVec = new ArrayList<String>();
-        stateVec.add("washing = OFF");
+	// Add actions
+	actions.put("TOGGLE", new ArrayList<String>());
+        actions.get("TOGGLE").add("ON");
+        actions.get("TOGGLE").add("OFF");
+        currentState.put("TOGGLE", "OFF");
 
+	actions.put("DOOR", new ArrayList<String>());
+        actions.get("DOOR").add("OPEN");
+        actions.get("DOOR").add("CLOSED");
+        currentState.put("DOOR", "CLOSED");
+	
         Random r = new Random();
         id = r.nextInt();
     }
@@ -106,37 +118,59 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
         return name;
     }
 
-    /*public String[] getNounjectives()
-    {
-        String[] nounjectives = new String[featureVec.size()];
-        featureVec.toArray(nounjectives);
-        return nounjectives;
-    }*/
     public String getProperties()
     {
-        return null;
+	StringBuilder properties = new StringBuilder();
+	for(int i=0; i<featureVec.size(); i++){
+            properties.append(featureVec.get(i)+",");
+        }
+        double[] xyt = LinAlg.matrixToXYT(pose); 
+        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better                                                                                                                      
+        
+	return properties.toString();
     }
 
-    public boolean inRange(double[] xyt)
+    public boolean inSenseRange(double[] xyt)
     {
         double[] obj_xyt = LinAlg.matrixToXYT(pose);
         return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < sensingRange;
     }
 
+    public boolean inActionRange(double[] xyt)
+    {
+        double[] obj_xyt = LinAlg.matrixToXYT(pose);
+        return LinAlg.distance(LinAlg.resize(obj_xyt, 2), LinAlg.resize(xyt, 2)) < actionRange;
+    }
+
     public String[] getAllowedStates()
     {
-        String[] allStates = new String[stateVec.size()];
-        stateVec.toArray(allStates);
-        return allStates;
+        ArrayList<String> allStates = new ArrayList<String>();
+        for (String key: actions.keySet()) {
+            for (String value: actions.get(key)) {
+		allStates.add(key+"="+value);
+            }
+        }
+        String[] stateArray = allStates.toArray(new String[0]);
+        return stateArray;
     }
 
     public String getState()
     {
-        return stateVec.get(0); // XXX
+        StringBuilder state = new StringBuilder();
+        for (String key: currentState.keySet()) {
+            state.append(key+"="+currentState.get(key)+",");
+        }
+        return state.toString();
     }
 
     public void setState(String newState)
     {
-        stateVec.set(0, newState); // XXX
+        String[] allkvpairs = newState.split(",");
+        for(int i=0; i<allkvpairs.length; i++){
+            String[] keyValuePair = newState.split("=");
+	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+                currentState.put(keyValuePair[0], keyValuePair[1]);
+            }
+        }
     }
 }
