@@ -12,6 +12,8 @@ import april.jmat.*;
 import april.vis.*;
 import april.sim.*;
 
+import abolt.util.*;
+
 public class BoltSim extends Simulator
 {
     public BoltSim(GetOpt gopt)
@@ -20,6 +22,54 @@ public class BoltSim extends Simulator
 
         {
             VzGrid.addGrid(vw, new VzGrid(new VzLines.Style(Color.gray, 1)));
+        }
+
+        RenderThread rt = new RenderThread(vw);
+        rt.start();
+    }
+
+    class RenderThread extends Thread
+    {
+        int fps = 30;
+
+        VisWorld vw;
+
+        public RenderThread(VisWorld _vw)
+        {
+            vw = _vw;
+        }
+
+        public void run()
+        {
+            while (true) {
+
+                for (SimObject o: world.objects) {
+                    if (o instanceof SimSensable) {
+                        SimSensable s = (SimSensable)o;
+                        String name = s.getName();
+                        if (name.equals("LIGHT_SWITCH")) {
+                            SimActionable a = (SimActionable)o;
+                            String toggleState = SimUtil.getTokenValue(a.getState(),
+                                                                       "TOGGLE");
+
+                            // Render lights XXX hack to expected sim world
+                            VisWorld.Buffer vb = vw.getBuffer("eye-candy");
+                            vb.setDrawOrder(-1000);
+
+                            VzSquare sq = new VzSquare(new VzMesh.Style(Color.yellow));
+                            if (toggleState.equals("ON")) {
+                                vb.addBack(new VisChain(LinAlg.scale(1.3),
+                                                        LinAlg.translate(1.20, 0.3),
+                                                        sq));
+                            }
+                            vb.swap();
+                        }
+                    }
+                }
+
+
+                TimeUtil.sleep(1000/fps);
+            }
         }
     }
 

@@ -219,8 +219,13 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
         synchronized(sw) {
             for (SimObject o: sw.objects) {
                 if (o instanceof SimActionable) {
-                    // XXX Right now, action have infinite range
                     SimActionable a = (SimActionable)o;
+
+                    // If not within action range, do not change state
+                    if (!a.inActionRange(pos))
+                        continue;
+
+                    // Update the state of the object in question
                     if (pairs[0].startsWith("NAME=")) {
                         if (o instanceof SimSensable) {
                             SimSensable s = (SimSensable)o;
@@ -243,18 +248,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 }
             }
         }
-        /*if (pos[0] >  kitchen[0][0] && pos[0] < kitchen[1][0] &&
-            pos[1] > kitchen[0][1] && pos[1] < kitchen[1][1]) {
-
-            if (action.startsWith("NAME=SWITCH,STATE=")) {
-                String act = action.substring(action.lastIndexOf("=") + 1);
-                if (act.equals("ON")) {
-                    kitchenLight = true;
-                } else if (act.equals("OFF"))  {
-                    kitchenLight = false;
-                }
-            }
-        }*/
     }
 
 
