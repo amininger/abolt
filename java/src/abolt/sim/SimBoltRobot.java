@@ -73,11 +73,9 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
         lcm.subscribe("ROBOT_COMMAND", this);
         lcm.subscribe("GAMEPAD", this);
 
-
         tasks.addFixedDelay(new ObservationsTask(), .2);
         tasks.addFixedDelay(new ControlTask(), .04);
-
-
+	
     }
 
     /** Where is the object? (4x4 matrix). It is safe to return your internal representation. **/
@@ -151,7 +149,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     }
 
 
-    boolean released = true; //XXX
+    boolean released = true; //XXX Grippers
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream  dins)
     {

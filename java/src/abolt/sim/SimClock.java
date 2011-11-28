@@ -113,7 +113,7 @@ public class SimClock implements SimObject, SimSensable
         return properties.toString();
     }
 
-    public boolean inRange(double[] xyt)
+    public boolean inSenseRange(double[] xyt)
     {
         double[] obj_xyt = LinAlg.matrixToXYT(pose);
         return LinAlg.distance(LinAlg.resize(obj_xyt,2), LinAlg.resize(xyt,2)) < sensingRange;
