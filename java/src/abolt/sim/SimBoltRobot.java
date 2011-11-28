@@ -75,7 +75,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
 
         tasks.addFixedDelay(new ObservationsTask(), .2);
         tasks.addFixedDelay(new ControlTask(), .04);
-	
+
     }
 
     /** Where is the object? (4x4 matrix). It is safe to return your internal representation. **/
@@ -158,17 +158,35 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 gamepad_t msg = new gamepad_t(dins);
                 gamepadCache.put(msg, msg.utime);
 
-                if ((msg.buttons & 2048) == 2048) { // left stick button
+                if ((msg.buttons & 2) == 2) { // #2 button...add range to light switch eventually
                     if (released) {
-
-                        /*robot_command_t toggle_light = new robot_command_t();
+                        robot_command_t toggle_light = new robot_command_t();
                         toggle_light.dest = new double[3];
-                        if (kitchenLight)
-                            toggle_light.action =  "NAME=SWITCH,STATE=OFF";
-                        else
-                            toggle_light.action =  "NAME=SWITCH,STATE=ON";
 
-                        lcm.publish("ROBOT_COMMAND", toggle_light);*/
+                        // XXX Quick hack
+                        for (SimObject o: sw.objects) {
+                            if (o instanceof SimSensable) {
+                                SimSensable s = (SimSensable)o;
+                                String name = s.getName();
+                                if (name.equals("LIGHT_SWITCH")) {
+                                    SimActionable a = (SimActionable)o;
+                                    String state = a.getState();
+                                    String[] tokens = state.split(",");
+                                    for (String token: tokens) {
+                                        if (token.startsWith("TOGGLE=")) {
+                                            String[] values = token.split("=");
+                                            if (values[1].equals("OFF"))
+                                                toggle_light.action="NAME=LIGHT_SWITCH,TOGGLE=ON";
+                                            else
+                                                toggle_light.action="NAME=LIGHT_SWITCH,TOGGLE=OFF";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+                        lcm.publish("ROBOT_COMMAND", toggle_light);
                         released = false;
                    }
                 } else {
