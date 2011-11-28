@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimPantry implements SimObject, SimSensable, SimActionable
+public class SimPantry implements SimObject, SimSensable, SimActionable, GrabbableFactory
 {
     // Simulator
     SimWorld sw;
@@ -51,8 +51,10 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
         this(sw, "PANTRY");
     }
 
-    public SimPantry(SimWorld sw, String _name)
+    public SimPantry(SimWorld _sw, String _name)
     {
+        sw = _sw;
+
         name = _name;
         //pose = LinAlg.xytToMatrix(_xyt);
 
@@ -171,5 +173,15 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
                 currentState.put(keyValuePair[0], keyValuePair[1]);
             }
         }
+    }
+
+    public SimGrabbable createGrabbable(String type)
+    {
+        if (type.equals("CHICKEN")) {
+            SimChicken chicken = new SimChicken(sw);
+            chicken.setPose(getPose());
+            return chicken;
+        }
+        return null;
     }
 }
