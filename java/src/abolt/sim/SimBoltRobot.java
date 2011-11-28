@@ -14,6 +14,7 @@ import april.sim.*;
 import april.lcmtypes.*;
 
 import abolt.lcmtypes.*;
+import abolt.util.*;
 
 public class SimBoltRobot implements SimObject, LCMSubscriber
 {
@@ -43,22 +44,22 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
 
     // The following are hacks! XXX
     /*
-    static double kitchen[][] = {{1,-.2},{1.5,.3}};
-    static double stove[][] = {{1,-.2}, {1.25,.05}};
+       static double kitchen[][] = {{1,-.2},{1.5,.3}};
+       static double stove[][] = {{1,-.2}, {1.25,.05}};
 
-    static double kitchenBox[][] = {{kitchen[0][0],kitchen[0][1], 0},
-                                    {kitchen[0][0],kitchen[1][1], 0},
-                                    {kitchen[1][0],kitchen[1][1], 0},
-                                    {kitchen[1][0],kitchen[0][1], 0}};
+       static double kitchenBox[][] = {{kitchen[0][0],kitchen[0][1], 0},
+       {kitchen[0][0],kitchen[1][1], 0},
+       {kitchen[1][0],kitchen[1][1], 0},
+       {kitchen[1][0],kitchen[0][1], 0}};
 
-    static double stoveBox[][] = {{stove[0][0],stove[0][1]},
-                                  {stove[0][0],stove[1][1]},
-                                  {stove[1][0],stove[1][1]},
-                                  {stove[1][0],stove[0][1]}};
+       static double stoveBox[][] = {{stove[0][0],stove[0][1]},
+       {stove[0][0],stove[1][1]},
+       {stove[1][0],stove[1][1]},
+       {stove[1][0],stove[0][1]}};
 
 
-    static boolean kitchenLight = false;
-    */
+       static boolean kitchenLight = false;
+       */
 
     SimWorld sw;
 
@@ -148,7 +149,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     }
 
 
-    boolean released = true; //XXX Grippers
+    boolean released2 = true;
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream  dins)
     {
@@ -157,39 +158,41 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 gamepad_t msg = new gamepad_t(dins);
                 gamepadCache.put(msg, msg.utime);
 
-                if ((msg.buttons & 2) == 2) { // #2 button...add range to light switch eventually
-                    robot_command_t toggle_action = new robot_command_t();
-                    toggle_action.dest = new double[3];
-		    toggle_action.action = "";
+                if ((msg.buttons & 2) == 2) { // #2 button toggles all actions in range (crazy, but whatever)
+                    if (released2) {
+                        ArrayList<robot_command_t> actions = new ArrayList<robot_command_t>();
 
-                    for(SimObject o: sw.objects){
-                        if (o instanceof SimSensable && o instanceof SimActionable){
-                            SimSensable s = (SimSensable)o;
-                            if (s.inSenseRange(drive.poseTruth.pos)){
-                                String name = s.getName();
+                        for(SimObject o: sw.objects){
+                            if (o instanceof SimSensable && o instanceof SimActionable){
+                                SimSensable s = (SimSensable)o;
                                 SimActionable a = (SimActionable)o;
-                                String curState = a.getState();
-                                String[] tokens = curState.split(",");
-
-                                String[] allStates = a.getAllowedStates();
-                                for(String state: allStates){
-                                    for(String token: tokens){
-                                        String[] actionable = token.split("=");
-                                        if(state.startsWith(actionable[0]) && !state.contains(actionable[1])){
-                                            toggle_action.action+=actionable[1]+",";
-                                        }
+                                if (s.inSenseRange(drive.poseTruth.pos)){
+                                    String name = s.getName();  // XXX what about SimBoltObjects?
+                                    String[] possStates = a.getAllowedStates();
+                                    String[] states = a.getState().split(",");
+                                    for (String state: states) {
+                                        String[] keyValuePair = state.split("=");
+                                        ArrayList<String> values = SimUtil.getPossibleValues(possStates,
+                                                                                             keyValuePair[0]);
+                                        robot_command_t action = new robot_command_t();
+                                        action.utime = TimeUtil.utime();
+                                        action.dest = new double[3];
+                                        // XXX Gripper state...action.gripper_open = false;
+                                        action.action = "NAME="+name+","+keyValuePair[0]+"="+SimUtil.nextValue(values, keyValuePair[1]);
+                                        actions.add(action);
                                     }
+
                                 }
                             }
                         }
-			if (toggle_action.action != ""){
-			    lcm.publish("ROBOT_COMMAND", toggle_action);
-			}
+                        for (robot_command_t action: actions) {
+                            lcm.publish("ROBOT_COMMAND", action);
+                        }
 
-                        released = false;
-                   }
+                        released2 = false;
+                    }
                 } else {
-                    released = true;
+                    released2 = true;
                 }
 
             } else if (channel.equals("ROBOT_COMMAND")) {
@@ -302,24 +305,24 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
 
             // Stove
             /*if (pos[0] >  stove[0][0] && pos[0] < stove[1][0] &&
-                pos[1] > stove[0][1] && pos[1] < stove[1][1]) {
-                object_data_t stove_data = new object_data_t();
-                stove_data.utime = TimeUtil.utime();
-                stove_data.id = 17;
-                stove_data.nounjectives = new String[]{"HOTNESS=375","COLOR=white"};
-                stove_data.nj_len = stove_data.nounjectives.length;
+              pos[1] > stove[0][1] && pos[1] < stove[1][1]) {
+              object_data_t stove_data = new object_data_t();
+              stove_data.utime = TimeUtil.utime();
+              stove_data.id = 17;
+              stove_data.nounjectives = new String[]{"HOTNESS=375","COLOR=white"};
+              stove_data.nj_len = stove_data.nounjectives.length;
 
-                stove_data.pos = LinAlg.resize(LinAlg.scale(LinAlg.add(stove[0],stove[1]),.5),3);
-                stove_data.pos[2] = 14*Math.PI; // No heading information
-                obsList.add(stove_data);
-            }
+              stove_data.pos = LinAlg.resize(LinAlg.scale(LinAlg.add(stove[0],stove[1]),.5),3);
+              stove_data.pos[2] = 14*Math.PI; // No heading information
+              obsList.add(stove_data);
+              }
 
             // Kitchen
             if (pos[0] >  kitchen[0][0] && pos[0] < kitchen[1][0] &&
-                pos[1] > kitchen[0][1] && pos[1] < kitchen[1][1]) {
-                Calendar cal = Calendar.getInstance();
-                sensList.add(String.format("NAME=CLOCK,STATE=%dh%dm",cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)));
-                sensList.add("NAME=SWITCH,STATE="+(kitchenLight? "ON" : "OFF"));
+            pos[1] > kitchen[0][1] && pos[1] < kitchen[1][1]) {
+            Calendar cal = Calendar.getInstance();
+            sensList.add(String.format("NAME=CLOCK,STATE=%dh%dm",cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)));
+            sensList.add("NAME=SWITCH,STATE="+(kitchenLight? "ON" : "OFF"));
             }
             */
 
