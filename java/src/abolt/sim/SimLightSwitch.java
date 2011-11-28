@@ -117,12 +117,12 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
     // Return comma-separated properties and pose at end(separated by space)
     public String getProperties()
     {
-	StringBuilder properties = new StringBuilder();
-	for(int i=0; i<featureVec.size(); i++){
-	    properties.append(featureVec.get(i)+",");
-	}
-	double[] xyt = LinAlg.matrixToXYT(pose);
-        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
+        StringBuilder properties = new StringBuilder();
+        for(int i=0; i<featureVec.size(); i++){
+            properties.append(featureVec.get(i)+",");
+        }
+        double[] xyt = LinAlg.matrixToXYT(pose);
+        properties.append("["+xyt[0]+" "+xyt[1]+" "+xyt[2]+"],"); //XXX format better
         return properties.toString();
     }
 
@@ -161,12 +161,12 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 
     public void setState(String newState)
     {
-	String[] allkvpairs = newState.split(",");
-	for(int i=0; i<allkvpairs.length; i++){
-	    String[] keyValuePair = newState.split("=");
-	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+        String[] allkvpairs = newState.split(",");
+        for(int i=0; i<allkvpairs.length; i++){
+            String[] keyValuePair = newState.split("=");
+            if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
                 currentState.put(keyValuePair[0], keyValuePair[1]);
             }
-	}
-    } 
+        }
+    }
 }

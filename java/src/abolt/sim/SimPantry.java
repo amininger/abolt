@@ -13,10 +13,13 @@ import april.util.*;
 
 public class SimPantry implements SimObject, SimSensable, SimActionable
 {
+    // Simulator
+    SimWorld sw;
+
     double[][] pose;
     String name;
     HashMap<String, ArrayList<String> > actions = new HashMap<String, ArrayList<String> >();
-    HashMap<String, String> currentState = new HashMap<String, String>();    
+    HashMap<String, String> currentState = new HashMap<String, String>();
     ArrayList<String> featureVec;
     int id;
 
@@ -117,12 +120,12 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
 
     public String getProperties()
     {
-	StringBuilder properties = new StringBuilder();
+        StringBuilder properties = new StringBuilder();
         for(int i=0; i<featureVec.size(); i++){
             properties.append(featureVec.get(i)+",");
         }
         double[] xyt = LinAlg.matrixToXYT(pose);
-        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
+        properties.append("["+xyt[0]+" "+xyt[1]+" "+xyt[2]+"],"); //XXX format better
         return properties.toString();
     }
 
@@ -164,7 +167,7 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
         String[] allkvpairs = newState.split(",");
         for(int i=0; i<allkvpairs.length; i++){
             String[] keyValuePair = newState.split("=");
-	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+            if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
                 currentState.put(keyValuePair[0], keyValuePair[1]);
             }
         }

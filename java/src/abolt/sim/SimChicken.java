@@ -11,6 +11,8 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
+import abolt.util.*;
+
 public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
 {
     double[][] pose;
@@ -54,7 +56,7 @@ public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
         featureVec.add("DIRTY");
         featureVec.add("CYLINDER");
 
-	// Add actions
+        // Add actions
         actions.put("CLEAN", new ArrayList<String>());
         actions.get("CLEAN").add("CLEAN");
         actions.get("CLEAN").add("DIRTY");
@@ -70,8 +72,8 @@ public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
         actions.get("HELD").add("FALSE");
         currentState.put("HELD", "FALSE");
 
-        Random r = new Random();
-        id = r.nextInt();
+        //Random r = new Random();
+        id = SimUtil.nextID();
     }
 
     public double[][] getPose()
@@ -85,7 +87,7 @@ public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
     }
 
     public void setLoc(double[] xyt){
-	pose = LinAlg.xytToMatrix(xyt); // XXX : should maybe be a matrix transform
+        pose = LinAlg.xytToMatrix(xyt); // XXX : should maybe be a matrix transform
     }
 
     public Shape getShape()
@@ -126,10 +128,10 @@ public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
 
     public String[] getNounjectives()
     {
-	String[] features = new String[featureVec.size()];
-	for(int i=0; i<featureVec.size(); i++){
-	    features[i] = featureVec.get(i);
-	}
+        String[] features = new String[featureVec.size()];
+        for(int i=0; i<featureVec.size(); i++){
+            features[i] = featureVec.get(i);
+        }
 
         return features;
     }
@@ -172,11 +174,11 @@ public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
         String[] allkvpairs = newState.split(",");
         for(int i=0; i<allkvpairs.length; i++){
             String[] keyValuePair = newState.split("=");
-	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
-		currentState.put(keyValuePair[0], keyValuePair[1]);
-	    }
+            if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+                currentState.put(keyValuePair[0], keyValuePair[1]);
+            }
         }
     }
 
-    
+
 }

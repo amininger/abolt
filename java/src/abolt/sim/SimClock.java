@@ -107,9 +107,10 @@ public class SimClock implements SimObject, SimSensable
         for(int i=0; i<featureVec.size(); i++){
             properties.append(featureVec.get(i)+",");
         }
+        // XXX Time?
         double[] xyt = LinAlg.matrixToXYT(pose);
-        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
-                                                                                                                      
+        properties.append("["+xyt[0]+" "+xyt[1]+" "+xyt[2]+"],"); //XXX format better
+
         return properties.toString();
     }
 

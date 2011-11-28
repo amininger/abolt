@@ -57,17 +57,17 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
         featureVec.add("FULL=FALSE");
         featureVec.add("SHAPE=CUBE");
 
-	// Add actions
-	actions.put("TOGGLE", new ArrayList<String>());
+        // Add actions
+        actions.put("TOGGLE", new ArrayList<String>());
         actions.get("TOGGLE").add("ON");
         actions.get("TOGGLE").add("OFF");
         currentState.put("TOGGLE", "OFF");
 
-	actions.put("DOOR", new ArrayList<String>());
+        actions.put("DOOR", new ArrayList<String>());
         actions.get("DOOR").add("OPEN");
         actions.get("DOOR").add("CLOSED");
         currentState.put("DOOR", "CLOSED");
-	
+
         Random r = new Random();
         id = r.nextInt();
     }
@@ -120,14 +120,14 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
 
     public String getProperties()
     {
-	StringBuilder properties = new StringBuilder();
-	for(int i=0; i<featureVec.size(); i++){
+        StringBuilder properties = new StringBuilder();
+        for(int i=0; i<featureVec.size(); i++){
             properties.append(featureVec.get(i)+",");
         }
-        double[] xyt = LinAlg.matrixToXYT(pose); 
-        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better                                                                                                                      
-        
-	return properties.toString();
+        double[] xyt = LinAlg.matrixToXYT(pose);
+        properties.append("["+xyt[0]+" "+xyt[1]+" "+xyt[2]+"],"); //XXX format better
+
+        return properties.toString();
     }
 
     public boolean inSenseRange(double[] xyt)
@@ -147,7 +147,7 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
         ArrayList<String> allStates = new ArrayList<String>();
         for (String key: actions.keySet()) {
             for (String value: actions.get(key)) {
-		allStates.add(key+"="+value);
+                allStates.add(key+"="+value);
             }
         }
         String[] stateArray = allStates.toArray(new String[0]);
@@ -168,7 +168,7 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
         String[] allkvpairs = newState.split(",");
         for(int i=0; i<allkvpairs.length; i++){
             String[] keyValuePair = newState.split("=");
-	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+            if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
                 currentState.put(keyValuePair[0], keyValuePair[1]);
             }
         }

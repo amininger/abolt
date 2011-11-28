@@ -126,7 +126,7 @@ public class SimStove implements SimObject, SimSensable, SimActionable
             properties.append(featureVec.get(i)+",");
         }
         double[] xyt = LinAlg.matrixToXYT(pose);
-        properties.append(xyt[0]+" "+xyt[1]+" "+xyt[2]+","); //XXX format better
+        properties.append("["+xyt[0]+" "+xyt[1]+" "+xyt[2]+"],"); //XXX format better
 
         return properties.toString();
     }
