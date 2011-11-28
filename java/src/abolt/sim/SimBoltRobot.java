@@ -118,7 +118,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
             drive.poseOdom.orientation = LinAlg.matrixToQuat(Todom);
             drive.poseOdom.pos = new double[] { Todom[0][3], Todom[1][3], Todom[2][3] };
         }
-
     }
 
     /** Write one or more lines that serialize this instance. No line
@@ -159,34 +158,34 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                 gamepadCache.put(msg, msg.utime);
 
                 if ((msg.buttons & 2) == 2) { // #2 button...add range to light switch eventually
-                    if (released) {
-                        robot_command_t toggle_light = new robot_command_t();
-                        toggle_light.dest = new double[3];
+                    robot_command_t toggle_action = new robot_command_t();
+                    toggle_action.dest = new double[3];
+		    toggle_action.action = "";
 
-                        // XXX Quick hack
-                        for (SimObject o: sw.objects) {
-                            if (o instanceof SimSensable) {
-                                SimSensable s = (SimSensable)o;
+                    for(SimObject o: sw.objects){
+                        if (o instanceof SimSensable && o instanceof SimActionable){
+                            SimSensable s = (SimSensable)o;
+                            if (s.inSenseRange(drive.poseTruth.pos)){
                                 String name = s.getName();
-                                if (name.equals("LIGHT_SWITCH")) {
-                                    SimActionable a = (SimActionable)o;
-                                    String state = a.getState();
-                                    String[] tokens = state.split(",");
-                                    for (String token: tokens) {
-                                        if (token.startsWith("TOGGLE=")) {
-                                            String[] values = token.split("=");
-                                            if (values[1].equals("OFF"))
-                                                toggle_light.action="NAME=LIGHT_SWITCH,TOGGLE=ON";
-                                            else
-                                                toggle_light.action="NAME=LIGHT_SWITCH,TOGGLE=OFF";
+                                SimActionable a = (SimActionable)o;
+                                String curState = a.getState();
+                                String[] tokens = curState.split(",");
+
+                                String[] allStates = a.getAllowedStates();
+                                for(String state: allStates){
+                                    for(String token: tokens){
+                                        String[] actionable = token.split("="); 
+                                        if(state.startsWith(actionable[0]) && !state.contains(actionable[1])){
+                                            toggle_action.action+=actionable[1]+",";                       
                                         }
                                     }
                                 }
                             }
                         }
+			if (toggle_action.action != ""){
+			    lcm.publish("ROBOT_COMMAND", toggle_action);
+			}
 
-
-                        lcm.publish("ROBOT_COMMAND", toggle_light);
                         released = false;
                    }
                 } else {
@@ -219,25 +218,26 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
         synchronized(sw) {
             for (SimObject o: sw.objects) {
                 if (o instanceof SimActionable) {
-                    // XXX Right now, action have infinite range
                     SimActionable a = (SimActionable)o;
-                    if (pairs[0].startsWith("NAME=")) {
-                        if (o instanceof SimSensable) {
-                            SimSensable s = (SimSensable)o;
-                            String name = s.getName();
-                            if (!pairs[0].equals("NAME="+name))
-                                continue;
-                            a.setState(pairs[1]);
-                        }
-                    } else if (pairs[0].startsWith("ID=")) {
-                        if (o instanceof SimBoltObject) {
-                            SimBoltObject bo = (SimBoltObject)o;
-                            int ID = bo.getID();
-                            String[] tokens = pairs[0].split("=");
-                            assert(tokens.length > 1);
-                            if (Integer.valueOf(tokens[1]) != ID)
-                                continue;
-                            a.setState(pairs[1]);
+                    if(a.inActionRange(pos)){
+                        if (pairs[0].startsWith("NAME=")) {
+                            if (o instanceof SimSensable) {
+                                SimSensable s = (SimSensable)o;
+                                String name = s.getName();
+                                if (!pairs[0].equals("NAME="+name))
+                                    continue;
+                                a.setState(pairs[1]);
+                            }
+                        } else if (pairs[0].startsWith("ID=")) {
+                            if (o instanceof SimBoltObject) {
+                                SimBoltObject bo = (SimBoltObject)o;
+                                int ID = bo.getID();
+                                String[] tokens = pairs[0].split("=");
+                                assert(tokens.length > 1);
+                                if (Integer.valueOf(tokens[1]) != ID)
+                                    continue;
+                                a.setState(pairs[1]);
+                            }
                         }
                     }
                 }
