@@ -49,8 +49,6 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 
     public SimLightSwitch(SimWorld sw, String _name)
     {
-
-        //pose = LinAlg.xytToMatrix(_xyt);
         name = _name;
 
         featureVec = new ArrayList<String>();
@@ -64,9 +62,6 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
         actions.get("TOGGLE").add("ON");
         actions.get("TOGGLE").add("OFF");
         currentState.put("TOGGLE", "OFF");
-
-        Random r = new Random();
-        id = r.nextInt();
     }
 
     public double[][] getPose()
@@ -86,7 +81,16 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 
     public VisObject getVisObject()
     {
-        return visModel;
+        if (currentState.get("TOGGLE").equals("OFF"))
+            return visModel;
+        else {
+            VzSquare sq = new VzSquare(new VzMesh.Style(Color.yellow));
+            VisChain vc = new VisChain(visModel,
+                                       LinAlg.scale(1.3),
+                                       LinAlg.translate(-0.4, 0.37),
+                                       sq);
+            return vc;
+        }
     }
 
     public void read(StructureReader ins) throws IOException
@@ -103,10 +107,6 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
     public void setRunning(boolean run)
     {
 
-    }
-    public int getID()
-    {
-        return id;
     }
 
     public String getName()

@@ -13,7 +13,7 @@ import april.util.*;
 
 import abolt.util.*;
 
-public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
+public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimGrabbable
 {
     double[][] pose;
     String name;
@@ -22,21 +22,23 @@ public class SimChicken implements SimBoltObject, SimActionable, SimGrabbable
     ArrayList<String> featureVec;
     int id;
 
-    static final double extent = 0.025;
+    static final double extent = 0.03;
     static final double sensingRange = .5;
-    static final double actionRange = .005;
+    static final double actionRange = .1;
 
     // Make Chicken model
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.scale(extent),
-                                   new VzCylinder(new VzMesh.Style(new Color(0xC2B280))));
+                                   LinAlg.translate(0,0,1),
+                                   new VzCylinder(new VzMesh.Style(new Color(0xA29260))));
         visModel = vc;
     }
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-0.5*extent);
+        // XXX Really should be collidable, but for now, not
+        collisionShape = new SphereShape(-extent);
     }
 
     public SimChicken(SimWorld sw)

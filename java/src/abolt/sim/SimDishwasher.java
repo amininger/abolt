@@ -28,6 +28,7 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.scale(extent),
+                                   LinAlg.translate(0,0,0.001),
                                    new VzSquare(new VzLines.Style(Color.cyan,2)),
                                    LinAlg.translate(0,-2*extent,0),
                                    LinAlg.scale(.005),

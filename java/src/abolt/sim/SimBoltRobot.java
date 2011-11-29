@@ -41,25 +41,8 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     robot_command_t cmds; // most recent command received from somewhere
     DifferentialDrive drive;
 
-
-    // The following are hacks! XXX
-    /*
-       static double kitchen[][] = {{1,-.2},{1.5,.3}};
-       static double stove[][] = {{1,-.2}, {1.25,.05}};
-
-       static double kitchenBox[][] = {{kitchen[0][0],kitchen[0][1], 0},
-       {kitchen[0][0],kitchen[1][1], 0},
-       {kitchen[1][0],kitchen[1][1], 0},
-       {kitchen[1][0],kitchen[0][1], 0}};
-
-       static double stoveBox[][] = {{stove[0][0],stove[0][1]},
-       {stove[0][0],stove[1][1]},
-       {stove[1][0],stove[1][1]},
-       {stove[1][0],stove[0][1]}};
-
-
-       static boolean kitchenLight = false;
-       */
+    // Object we're holding onto
+    SimGrabbable grabbedObject = null;
 
     SimWorld sw;
 
@@ -163,25 +146,30 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                         ArrayList<robot_command_t> actions = new ArrayList<robot_command_t>();
 
                         for(SimObject o: sw.objects){
-                            if (o instanceof SimSensable && o instanceof SimActionable){
-                                SimSensable s = (SimSensable)o;
+                            if (o instanceof SimActionable) {
                                 SimActionable a = (SimActionable)o;
-                                if (s.inSenseRange(drive.poseTruth.pos)){
-                                    String name = s.getName();  // XXX what about SimBoltObjects?
-                                    String[] possStates = a.getAllowedStates();
-                                    String[] states = a.getState().split(",");
-                                    for (String state: states) {
-                                        String[] keyValuePair = state.split("=");
-                                        ArrayList<String> values = SimUtil.getPossibleValues(possStates,
-                                                                                             keyValuePair[0]);
-                                        robot_command_t action = new robot_command_t();
-                                        action.utime = TimeUtil.utime();
-                                        action.dest = new double[3];
-                                        // XXX Gripper state...action.gripper_open = false;
-                                        action.action = "NAME="+name+","+keyValuePair[0]+"="+SimUtil.nextValue(values, keyValuePair[1]);
-                                        actions.add(action);
-                                    }
-
+                                String[] possStates = a.getAllowedStates();
+                                String[] states = a.getState().split(",");
+                                String name = null;
+                                int id = -1;
+                                if (o instanceof SimSensable) {
+                                    SimSensable s = (SimSensable)o;
+                                    name = s.getName();
+                                }
+                                else if (o instanceof SimBoltObject) {
+                                    SimBoltObject bo = (SimBoltObject)o;
+                                    id = bo.getID();
+                                }
+                                for (String state: states) {
+                                    String[] keyValuePair = state.split("=");
+                                    ArrayList<String> values = SimUtil.getPossibleValues(possStates,
+                                                                                         keyValuePair[0]);
+                                    robot_command_t action = new robot_command_t();
+                                    action.utime = TimeUtil.utime();
+                                    action.dest = new double[3];
+                                    action.action = (name == null ? ("ID="+id) : ("NAME="+name))+","+keyValuePair[0]+"="+SimUtil.nextValue(values, keyValuePair[1]);
+                                    action.gripper_open = (grabbedObject == null);
+                                    actions.add(action);
                                 }
                             }
                         }
@@ -226,6 +214,25 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                     // If not within action range, do not change state
                     if (!a.inActionRange(pos))
                         continue;
+
+                    // Check for holding action. If we ask to grab something
+                    // and we aren't holding anything, pick it up.
+                    String grab = SimUtil.getTokenValue(pairs[1], "HELD");
+                    if (grab != null &&
+                        grab.equals("TRUE") &&
+                        grabbedObject == null &&
+                        (o instanceof SimGrabbable))
+                    {
+                        grabbedObject = (SimGrabbable)o;
+                    }
+                    else if (grab != null &&
+                             grab.equals("FALSE") &&
+                             grabbedObject != null)
+                    {
+                        if (grabbedObject == o) {
+                            grabbedObject = null;
+                        }
+                    }
 
                     // Update the state of the object in question
                     if (pairs[0].startsWith("NAME=")) {
@@ -361,6 +368,11 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
             }
 
             drive.motorCommands = mcmd;
+
+            // Update held object position
+            if (grabbedObject != null) {
+                grabbedObject.setLoc(LinAlg.matrixToXYT(getPose()));
+            }
         }
     }
 

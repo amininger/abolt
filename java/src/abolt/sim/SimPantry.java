@@ -11,7 +11,7 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
-public class SimPantry implements SimObject, SimSensable, SimActionable, GrabbableFactory
+public class SimPantry implements SimObject, SimSensable, SimActionable
 {
     // Simulator
     SimWorld sw;
@@ -32,6 +32,7 @@ public class SimPantry implements SimObject, SimSensable, SimActionable, Grabbab
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.scale(xextent, yextent, 1),
+                                   LinAlg.translate(0,0,0.001),
                                    new VzSquare(new VzLines.Style(Color.green,2)),
                                    LinAlg.translate(-2*xextent,0,0),
                                    LinAlg.rotateZ(-Math.PI/2),
@@ -166,6 +167,8 @@ public class SimPantry implements SimObject, SimSensable, SimActionable, Grabbab
 
     public void setState(String newState)
     {
+        // XXX Handle grabbing...
+
         String[] allkvpairs = newState.split(",");
         for(int i=0; i<allkvpairs.length; i++){
             String[] keyValuePair = newState.split("=");
@@ -173,15 +176,18 @@ public class SimPantry implements SimObject, SimSensable, SimActionable, Grabbab
                 currentState.put(keyValuePair[0], keyValuePair[1]);
             }
         }
-    }
 
-    public SimGrabbable createGrabbable(String type)
-    {
-        if (type.equals("CHICKEN")) {
-            SimChicken chicken = new SimChicken(sw);
-            chicken.setPose(getPose());
-            return chicken;
-        }
-        return null;
+        // Make chickens available if door is open
+        /*if (currentState.get("DOOR").equals("OPEN") &&
+            !currentState.containsKey("GRAB"))
+        {
+            currentState.put("GRAB","NOTHING");
+            actions.put("GRAB",new ArrayList<String>());
+            actions.get("GRAB").add("NOTHING");
+            actions.get("GRAB").add("CHICKEN");
+        } else if (currentState.get("DOOR").equals("CLOSED")) {
+            currentState.remove("GRAB");
+            actions.remove("GRAB");
+        }*/
     }
 }
