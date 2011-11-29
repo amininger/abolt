@@ -346,28 +346,35 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     {
         public void run(double dt)
         {
-            double mcmd[] = new double[2];
+            double cmd[] = new double[2];
 
             gamepad_t gp = gamepadCache.get();
             if (gp != null) {
-
                 final int RIGHT_VERT_AXIS = 3;
                 final int RIGHT_HORZ_AXIS = 2;
 
                 double speed = -gp.axes[RIGHT_VERT_AXIS];
-                if ((gp.buttons&(16|64)) != 0)
-                    speed *= 4;
-
                 double turn = gp.axes[RIGHT_HORZ_AXIS];
 
-                if (gp.buttons != 0) {
-                    mcmd = new double[] { speed + turn, speed - turn };
+
+                if (true) { // Use D-PAD when in use, also enables compatability with KeyboardGamepad
+                    if (Math.abs(gp.axes[5]) > Math.abs(speed))
+                        speed = -gp.axes[5];
+                    if (Math.abs(gp.axes[4]) > Math.abs(turn))
+                        turn = gp.axes[4]*.25; // Don't want to turn out of control!
                 }
-            } else {
-                System.out.println("GAMEPAD NULL");
+
+
+                if (gp.buttons != 0) { // check 'estop'
+                    cmd = new double[] { speed + turn, speed - turn };
+                }
+
+                if ((gp.buttons&(16|64)) != 0) // turbo boost
+                    cmd = LinAlg.scale(cmd,4);
+
             }
 
-            drive.motorCommands = mcmd;
+            drive.motorCommands = cmd;
 
             // Update held object position
             if (grabbedObject != null) {
