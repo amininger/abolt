@@ -33,7 +33,7 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
     static {
         VisChain vc = new VisChain(LinAlg.scale(xextent, yextent, 1),
                                    LinAlg.translate(0,0,0.001),
-                                   new VzSquare(new VzLines.Style(Color.green,2)),
+                                   new VzRectangle(new VzLines.Style(Color.green,2)),
                                    LinAlg.translate(-2*xextent,0,0),
                                    LinAlg.rotateZ(-Math.PI/2),
                                    LinAlg.scale(.005),

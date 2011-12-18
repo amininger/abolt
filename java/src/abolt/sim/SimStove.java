@@ -30,7 +30,7 @@ public class SimStove implements SimObject, SimSensable, SimActionable
     static {
         VisChain vc = new VisChain(LinAlg.scale(extent),
                                    LinAlg.translate(0,0,0.001),
-                                   new VzSquare(new VzLines.Style(Color.red,2)),
+                                   new VzRectangle(new VzLines.Style(Color.red,2)),
                                    LinAlg.translate(0,-2*extent,0),
                                    LinAlg.scale(.005),
                                    new VzText(VzText.ANCHOR.CENTER,
