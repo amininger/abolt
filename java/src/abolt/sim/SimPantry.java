@@ -11,6 +11,8 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
+import abolt.util.*;
+
 public class SimPantry implements SimObject, SimSensable, SimActionable
 {
     // Simulator
@@ -44,20 +46,14 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-0.5*Math.max(yextent,xextent));
+        collisionShape = new BoxShape(new double[] {xextent, yextent, 0});
     }
 
-    public SimPantry(SimWorld sw)
-    {
-        this(sw, "PANTRY");
-    }
-
-    public SimPantry(SimWorld _sw, String _name)
+    public SimPantry(SimWorld _sw)
     {
         sw = _sw;
 
-        name = _name;
-        //pose = LinAlg.xytToMatrix(_xyt);
+        name = "PANTRY";
 
         featureVec = new ArrayList<String>();
         featureVec.add("COLOR=GREEN");
@@ -71,8 +67,7 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
         actions.get("DOOR").add("OPEN");
         currentState.put("DOOR", "CLOSED");
 
-        Random r = new Random();
-        id = r.nextInt();
+        id = SimUtil.nextID();
     }
 
     public double[][] getPose()

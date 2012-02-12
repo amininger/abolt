@@ -1,4 +1,3 @@
-
 package abolt.sim;
 
 import java.awt.Color;
@@ -11,6 +10,8 @@ import april.sim.*;
 import april.jmat.*;
 import april.vis.*;
 import april.util.*;
+
+import abolt.util.*;
 
 public class SimStove implements SimObject, SimSensable, SimActionable
 {
@@ -46,32 +47,25 @@ public class SimStove implements SimObject, SimSensable, SimActionable
 
     public SimStove(SimWorld sw)
     {
-        this(sw, "STOVE");
-    }
-
-    public SimStove(SimWorld sw, String _name)
-    {
-        //pose = LinAlg.xytToMatrix(_xyt);
-        name = _name;
+        name = "STOVE";
 
         featureVec = new ArrayList<String>();
         featureVec.add("COLOR=RED");
         featureVec.add("SHAPE=CUBE");
         featureVec.add("SIZE=MEDIUM");
 
-	// Add actions
-	actions.put("DOOR", new ArrayList<String>());
+        // Add actions
+        actions.put("DOOR", new ArrayList<String>());
         actions.get("DOOR").add("OPEN");
         actions.get("DOOR").add("CLOSED");
         currentState.put("DOOR", "CLOSED");
 
-	actions.put("COOKING", new ArrayList<String>());
+        actions.put("COOKING", new ArrayList<String>());
         actions.get("COOKING").add("ON");
         actions.get("COOKING").add("OFF");
         currentState.put("COOKING", "OFF");
 
-        Random r = new Random();
-        id = r.nextInt();
+        id = SimUtil.nextID();
     }
 
     public double[][] getPose()

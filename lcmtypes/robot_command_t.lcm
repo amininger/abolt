@@ -2,9 +2,8 @@ struct robot_command_t
 {
     int64_t utime;
 
-    double dest[3];// xyt -- set theta outside [-2pi, 2pi] range to indicate heading doesn't matter
+    boolean updateDest; // true -- interpret dest as a movement command | false -- values are merely a position report
+    double dest[6]; // xyzrpy -- warning, some positions may not be possible, but simulation does not yet reflect this
 
-    string action; // turn off a switch: x"NAME=SWITCH,STATE=OFF"
-
-    boolean gripper_open; // false --  gripper is closed  true -- gripper is open
+    string action; // turn off a switch: "NAME=SWITCH,STATE=OFF"
 }

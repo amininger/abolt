@@ -11,6 +11,8 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
+import abolt.util.*;
+
 public class SimClock implements SimObject, SimSensable
 {
     double[][] pose;
@@ -38,21 +40,15 @@ public class SimClock implements SimObject, SimSensable
 
     public SimClock(SimWorld sw)
     {
-        this(sw, "CLOCK");
-    }
-
-    public SimClock(SimWorld sw, String _name)
-    {
         //pose = LinAlg.xytToMatrix(_xyt);
-        name = _name;
+        name = "CLOCK";
 
         featureVec = new ArrayList<String>();
-	featureVec.add("SHAPE=ROUND");
+        featureVec.add("SHAPE=ROUND");
         featureVec.add("COLOR=BLACK");
         featureVec.add("SIZE=SMALL");
 
-        Random r = new Random();
-        id = r.nextInt();
+        id = SimUtil.nextID();
     }
 
     public double[][] getPose()

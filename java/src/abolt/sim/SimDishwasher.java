@@ -11,6 +11,8 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
+import abolt.util.*;
+
 public class SimDishwasher implements SimObject, SimSensable, SimActionable
 {
     double[][] pose;
@@ -44,13 +46,7 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
 
     public SimDishwasher(SimWorld sw)
     {
-        this(sw, "DISHWASHER");
-    }
-
-    public SimDishwasher(SimWorld sw, String _name)
-    {
-        //pose = LinAlg.xytToMatrix(_xyt);
-        name = _name;
+        name = "DISHWASHER";
 
         featureVec = new ArrayList<String>();
         featureVec.add("COLOR=CYAN");
@@ -69,8 +65,7 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
         actions.get("DOOR").add("CLOSED");
         currentState.put("DOOR", "CLOSED");
 
-        Random r = new Random();
-        id = r.nextInt();
+        id = SimUtil.nextID();
     }
 
     public double[][] getPose()

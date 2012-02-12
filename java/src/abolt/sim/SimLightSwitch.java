@@ -11,6 +11,8 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
+import abolt.util.*;
+
 public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 {
     double[][] pose;
@@ -44,12 +46,7 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
 
     public SimLightSwitch(SimWorld sw)
     {
-        this(sw, "LIGHT_SWITCH");
-    }
-
-    public SimLightSwitch(SimWorld sw, String _name)
-    {
-        name = _name;
+        name = "LIGHT_SWITCH";
 
         featureVec = new ArrayList<String>();
         featureVec.add("COLOR=BEIGE");
@@ -62,6 +59,8 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
         actions.get("TOGGLE").add("ON");
         actions.get("TOGGLE").add("OFF");
         currentState.put("TOGGLE", "OFF");
+
+        id = SimUtil.nextID();
     }
 
     public double[][] getPose()
@@ -112,6 +111,11 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
     public String getName()
     {
         return name;
+    }
+
+    public int getID()
+    {
+        return id;
     }
 
     // Return comma-separated properties and pose at end(separated by space)

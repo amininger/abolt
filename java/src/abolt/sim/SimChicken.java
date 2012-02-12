@@ -43,13 +43,8 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
 
     public SimChicken(SimWorld sw)
     {
-        this(sw, "CHICKEN");
-    }
-
-    public SimChicken(SimWorld sw, String _name)
-    {
         //pose = LinAlg.xytToMatrix(_xyt);
-        name = _name;
+        name = "CHICKEN";
 
         featureVec = new ArrayList<String>();
         // Temporary: populated with object color and dimensions and then randomness
@@ -67,7 +62,7 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
         actions.put("COOKED", new ArrayList<String>());
         actions.get("COOKED").add("COOKED");
         actions.get("COOKED").add("RAW");
-        currentState.put("COOKED", "RAW");
+        currentState.put("COOKED", "RAW");  // NOTE: Sim does not reflect the one-way transition from raw to cooked. You cannot uncook something.
 
         actions.put("HELD", new ArrayList<String>());
         actions.get("HELD").add("TRUE");
@@ -88,8 +83,8 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
         pose = LinAlg.copy(T);
     }
 
-    public void setLoc(double[] xyt){
-        pose = LinAlg.xytToMatrix(xyt); // XXX : should maybe be a matrix transform
+    public void setLoc(double[] xyzrpy){
+        pose = LinAlg.xyzrpyToMatrix(xyzrpy);
     }
 
     public Shape getShape()
