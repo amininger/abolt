@@ -164,7 +164,9 @@ public class SimStove implements SimObject, SimSensable, SimActionable
         String[] allkvpairs = newState.split(",");
         for(int i=0; i<allkvpairs.length; i++){
             String[] keyValuePair = newState.split("=");
-	    if(actions.get(keyValuePair[0]).contains(keyValuePair[1])){
+            if ((actions.get(keyValuePair[0]) != null) &&
+                actions.get(keyValuePair[0]).contains(keyValuePair[1]))
+            {
                 currentState.put(keyValuePair[0], keyValuePair[1]);
             }
         }
