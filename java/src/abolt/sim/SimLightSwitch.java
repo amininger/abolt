@@ -31,7 +31,7 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
     static VisObject visModel;
     static {
         VisChain vc = new VisChain(LinAlg.translate(0,0,.001),
-                                   LinAlg.scale(baseExtent, baseExtent, .001),
+                                   LinAlg.scale(baseExtent/2, baseExtent/2, .001),
                                    new VzBox(new VzMesh.Style(Color.black)),
                                    LinAlg.translate(0,0,.002),
                                    LinAlg.scale(.2, .2, 1),
@@ -83,7 +83,7 @@ public class SimLightSwitch implements SimObject, SimSensable, SimActionable
         if (currentState.get("TOGGLE").equals("OFF"))
             return visModel;
         else {
-            VzSquare sq = new VzSquare(new VzMesh.Style(Color.yellow));
+            VzRectangle sq = new VzRectangle(new VzMesh.Style(Color.yellow));
             VisChain vc = new VisChain(visModel,
                                        LinAlg.scale(1.3),
                                        LinAlg.translate(-0.4, 0.37),

@@ -33,14 +33,14 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
     // Make Pantry model
     static VisObject visModel;
     static {
-        VisChain vc = new VisChain(LinAlg.scale(xextent, yextent, 1),
-                                   LinAlg.translate(0,0,0.001),
-                                   new VzSquare(new VzLines.Style(Color.green,2)),
-                                   LinAlg.translate(-2*xextent,0,0),
-                                   LinAlg.rotateZ(-Math.PI/2),
-                                   LinAlg.scale(.005),
-                                   new VzText(VzText.ANCHOR.CENTER,
-                                              "<<green>> pantry"));
+        VisChain vc = new VisChain(new VisChain(LinAlg.scale(xextent/2, yextent/2, 1),
+                                                LinAlg.translate(0,0,0.001),
+                                                new VzRectangle(new VzLines.Style(Color.green,2))),
+                                   new VisChain(LinAlg.translate(-.8*xextent/2,0,0),
+                                                LinAlg.rotateZ(-Math.PI/2),
+                                                LinAlg.scale(.002),
+                                                new VzText(VzText.ANCHOR.CENTER,
+                                                           "<<green>> pantry")));
         visModel = vc;
     }
 

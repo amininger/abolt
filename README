@@ -1,1 +1,18 @@
 APRIL BOLT repository.
+
+
+Directions:
+
+
+You will need to start two processes:
+
+java april.util.GamePadDriver
+
+and
+
+java april.sim.Simulator --start -w ~/abolt/config/bolt.world
+
+
+Button '2' will cause actions to occur, and also note that at least
+one button on the gamepad must be pressed inorder for the robot to
+move (this corresponds to the estop being disabled).

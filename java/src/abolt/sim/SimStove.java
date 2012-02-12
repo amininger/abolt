@@ -29,20 +29,20 @@ public class SimStove implements SimObject, SimSensable, SimActionable
     // Make stove model
     static VisObject visModel;
     static {
-        VisChain vc = new VisChain(LinAlg.scale(extent),
-                                   LinAlg.translate(0,0,0.001),
-                                   new VzSquare(new VzLines.Style(Color.red,2)),
-                                   LinAlg.translate(0,-2*extent,0),
-                                   LinAlg.scale(.005),
-                                   new VzText(VzText.ANCHOR.CENTER,
-                                              "<<red>> stove"));
+        VisChain vc = new VisChain(new VisChain(LinAlg.scale(extent/2),
+                                                LinAlg.translate(0,0,0.001),
+                                                new VzRectangle(new VzLines.Style(Color.red,2))),
+                                   new VisChain(LinAlg.translate(0,-.8*extent/2,0),
+                                                LinAlg.scale(0.002),
+                                                new VzText(VzText.ANCHOR.CENTER,
+                                                           "<<red>> stove")));
 
         visModel = vc;
     }
 
     static Shape collisionShape;
     static {
-        collisionShape = new SphereShape(-0.5*extent);
+        collisionShape = new BoxShape(new double[] {extent, extent, 0});
     }
 
     public SimStove(SimWorld sw)
