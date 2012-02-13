@@ -454,14 +454,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
             ArrayList<object_data_t> obsList = new ArrayList<object_data_t>();
             ArrayList<String> sensList = new ArrayList<String>();
 
-
-            // Always include the robot position
-            sensList.add(String.format("NAME=ROBOT,ROBOT_POS=[%.3f %.3f %.3f %.4f %.4f %.4f],BATTERY=%.1f",
-                                       xyzrpy[0], xyzrpy[1], xyzrpy[2],
-                                       xyzrpy[3], xyzrpy[4], xyzrpy[5],
-                                       11.1));
-
-
             // Loop through the world and see if we sense anything. For now,
             // we "sense" something if we're within its sensing radius,
             // regardless of line-of-sight
@@ -521,8 +513,10 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
         }
         double[] xyzrpy = LinAlg.matrixToXyzrpy(getPose());
         Formatter f = new Formatter();
-        f.format("[%f %f %f %f %f]", xyzrpy[0], xyzrpy[1], xyzrpy[2], xyzrpy[3], xyzrpy[4], xyzrpy[5]);
+        f.format("[%f %f %f %f %f %f]", xyzrpy[0], xyzrpy[1], xyzrpy[2], xyzrpy[3], xyzrpy[4], xyzrpy[5]);
         properties.append("POSE="+f.toString()+",");
+        f = new Formatter();
+        properties.append("BATTERY="+11.0f+",");
 
         return properties.toString();
     }

@@ -122,8 +122,17 @@ public class SimPantry implements SimObject, SimSensable, SimActionable
         for(int i=0; i<featureVec.size(); i++){
             properties.append(featureVec.get(i)+",");
         }
-        double[] xyt = LinAlg.matrixToXYT(pose);
-        properties.append("["+xyt[0]+" "+xyt[1]+" "+xyt[2]+"],"); //XXX format better
+        double[] xyzrpy = LinAlg.matrixToXyzrpy(pose);
+        Formatter f = new Formatter();
+        f.format("[%f %f %f %f %f %f]",
+                 xyzrpy[0],
+                 xyzrpy[1],
+                 xyzrpy[2],
+                 xyzrpy[3],
+                 xyzrpy[4],
+                 xyzrpy[5]);
+        properties.append("POSE="+f.toString()+",");
+
         return properties.toString();
     }
 
