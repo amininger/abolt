@@ -2,8 +2,8 @@ package abolt.sim;
 
 public interface SimActionable
 {
-    String[] getAllowedStates();
-    String getState();
-    void setState(String newState);
-    public boolean inActionRange(double[] xyt);
+    public String[] getAllowedStates();
+    public String getState();
+    public void setState(String newState);
+    //public boolean inActionRange(double[] xyt);
 }

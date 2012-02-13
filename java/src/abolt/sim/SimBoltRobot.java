@@ -16,7 +16,7 @@ import april.lcmtypes.*;
 import abolt.lcmtypes.*;
 import abolt.util.*;
 
-public class SimBoltRobot implements SimObject, LCMSubscriber
+public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
 {
     static LCM lcm = LCM.getSingleton();
 
@@ -52,6 +52,9 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
     // Object we're "pointing" to (designated in some fashion)
     SimObject pointTarget = null;
 
+    // SimActionable stuff
+    HashMap<String, String> currentState = new HashMap<String, String>();
+
     SimWorld sw;
 
     public SimBoltRobot(SimWorld sw)
@@ -62,6 +65,10 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
         lcm.subscribe("GAMEPAD", this);
 
         tasks.addFixedDelay(new ObservationsTask(), .2);
+
+        // SimActionable init
+        currentState.put("POINT", "-1");    // Not pointing anywhere in particular
+        //currentState.put("GRAB", "-1");     // Not grabbing anything
     }
 
     /** Where is the object? (4x4 matrix). It is safe to return your internal representation. **/
@@ -192,6 +199,35 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                     lcm.publish("ROBOT_COMMAND", action);
                 }
 
+                // Point at a random object
+                if ((msg.buttons & 1) == 1) {
+                    // Choose ID randomly from among objects w/getID
+                    int ID = -1;
+                    ArrayList<SimObject> idable = new ArrayList<SimObject>();
+                    for (SimObject o: sw.objects) {
+                        if (o instanceof SimSensable ||
+                            o instanceof SimBoltObject)
+                        {
+                            idable.add(o);
+                        }
+                    }
+                    assert (idable.size() > 0);
+
+                    SimObject o = idable.get(new Random().nextInt(idable.size()));
+                    if (o instanceof SimSensable)
+                        ID = ((SimSensable)o).getID();
+                    else if (o instanceof SimBoltObject)
+                        ID = ((SimBoltObject)o).getID();
+
+                    robot_command_t action = new robot_command_t();
+                    action.utime = TimeUtil.utime();
+                    action.updateDest = false;
+                    action.dest = new double[6];
+                    action.action = "NAME=BOLT_ROBOT,POINT="+ID;
+
+                    lcm.publish("ROBOT_COMMAND", action);
+                }
+
             } else if (channel.equals("ROBOT_COMMAND")) {
                 cmds = new robot_command_t(dins);
 
@@ -286,6 +322,81 @@ public class SimBoltRobot implements SimObject, LCMSubscriber
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // ======= Sim Actionable ==========
+    public String[] getAllowedStates()
+    {
+        ArrayList<String> states = new ArrayList<String>();
+        // Pointing
+        for (SimObject o: sw.objects) {
+            if (!(o instanceof SimGrabbable))
+                continue;
+            if (o instanceof SimSensable) {
+                SimSensable s = (SimSensable)o;
+                states.add("POINT="+s.getID());
+            } else if (o instanceof SimBoltObject) {
+                SimBoltObject bo = (SimBoltObject)o;
+                states.add("POINT="+bo.getID());
+            }
+        }
+
+        // Grabbing/Dropping ???
+
+        return states.toArray(new String[0]);
+    }
+
+    public String getState()
+    {
+        StringBuilder state = new StringBuilder();
+        for (String key: currentState.keySet()) {
+            state.append("KEY="+currentState.get(key)+",");
+        }
+        return state.toString();
+    }
+
+    // Special state-handling block for the robot. Since it can
+    // actually impact the environment, this block has to be sort
+    // of clever. Still assumes only one action fed in at a time
+    public void setState(String newState)
+    {
+        String[] pair = newState.split("=");
+        if (pair[0].equals("POINT")) {
+            int ID = Integer.valueOf(pair[1]);
+
+            // Point the robot towards the object IDed
+            pointTarget = null;
+            for (SimObject o: sw.objects) {
+                if (o instanceof SimSensable) {
+                    SimSensable s = (SimSensable)o;
+                    if (s.getID() != ID)
+                        continue;
+                    pointTarget = o;
+                    break;
+                } else if (o instanceof SimBoltObject) {
+                    SimBoltObject bo = (SimBoltObject)o;
+                    if (bo.getID() != ID)
+                        continue;
+                    pointTarget = o;
+                    break;
+                }
+            }
+
+            // XXX For now, only planar pointing. Fix to give actual 3D later
+            // Also, maybe make pointing track target over time, later
+            if (pointTarget != null) {
+                double[] xyzrpy = LinAlg.matrixToXyzrpy(getPose());
+                double[] objxyzrpy = LinAlg.matrixToXyzrpy(pointTarget.getPose());
+                double dr = LinAlg.distance(LinAlg.resize(xyzrpy, 2), LinAlg.resize(objxyzrpy, 2));
+                double dy = objxyzrpy[1] - xyzrpy[1];
+                xyzrpy[5] = (MathUtil.doubleEquals(dr, 0) ? 0 : Math.asin(dy/dr));
+                setPose(LinAlg.xyzrpyToMatrix(xyzrpy));
+
+                currentState.put("POINT",pair[1]);
+            } else {
+                currentState.put("POINT","-1"); // Not pointing at anything
             }
         }
     }
