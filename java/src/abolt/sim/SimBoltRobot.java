@@ -427,7 +427,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
 
             if (grabbedObject != null && gobj != null) {
                 setPose(gobj.getPose());
-                currentState.put("POINT",pair[1]);
+                currentState.put("GRAB",pair[1]);
             } else {
                 currentState.put("GRAB","-1");
             }
