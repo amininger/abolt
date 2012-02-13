@@ -36,8 +36,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
         visModel = vc;
     }
 
-    PeriodicTasks tasks = new PeriodicTasks(2);
-
     ExpiringMessageCache<gamepad_t> gamepadCache = new ExpiringMessageCache<gamepad_t>(0.25);
     robot_command_t cmds; // most recent command received from somewhere
 
@@ -68,8 +66,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
 
         lcm.subscribe("ROBOT_COMMAND", this);
         lcm.subscribe("GAMEPAD", this);
-
-        tasks.addFixedDelay(new ObservationsTask(), .2);
 
         // SimActionable init
         currentState.put("POINT", "-1");    // Not pointing anywhere in particular
@@ -130,7 +126,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
      * begin in the NON running state. **/
     public void setRunning(boolean run)
     {
-        tasks.setRunning(run);
     }
 
     boolean released1 = true;
@@ -436,61 +431,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
             } else {
                 currentState.put("GRAB","-1");
             }
-        }
-    }
-
-
-    class ObservationsTask implements PeriodicTasks.Task
-    {
-        public void run(double dt)
-        {
-            observations_t obs = new observations_t();
-            obs.utime = TimeUtil.utime();
-
-            //double pos[] = drive.poseTruth.pos;
-            //double rpy[] = LinAlg.quatToRollPitchYaw(drive.poseTruth.orientation);
-            double[] xyzrpy = LinAlg.matrixToXyzrpy(effectorPose);
-
-            ArrayList<object_data_t> obsList = new ArrayList<object_data_t>();
-            ArrayList<String> sensList = new ArrayList<String>();
-
-            // Loop through the world and see if we sense anything. For now,
-            // we "sense" something if we're within its sensing radius,
-            // regardless of line-of-sight
-            //
-            // XXX Sensing is different now, too. Just assume we see everything
-            synchronized (sw) {
-                for (SimObject o: sw.objects) {
-                    if (o instanceof SimSensable) {
-                        SimSensable s = (SimSensable)o;
-
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("NAME="+s.getName()+",");
-                        sb.append(s.getProperties());
-                        if (o instanceof SimActionable) {
-                            SimActionable a = (SimActionable)o;
-                            sb.append(a.getState());
-                        }
-                        sensList.add(sb.toString());
-                    }
-                    if (o instanceof SimBoltObject) {
-                        SimBoltObject bo = (SimBoltObject)o;
-                        object_data_t obj_data = new object_data_t();
-                        obj_data.utime = TimeUtil.utime();
-                        obj_data.id = bo.getID();
-                        obj_data.nounjectives = bo.getNounjectives();   // XXX May change to doubles
-                        obj_data.nj_len = obj_data.nounjectives.length;
-                        obsList.add(obj_data);
-                    }
-                }
-            }
-
-            obs.sensables = sensList.toArray(new String[0]);
-            obs.nsens = obs.sensables.length;
-            obs.observations = obsList.toArray(new object_data_t[0]);
-            obs.nobs = obs.observations.length;
-
-            lcm.publish("OBSERVATIONS",obs);
         }
     }
 

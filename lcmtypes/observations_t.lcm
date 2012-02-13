@@ -2,6 +2,9 @@ struct observations_t
 {
     int64_t utime;
 
+    // Object ID of the object the user last clicked on
+    int32_t click_id;
+
     int32_t nobs;
     object_data_t observations[nobs];
 
