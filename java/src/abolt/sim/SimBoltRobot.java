@@ -16,7 +16,7 @@ import april.lcmtypes.*;
 import abolt.lcmtypes.*;
 import abolt.util.*;
 
-public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
+public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, SimSensable
 {
     static LCM lcm = LCM.getSingleton();
 
@@ -55,6 +55,11 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
     // SimActionable stuff
     HashMap<String, String> currentState = new HashMap<String, String>();
 
+    // Sensable stuff
+    int id;
+    String name;
+    ArrayList<String> featureVec = new ArrayList<String>();
+
     SimWorld sw;
 
     public SimBoltRobot(SimWorld sw)
@@ -68,7 +73,12 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
 
         // SimActionable init
         currentState.put("POINT", "-1");    // Not pointing anywhere in particular
-        //currentState.put("GRAB", "-1");     // Not grabbing anything
+        currentState.put("GRAB", "-1");     // Not grabbing anything
+
+        // SimSensable init
+        name = "BOLT_ROBOT";
+        id = SimUtil.nextID();
+        featureVec.add("COLOR=BLACK");
     }
 
     /** Where is the object? (4x4 matrix). It is safe to return your internal representation. **/
@@ -123,6 +133,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
         tasks.setRunning(run);
     }
 
+    boolean released1 = true;
     boolean released2 = true;
     boolean released3 = true;
     boolean released4 = true;
@@ -134,7 +145,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
                 gamepad_t msg = new gamepad_t(dins);
                 gamepadCache.put(msg, msg.utime);
 
-                if ((msg.buttons & 2) == 2) { // #2 button toggles all actions in range (crazy, but whatever)
+                if ((msg.buttons & 2) == 2) { // #2 button toggles all actions in range, aside from self actions
                     if (released2) {
                         ArrayList<robot_command_t> actions = new ArrayList<robot_command_t>();
 
@@ -153,6 +164,8 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
                                     SimBoltObject bo = (SimBoltObject)o;
                                     id = bo.getID();
                                 }
+                                if (this.id == id)
+                                    continue;
                                 for (String state: states) {
                                     String[] keyValuePair = state.split("=");
                                     ArrayList<String> values = SimUtil.getPossibleValues(possStates,
@@ -201,31 +214,38 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
 
                 // Point at a random object
                 if ((msg.buttons & 1) == 1) {
-                    // Choose ID randomly from among objects w/getID
-                    int ID = -1;
-                    ArrayList<SimObject> idable = new ArrayList<SimObject>();
-                    for (SimObject o: sw.objects) {
-                        if (o instanceof SimSensable ||
-                            o instanceof SimBoltObject)
-                        {
-                            idable.add(o);
+                    if (released1) {
+                        // Choose ID randomly from among objects w/getID
+                        int ID = -1;
+                        if (grabbedObject == null) {
+                            ArrayList<SimObject> idable = new ArrayList<SimObject>();
+                            for (SimObject o: sw.objects) {
+                                if (o instanceof SimGrabbable)
+                                {
+                                    idable.add(o);
+                                }
+                            }
+                            assert (idable.size() > 0);
+
+                            SimObject o = idable.get(new Random().nextInt(idable.size()));
+                            if (o instanceof SimSensable)
+                                ID = ((SimSensable)o).getID();
+                            else if (o instanceof SimBoltObject)
+                                ID = ((SimBoltObject)o).getID();
                         }
+
+                        robot_command_t action = new robot_command_t();
+                        action.utime = TimeUtil.utime();
+                        action.updateDest = false;
+                        action.dest = new double[6];
+                        action.action = "ID="+id+",GRAB="+ID;
+
+                        lcm.publish("ROBOT_COMMAND", action);
+
+                        released1 = false;
                     }
-                    assert (idable.size() > 0);
-
-                    SimObject o = idable.get(new Random().nextInt(idable.size()));
-                    if (o instanceof SimSensable)
-                        ID = ((SimSensable)o).getID();
-                    else if (o instanceof SimBoltObject)
-                        ID = ((SimBoltObject)o).getID();
-
-                    robot_command_t action = new robot_command_t();
-                    action.utime = TimeUtil.utime();
-                    action.updateDest = false;
-                    action.dest = new double[6];
-                    action.action = "NAME=BOLT_ROBOT,POINT="+ID;
-
-                    lcm.publish("ROBOT_COMMAND", action);
+                } else {
+                    released1 = true;
                 }
 
             } else if (channel.equals("ROBOT_COMMAND")) {
@@ -272,27 +292,6 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
                         continue;
                     }
 
-                    // Check for holding action. If we ask to grab something
-                    // and we aren't holding anything, pick it up. (This also
-                    // teleports the gripper to this object)
-                    String grab = SimUtil.getTokenValue(pairs[1], "HELD");
-                    if (grab != null &&
-                        grab.equals("TRUE") &&
-                        grabbedObject == null &&
-                        (o instanceof SimGrabbable))
-                    {
-                        grabbedObject = (SimGrabbable)o;
-                        setPose(o.getPose());   // Teleport to object
-                    }
-                    else if (grab != null &&
-                             grab.equals("FALSE") &&
-                             grabbedObject != null)
-                    {
-                        if (grabbedObject == o) {
-                            grabbedObject = null;
-                        }
-                    }
-
                     // Update the state of the object in question
                     if (pairs[0].startsWith("NAME=")) {
                         if (o instanceof SimSensable) {
@@ -330,10 +329,8 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
     public String[] getAllowedStates()
     {
         ArrayList<String> states = new ArrayList<String>();
-        // Pointing
+        // Pointing & Grabbing
         for (SimObject o: sw.objects) {
-            if (!(o instanceof SimGrabbable))
-                continue;
             if (o instanceof SimSensable) {
                 SimSensable s = (SimSensable)o;
                 states.add("POINT="+s.getID());
@@ -341,9 +338,17 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
                 SimBoltObject bo = (SimBoltObject)o;
                 states.add("POINT="+bo.getID());
             }
-        }
 
-        // Grabbing/Dropping ???
+            if (o instanceof SimGrabbable) {
+                if (o instanceof SimSensable) {
+                    SimSensable s = (SimSensable)o;
+                    states.add("GRAB="+s.getID());
+                } else if (o instanceof SimBoltObject) {
+                    SimBoltObject bo = (SimBoltObject)o;
+                    states.add("GRAB="+bo.getID());
+                }
+            }
+        }
 
         return states.toArray(new String[0]);
     }
@@ -352,7 +357,7 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
     {
         StringBuilder state = new StringBuilder();
         for (String key: currentState.keySet()) {
-            state.append("KEY="+currentState.get(key)+",");
+            state.append(key+"="+currentState.get(key)+",");
         }
         return state.toString();
     }
@@ -397,6 +402,39 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
                 currentState.put("POINT",pair[1]);
             } else {
                 currentState.put("POINT","-1"); // Not pointing at anything
+            }
+        } else if (pair[0].equals("GRAB")) {
+            int ID = Integer.valueOf(pair[1]);
+
+            // Grab the IDed object
+            grabbedObject = null;
+            SimObject gobj = null;
+            for (SimObject o: sw.objects) {
+                if (o instanceof SimGrabbable) {
+                    SimGrabbable g = (SimGrabbable)o;
+                    if (o instanceof SimSensable) {
+                        SimSensable s = (SimSensable)o;
+                        if (s.getID() != ID)
+                            continue;
+                        grabbedObject = g;
+                        gobj = o;
+                        break;
+                    } else if (o instanceof SimBoltObject) {
+                        SimBoltObject bo = (SimBoltObject)o;
+                        if (bo.getID() != ID)
+                            continue;
+                        grabbedObject = g;
+                        gobj = o;
+                        break;
+                    }
+                }
+            }
+
+            if (grabbedObject != null && gobj != null) {
+                setPose(gobj.getPose());
+                currentState.put("POINT",pair[1]);
+            } else {
+                currentState.put("GRAB","-1");
             }
         }
     }
@@ -462,5 +500,36 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable
 
             lcm.publish("OBSERVATIONS",obs);
         }
+    }
+
+    // ======== SimSensable Stuff ===========
+    public String getName()
+    {
+        return name;
+    }
+
+    public int getID()
+    {
+        return id;
+    }
+
+    public String getProperties()
+    {
+        StringBuilder properties = new StringBuilder();
+        for (int i = 0; i < featureVec.size(); i++) {
+            properties.append(featureVec.get(i)+",");
+        }
+        double[] xyzrpy = LinAlg.matrixToXyzrpy(getPose());
+        Formatter f = new Formatter();
+        f.format("[%f %f %f %f %f]", xyzrpy[0], xyzrpy[1], xyzrpy[2], xyzrpy[3], xyzrpy[4], xyzrpy[5]);
+        properties.append("POSE="+f.toString()+",");
+
+        return properties.toString();
+    }
+
+    // XXX
+    public boolean inSenseRange(double[] xyt)
+    {
+        return true;
     }
 }

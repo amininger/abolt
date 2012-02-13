@@ -64,10 +64,10 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
         actions.get("COOKED").add("RAW");
         currentState.put("COOKED", "RAW");  // NOTE: Sim does not reflect the one-way transition from raw to cooked. You cannot uncook something.
 
-        actions.put("HELD", new ArrayList<String>());
+        /*actions.put("HELD", new ArrayList<String>());
         actions.get("HELD").add("TRUE");
         actions.get("HELD").add("FALSE");
-        currentState.put("HELD", "FALSE");
+        currentState.put("HELD", "FALSE");*/
 
         //Random r = new Random();
         id = SimUtil.nextID();
