@@ -233,7 +233,11 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
                         action.utime = TimeUtil.utime();
                         action.updateDest = false;
                         action.dest = new double[6];
-                        action.action = "ID="+id+",GRAB="+ID;
+                        if (grabbedObject == null) {
+                            action.action = "ID="+id+",GRAB="+ID;
+                        } else {
+                            action.action = "ID="+id+",DROP=[1.3 0.8 0]";
+                        }
 
                         lcm.publish("ROBOT_COMMAND", action);
 
@@ -345,6 +349,10 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
             }
         }
 
+        if (grabbedObject != null) {
+            states.add("DROP=[x y z]");
+        }
+
         return states.toArray(new String[0]);
     }
 
@@ -431,6 +439,19 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
             } else {
                 currentState.put("GRAB","-1");
             }
+        } else if (pair[0].equals("DROP") && grabbedObject != null) {
+            // Drop the object we are holding at [x y z]
+            double[] targetXyzrpy = LinAlg.matrixToXyzrpy(getPose());
+            String[] xyz = (pair[1].substring(1,pair[1].length()-1)).split("\\s+");
+            assert (xyz.length == 3);
+            targetXyzrpy[0] = Double.valueOf(xyz[0]);
+            targetXyzrpy[1] = Double.valueOf(xyz[1]);
+            targetXyzrpy[2] = Double.valueOf(xyz[2]);
+
+            setPose(LinAlg.xyzrpyToMatrix(targetXyzrpy));
+
+            grabbedObject = null;
+            currentState.put("GRAB","-1");
         }
     }
 
