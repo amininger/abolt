@@ -397,9 +397,11 @@ public class SimBoltRobot implements SimObject, LCMSubscriber, SimActionable, Si
             if (pointTarget != null) {
                 double[] xyzrpy = LinAlg.matrixToXyzrpy(getPose());
                 double[] objxyzrpy = LinAlg.matrixToXyzrpy(pointTarget.getPose());
-                double dr = LinAlg.distance(LinAlg.resize(xyzrpy, 2), LinAlg.resize(objxyzrpy, 2));
+                double dx = objxyzrpy[0] - xyzrpy[0];
                 double dy = objxyzrpy[1] - xyzrpy[1];
-                xyzrpy[5] = (MathUtil.doubleEquals(dr, 0) ? 0 : Math.asin(dy/dr));
+                double dr = LinAlg.distance(LinAlg.resize(objxyzrpy, 2),
+                                            LinAlg.resize(xyzrpy, 2));
+                xyzrpy[5] = MathUtil.doubleEquals(dr, 0) ? 0 : Math.atan2(dy,dx);
                 setPose(LinAlg.xyzrpyToMatrix(xyzrpy));
 
                 currentState.put("POINT",pair[1]);
