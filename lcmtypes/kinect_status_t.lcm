@@ -1,0 +1,20 @@
+struct kinect_status_t
+{
+    int64_t utime;
+
+    // Height and width in pixels of
+    // depth and RGB images
+    const int32_t WIDTH = 640;
+    const int32_t HEIGHT = 480;
+
+    // Image buffers. rgb contains RGB channel triplets.
+    // depth contains 11 bit depth values packed into
+    // 2 bytes, the first of which are the upper bytes.
+    int8_t rgb[921600]; // R G B R G B ...
+    int8_t depth[614400]; // UD LD UD LD ...
+
+    // Accelerometer data in Gs
+    double dx;   // x-axis acceleration
+    double dy;   // y-axis acceleration
+    double dz;   // z-axis acceleration
+}
