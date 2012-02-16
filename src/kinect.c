@@ -122,18 +122,14 @@ void *accelup(void *arg)
 {
     printf("Being accelerometer update thread...\n");
     while (true) {
-        pthread_mutex_lock(&accel_lock);
-
         // Get the positional state. mks_accel interprets raw acceleration
         // numbers to
         freenect_raw_tilt_state* state;
         freenect_update_tilt_state(f_dev);
         state = freenect_get_tilt_state(f_dev);
         freenect_get_mks_accel(state,&x,&y,&z);
-        printf("%f %f %f\n", x, y, z);
-        fflush(stdout);
-
-        pthread_mutex_unlock(&accel_lock);
+        //printf("%f %f %f\n", x, y, z);
+        //fflush(stdout);
     }
 
 }
@@ -164,18 +160,14 @@ void *publcm(void *arg)
         memcpy(ks.rgb, rgb_buf, rgb_bytes);
 
         // Update accelerometer data
-        printf("lock\n");
-        pthread_mutex_lock(&accel_lock);
         ks.dx = x;
         ks.dy = y;
         ks.dz = z;
-        printf("unlock\n");
-        pthread_mutex_unlock(&accel_lock);
 
         got_rgb = 0;
         got_depth = 0;
         pthread_mutex_unlock(&frame_lock);
-        //kinect_status_t_publish(k_lcm, "KINECT_STATUS", &ks);
+        kinect_status_t_publish(k_lcm, "KINECT_STATUS", &ks);
         pthread_mutex_lock(&frame_lock);
     }
     pthread_mutex_unlock(&frame_lock);

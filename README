@@ -1,6 +1,9 @@
 APRIL BOLT repository.
 
+
 Dependencies:
+-------------------------------------------------------------
+
 You will need to install libfreenect to compile and run the kinect driver.
 The Makefile in src assumes the below has been executed in an Ubuntu
 distribution. Experiences may vary between systems. If this is the case,
@@ -10,8 +13,11 @@ sudo apt-add-respository ppa:floe/libtisch
 sudo apt-get update
 sudo apt-get install libfreenect libfreenect-demos libfreenect-dev
 
-Directions:
 
+Directions:
+-------------------------------------------------------------
+
+--- Simulator ---
 To use the simulator, you will need to start two processes:
 
 java april.util.GamePadDriver
@@ -25,6 +31,7 @@ Button '2' will cause actions to occur, while buttons 1, 3, and 4 will
 cause pick up, drop and movement to specific locations. Look at the GamePad
 code to see examples of how to interact with the robot.
 
-
+--- Kinect Driver ---
 To run the kinect driver, build kinect.c in src and then run
 ./kinect from bin. lcm-spy should show kinect_status_t messages at ~30 Hz.
+

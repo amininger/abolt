@@ -10,9 +10,11 @@ import lcm.lcm.*;
 import lcm.spy.*;
 
 import april.util.*;
+import april.jmat.*;
 import april.vis.*;
 
 import abolt.lcmtypes.*;
+import abolt.vis.*;
 
 /** A plugin for visualizing kinect_status_t data */
 public class KinectPlugin implements SpyPlugin
@@ -72,7 +74,7 @@ public class KinectPlugin implements SpyPlugin
                 t_gamma[i] = k3 * Math.tan(i / k2 + k1);
             }
 
-            setLayout(new GridLayout(1,2)); // XXX
+            setLayout(new GridLayout(1,3)); // XXX
             rgb = new JImage(null, true);
             depth = new JImage(null, true);
             add(rgb);
@@ -81,9 +83,12 @@ public class KinectPlugin implements SpyPlugin
             vw = new VisWorld();
             VisLayer vl = new VisLayer(vw);
             VisCanvas vc = new VisCanvas(vl);
+            vl.cameraManager.fit2D(new double[] {-2,-2},
+                                   new double[] {2, 2},
+                                   true);
             add(vc);
 
-            setSize(2*kinect_status_t.WIDTH, kinect_status_t.HEIGHT);
+            setSize(3*kinect_status_t.WIDTH, kinect_status_t.HEIGHT);
             setVisible(true);
 
             LCM.getSingleton().subscribe(cd.name, this);
@@ -173,13 +178,18 @@ public class KinectPlugin implements SpyPlugin
             // === Create visualizer for accelerometer data ===
             {
                 VisWorld.Buffer vb = vw.getBuffer("accerometer");
-                double[] orig = new double[3];
-                double[] vec = new double[] {ks.dx, ks.dy, ks.dz};
-                System.out.printf("%f %f %f\n", ks.dx, ks.dy, ks.dz);
+                ValueBar barX = new ValueBar(-15, 0, 15, ks.dx, Color.red);
+                ValueBar barY = new ValueBar(-15, 0, 15, ks.dy, Color.green);
+                ValueBar barZ = new ValueBar(-15, 0, 15, ks.dz, Color.blue);
 
-                vb.addBack(new VzLines(new VisVertexData(orig, vec),
-                                       VzLines.LINES,
-                                       new VzLines.Style(Color.blue, 4)));
+                // Text for each axis XXX
+
+                vb.addBack(new VisChain(LinAlg.translate(-1, 0, 0),
+                                        barX));
+                vb.addBack(new VisChain(barY));
+                vb.addBack(new VisChain(LinAlg.translate(1, 0, 0),
+                                        barZ));
+
                 vb.swap();
             }
 
