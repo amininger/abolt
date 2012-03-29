@@ -1,0 +1,9 @@
+struct category_t
+{
+    const int32_t CAT_COLOR   = 1;
+    const int32_t CAT_SHAPE   = 2;
+    const int32_t CAT_SIZE    = 3;
+    const int32_t CAT_TEXTURE = 4;
+
+    int32_t cat;
+}
