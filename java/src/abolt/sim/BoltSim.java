@@ -131,9 +131,10 @@ public class BoltSim implements VisConsole.Listener
                         object_data_t obj_data = new object_data_t();
                         obj_data.utime = TimeUtil.utime();
                         obj_data.id = bo.getID();
-                        obj_data.nounjectives = bo.getNounjectives();   // XXX May change to doubles
-                        obj_data.nj_len = obj_data.nounjectives.length;
+                        obj_data.cat_dat = bo.getCategorizedData();
+                        obj_data.num_cat = bo.getCategorizedData().length;
                         obj_data.pos = LinAlg.matrixToXyzrpy(o.getPose());
+                        obj_data.bbox = bo.getBBox();
                         obsList.add(obj_data);
                     }
                 }
