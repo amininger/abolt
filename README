@@ -13,6 +13,8 @@ sudo apt-add-respository ppa:floe/libtisch
 sudo apt-get update
 sudo apt-get install libfreenect libfreenect-demos libfreenect-dev
 
+Then run the setup-rules.sh <your-username-here> to create a set of udev
+rules to allow you access to kinect data and you should be good to go.
 
 Directions:
 -------------------------------------------------------------
