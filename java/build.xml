@@ -3,10 +3,10 @@
 <project name="abolt" default="build" basedir=".">
 
   <!-- Build everything -->
-  <target name="build" depends="generate-lcmtypes,build-java,build-jar"/>
+  <target name="build" depends="generate-lcmtypes,build-java,build-jar,make-src"/>
 
   <!-- Clean everything -->
-  <target name="clean" depends="clean-lcmtypes,clean-java"/>
+  <target name="clean" depends="clean-lcmtypes,clean-java,clean-src"/>
 
   <!-- Dist Clean everyting -->
   <target name="distclean" depends="clean">
