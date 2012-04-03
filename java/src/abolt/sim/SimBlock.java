@@ -28,12 +28,12 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
     static final double extent = 0.03;
     static final double sensingRange = .5;
     static final double actionRange = .1;
-    
+
 
     private VisChain model;
     private Shape shape;
     private double size;
-    
+
     private String sizeStr;
     private String shapeStr;
     private String colorStr;
@@ -56,21 +56,21 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
     public SimBlock(SimWorld sw)
     {
         //pose = LinAlg.xytToMatrix(_xyt);
-    	name = "BLOCK";        
+    	name = "BLOCK";
 
         categories = new HashMap<Integer, HashMap<String, Double> >();
         HashMap<String, Double> category;
-        
+
         // COLOR
         category = new HashMap<String, Double>();
         category.put("TAN", .9);
         categories.put(category_t.CAT_COLOR, category);
-        
+
         // SHAPE
         category = new HashMap<String, Double>();
         category.put("CYLINDER", .92);
         categories.put(category_t.CAT_SHAPE, category);
-        
+
         // SIZE
         category = new HashMap<String, Double>();
         category.put("MEDIUM", .87);
@@ -95,7 +95,7 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
     {
         pose = LinAlg.copy(T);
     }
-    
+
     public double[][] getBBox()
     {
     	return LinAlg.copy(bbox);
@@ -118,16 +118,13 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
     public void read(StructureReader ins) throws IOException
     {
     	pose = LinAlg.xyzrpyToMatrix(ins.readDoubles());
-        bbox = new double[3][2];
-        for(int i = 0; i < 3; i++){
-        	bbox[i][0] = -extent;
-        	bbox[i][1] = extent;
-        }
-        
+        bbox = new double[][] {{-extent, -extent, -extent},
+                               { extent,  extent,  extent}};
+
         colorStr = ins.readString();
         shapeStr = ins.readString();
         sizeStr = ins.readString();
-        
+
         int colorInt = 0xA29260;
         if(colorStr.equals("RED")){
             colorInt = 0xFF0000;
@@ -146,7 +143,7 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
         } else if(sizeStr.equals("SMALL")){
             this.size = 0.02;
         }
-        
+
         if(shapeStr.equals("CYLINDER")){
             model = new VisChain(LinAlg.scale(this.size), LinAlg.translate(0,0,1),
                     new VzCylinder(new VzMesh.Style(new Color(colorInt))));
@@ -159,22 +156,22 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
             model = new VisChain(LinAlg.scale(this.size), LinAlg.translate(0,0,1),
                     new VzBox(new VzMesh.Style(new Color(colorInt))));
         }
-        
+
         this.shape = new SphereShape(-this.size);
-        
+
         categories = new HashMap<Integer, HashMap<String, Double> >();
         HashMap<String, Double> category;
-        
+
         // COLOR
         category = new HashMap<String, Double>();
         category.put(colorStr, Math.random() * .3 + .7);
         categories.put(category_t.CAT_COLOR, category);
-        
+
         // SHAPE
         category = new HashMap<String, Double>();
         category.put(shapeStr, Math.random() * .3 + .7);
         categories.put(category_t.CAT_SHAPE, category);
-        
+
         // SIZE
         category = new HashMap<String, Double>();
         category.put(sizeStr, Math.random() * .3 + .7);
@@ -204,7 +201,7 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
     {
         return name;
     }
-    
+
     public categorized_data_t[] getCategorizedData(){
     	categorized_data_t[] data = new categorized_data_t[categories.size()];
     	int i = 0;
@@ -226,7 +223,7 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
     		}
     		i++;
     	}
-    	
+
     	return data;
     }
 

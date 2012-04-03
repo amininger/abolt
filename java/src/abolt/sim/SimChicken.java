@@ -48,26 +48,23 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
     {
         //pose = LinAlg.xytToMatrix(_xyt);
         name = "CHICKEN";
-        
-        bbox = new double[3][2];
-        for(int i = 0; i < 3; i++){
-        	bbox[i][0] = -extent;
-        	bbox[i][1] = extent;
-        }
+
+        bbox = new double[][] {{-extent, -extent, -extent},
+                               { extent,  extent,  extent}};
 
         categories = new HashMap<Integer, HashMap<String, Double> >();
         HashMap<String, Double> category;
-        
+
         // COLOR
         category = new HashMap<String, Double>();
         category.put("TAN", .9);
         categories.put(category_t.CAT_COLOR, category);
-        
+
         // SHAPE
         category = new HashMap<String, Double>();
         category.put("CYLINDER", .92);
         categories.put(category_t.CAT_SHAPE, category);
-        
+
         // SIZE
         category = new HashMap<String, Double>();
         category.put("MEDIUM", .87);
@@ -97,7 +94,7 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
     {
         pose = LinAlg.copy(T);
     }
-    
+
     public double[][] getBBox()
     {
     	return LinAlg.copy(bbox);
@@ -142,7 +139,7 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
     {
         return name;
     }
-    
+
     public categorized_data_t[] getCategorizedData(){
     	categorized_data_t[] data = new categorized_data_t[categories.size()];
     	int i = 0;
@@ -164,7 +161,7 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
     		}
     		i++;
     	}
-    	
+
     	return data;
     }
 
