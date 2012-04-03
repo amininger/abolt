@@ -1,0 +1,6 @@
+struct training_data_t
+{
+    int64_t utime;
+    int32_t num_labels;
+    training_label_t labels[num_labels];
+}

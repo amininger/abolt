@@ -1,0 +1,8 @@
+struct categorized_data_t
+{
+    category_t cat;
+
+    int32_t len;
+    string label[len]; // E..g {"Red2","Blue1"}
+    double confidence[len]; // [0-1] e.g. {.7, .6} (For an object that's actually purple
+}

@@ -4,8 +4,9 @@ struct object_data_t
 
     int32_t id;
 
-    int32_t nj_len;
-    string nounjectives[nj_len];
+    int32_t num_cat;
+    categorized_data_t cat_dat[num_cat];
 
     double pos[6]; // xytrpy
+    double bbox[2][3];// Min max axis aligned, {{x0, y0, z0}, {x1, y1, z1}};
 }

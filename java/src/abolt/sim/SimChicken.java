@@ -11,15 +11,18 @@ import april.jmat.*;
 import april.vis.*;
 import april.util.*;
 
+import abolt.lcmtypes.categorized_data_t;
+import abolt.lcmtypes.category_t;
 import abolt.util.*;
 
 public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimGrabbable
 {
     double[][] pose;
+    double[][] bbox;
     String name;
     HashMap<String, ArrayList<String> > actions = new HashMap<String, ArrayList<String> >();
     HashMap<String, String> currentState = new HashMap<String, String>();
-    ArrayList<String> featureVec;
+    HashMap<Integer, HashMap<String, Double> > categories;
     int id;
 
     static final double extent = 0.03;
@@ -46,12 +49,26 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
         //pose = LinAlg.xytToMatrix(_xyt);
         name = "CHICKEN";
 
-        featureVec = new ArrayList<String>();
-        // Temporary: populated with object color and dimensions and then randomness
-        featureVec.add("TAN");
-        featureVec.add("RAW");
-        featureVec.add("DIRTY");
-        featureVec.add("CYLINDER");
+        bbox = new double[][] {{-extent, -extent, -extent},
+                               { extent,  extent,  extent}};
+
+        categories = new HashMap<Integer, HashMap<String, Double> >();
+        HashMap<String, Double> category;
+
+        // COLOR
+        category = new HashMap<String, Double>();
+        category.put("TAN", .9);
+        categories.put(category_t.CAT_COLOR, category);
+
+        // SHAPE
+        category = new HashMap<String, Double>();
+        category.put("CYLINDER", .92);
+        categories.put(category_t.CAT_SHAPE, category);
+
+        // SIZE
+        category = new HashMap<String, Double>();
+        category.put("MEDIUM", .87);
+        categories.put(category_t.CAT_SIZE, category);
 
         // Add actions
         actions.put("CLEAN", new ArrayList<String>());
@@ -76,6 +93,11 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
     public void setPose(double[][] T)
     {
         pose = LinAlg.copy(T);
+    }
+
+    public double[][] getBBox()
+    {
+    	return LinAlg.copy(bbox);
     }
 
     public void setLoc(double[] xyzrpy){
@@ -118,14 +140,29 @@ public class SimChicken implements SimObject, SimBoltObject, SimActionable, SimG
         return name;
     }
 
-    public String[] getNounjectives()
-    {
-        String[] features = new String[featureVec.size()];
-        for(int i=0; i<featureVec.size(); i++){
-            features[i] = featureVec.get(i);
-        }
+    public categorized_data_t[] getCategorizedData(){
+    	categorized_data_t[] data = new categorized_data_t[categories.size()];
+    	int i = 0;
+    	for(Map.Entry<Integer, HashMap<String, Double> > category : categories.entrySet()){
+    		// For each category, create a new categorized_data_t and populate
+    		data[i] = new categorized_data_t();
+    		data[i].cat = new category_t();
+    		data[i].cat.cat = category.getKey();
+    		// Each <String, Double> pair in catLabels is a label and associated confidence
+    		HashMap<String, Double> catLabels = category.getValue();
+    		data[i].len = catLabels.size();
+    		data[i].label = new String[catLabels.size()];
+    		data[i].confidence = new double[catLabels.size()];
+    		int j = 0;
+    		for(Map.Entry<String, Double> label : catLabels.entrySet()){
+    			data[i].label[j] = label.getKey();
+    			data[i].confidence[j] = label.getValue();
+    			j++;
+    		}
+    		i++;
+    	}
 
-        return features;
+    	return data;
     }
 
     public boolean inSenseRange(double[] xyt)
