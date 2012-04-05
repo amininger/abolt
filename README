@@ -9,7 +9,7 @@ The Makefile in src assumes the below has been executed in an Ubuntu
 distribution. Experiences may vary between systems. If this is the case,
 please consult openkinect.org/wiki/Getting_Started for help.
 
-sudo apt-add-respository ppa:floe/libtisch
+sudo apt-add-repository ppa:floe/libtisch
 sudo apt-get update
 sudo apt-get install libfreenect libfreenect-demos libfreenect-dev
 
