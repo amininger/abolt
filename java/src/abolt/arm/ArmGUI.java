@@ -245,10 +245,10 @@ public class ArmGUI implements LCMSubscriber
         }
         if (num == 0)
             str = "No status received yet " + this.numUtimes;
-        vb.addBack(new VisPixelCoordinates(VisPixelCoordinates.ORIGIN.BOTTOM_LEFT,
-                                           new VzText(VzText.ANCHOR.BOTTOM_LEFT,
-                                                      "<<dropshadow=#00330088,monospaced-16-bold,green>>" +
-                                                      str)));
+        vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_LEFT,
+                                    new VzText(VzText.ANCHOR.BOTTOM_LEFT,
+                                               "<<dropshadow=#00330088,monospaced-16-bold,green>>" +
+                                               str)));
         vb.swap();
 
         vb = vw.getBuffer("arm");

@@ -46,20 +46,20 @@ public class ArmController extends Thread
         int b = 3;
         double p = b*b/(t/30.0 + 1);
         String format = "<<dropshadow=#FFFFFFFF, large>>";
-        vb.addBack(new VisPixelCoordinates(
-                       VisPixelCoordinates.ORIGIN.TOP_LEFT,
-                       new VzText(VzText.ANCHOR.TOP_LEFT, format+
-                                  "<<red>>Objects Found" +
-                                  "\n<<left>>Total: <<right>>"+b +
-                                  "\nBalls: <<right>>2" +
-                                  "\nSmallBlocks: <<right>>0" +
-                                  "\nLargeBlocks: <<right>>1")));
-        vb.addBack(new VisPixelCoordinates(
-                       VisPixelCoordinates.ORIGIN.TOP,
-                       new VzText(VzText.ANCHOR.TOP, format+"<<red>>Points Acrued\n"+p)));
-        vb.addBack(new VisPixelCoordinates(
-                       VisPixelCoordinates.ORIGIN.TOP_RIGHT,
-                       new VzText(VzText.ANCHOR.TOP_RIGHT, format+"<<red>>Time Elapsed\n<<right>>"+t+" s")));
+        vb.addBack(new VisPixCoords(
+                                    VisPixCoords.ORIGIN.TOP_LEFT,
+                                    new VzText(VzText.ANCHOR.TOP_LEFT, format+
+                                               "<<red>>Objects Found" +
+                                               "\n<<left>>Total: <<right>>"+b +
+                                               "\nBalls: <<right>>2" +
+                                               "\nSmallBlocks: <<right>>0" +
+                                               "\nLargeBlocks: <<right>>1")));
+        vb.addBack(new VisPixCoords(
+                                    VisPixCoords.ORIGIN.TOP,
+                                    new VzText(VzText.ANCHOR.TOP, format+"<<red>>Points Acrued\n"+p)));
+        vb.addBack(new VisPixCoords(
+                                    VisPixCoords.ORIGIN.TOP_RIGHT,
+                                    new VzText(VzText.ANCHOR.TOP_RIGHT, format+"<<red>>Time Elapsed\n<<right>>"+t+" s")));
         vb.swap();
 
         vb = vw.getBuffer("balls");
@@ -80,31 +80,31 @@ public class ArmController extends Thread
         pgClick.addDoubleSlider("height", "Height", 0, 0.12, 0.05);
 
         pgClick.addListener(new ParameterListener() {
-                public void parameterChanged(ParameterGUI pg, String name)
-                {
-                    ParameterGUI pgArm = ArmController.this.pgArm;
-                    if (name.equals("enableClick") && pg.gb("enableClick")) {
-                        pgArm.sb("enableManual", false);
+            public void parameterChanged(ParameterGUI pg, String name)
+        {
+            ParameterGUI pgArm = ArmController.this.pgArm;
+            if (name.equals("enableClick") && pg.gb("enableClick")) {
+                pgArm.sb("enableManual", false);
 
-                        // need to duplicate this here because do not want to set notifyOnSet parameter
-                         for (int i = 0; i < 6; i++) {
-                             pgArm.setEnabled("angle-"+i, false);
-                         }
-                    }
+                // need to duplicate this here because do not want to set notifyOnSet parameter
+                for (int i = 0; i < 6; i++) {
+                    pgArm.setEnabled("angle-"+i, false);
                 }
-            });
+            }
+        }
+        });
 
         pgArm.addListener(new ParameterListener() {
-                public void parameterChanged(ParameterGUI pg, String name)
-                {
-                    ParameterGUI pgClick = ArmController.this.pgClick;
-                    if (name.equals("enableManual") && pg.gb("enableManual")) {
-                        pgClick.sb("enableClick", false);
-                    } else if (name.equals("home")) {
-                        pgClick.sb("enableClick", false);
-                    }
-                }
-            });
+            public void parameterChanged(ParameterGUI pg, String name)
+        {
+            ParameterGUI pgClick = ArmController.this.pgClick;
+            if (name.equals("enableManual") && pg.gb("enableManual")) {
+                pgClick.sb("enableClick", false);
+            } else if (name.equals("home")) {
+                pgClick.sb("enableClick", false);
+            }
+        }
+        });
         vl.addEventHandler(new MyEventHandler());
     }
 
@@ -127,7 +127,7 @@ public class ArmController extends Thread
                                     new VzCircle(0.0025, new VzMesh.Style(color)),
                                     new VzCircle(0.01, new VzLines.Style(color, 2)),
                                     new VzCircle(0.02, new VzLines.Style(color, 1))
-                           ));
+                                   ));
         }
         vb.swap();
 
@@ -136,9 +136,9 @@ public class ArmController extends Thread
             (xy == null ? "No Goal Set" :
              String.format("Goal Set to (%3.3f, %3.3f)\nZ:%3.3f\tradius:%3.3f\tangle:%3.3f",
                            xy[0], xy[1], pgClick.gd("height"), radius, angle));
-        vb.addBack(new VisPixelCoordinates(
-                       VisPixelCoordinates.ORIGIN.BOTTOM_RIGHT,
-                       new VzText(VzText.ANCHOR.BOTTOM_RIGHT, str)));
+        vb.addBack(new VisPixCoords(
+                                    VisPixCoords.ORIGIN.BOTTOM_RIGHT,
+                                    new VzText(VzText.ANCHOR.BOTTOM_RIGHT, str)));
         vb.swap();
     }
 
