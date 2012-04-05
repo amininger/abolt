@@ -61,10 +61,10 @@ public class BoltArmController implements LCMSubscriber
                     double r = LinAlg.distance(origin, goal);
                     if (r < minR) {
                         // Don't do anything here. Too close to the arm
-                    } else if (r < maxSR) {
-                        simplePlan(r, goal);
-                    } else if (r < maxCR) {
-                        complexPlan(r, goal);
+                    //} else if (r < maxSR) {
+                        //simplePlan(r, goal);
+                    //} else if (r < maxCR) {
+                        //complexPlan(r, goal);
                     } else {
                         outOfRange(r, goal);
                     }
