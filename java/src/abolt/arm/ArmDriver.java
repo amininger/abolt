@@ -5,6 +5,7 @@ import java.util.*;
 
 import lcm.lcm.*;
 
+import april.config.*;
 import april.dynamixel.*;
 import april.jserial.*;
 import april.util.*;
@@ -21,12 +22,36 @@ public class ArmDriver implements LCMSubscriber
 
     public ArmDriver(AbstractBus bus)
     {
+        this(bus, null);
+    }
+
+    public ArmDriver(AbstractBus bus, Config config)
+    {
+        HashMap<Integer, byte[]> pids = new HashMap<Integer, byte[]>();
+        if (config != null) {
+            for (int i = 0;; i++) {
+                int[] pid = config.getInts("arm_driver.pids.pid"+i,null);
+                if (pid == null)
+                    break;
+                pids.put(pid[0], new byte[]{(byte)pid[1],(byte)pid[2],(byte)pid[3]});
+            }
+        }
+
         // self-test
         for (int id = 0; id < 6; id++) {
             servos[id] = bus.getServo(id);
             if (servos[id] == null)  {
                 System.out.printf("Could not communicate with servo %d\n", id);
                 System.exit(-1);
+            }
+            // handle PID
+            if (servos[id] instanceof MX28Servo) {
+                MX28Servo mx28 = (MX28Servo)(servos[id]);
+                if (pids.containsKey(id)) {
+                    byte[] pid = pids.get(id);
+                    mx28.setPID(pid[0], pid[1], pid[2]);
+                    System.out.printf("Servo %d : set PID to [%d %d %d]\n", id, pid[0], pid[1], pid[2]);
+                }
             }
             System.out.printf("Servo %d : %s present!\n", id, servos[id].getClass().getSimpleName());
         }
@@ -141,6 +166,7 @@ public class ArmDriver implements LCMSubscriber
     {
         GetOpt gopt = new GetOpt();
         gopt.addString('d', "device", "/dev/ttyUSB0", "USBDynamixel device path, or 'sim'");
+        gopt.addString('c', "config", null, "Config file");
 
         gopt.addBoolean('h', "help", false, "Show this help");
 
@@ -167,6 +193,11 @@ public class ArmDriver implements LCMSubscriber
 
             bus = new SerialBus(js);
         }
-        new ArmDriver(bus).run();
+        ConfigFile config = null;
+        if (gopt.getString("config") != null) {
+            config = new ConfigFile(gopt.getString("config"));
+        }
+
+        new ArmDriver(bus, config).run();
     }
 }

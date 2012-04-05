@@ -215,13 +215,18 @@ public class BoltArmDemo implements LCMSubscriber
         double[] origin = new double[3];
 
         // Arm information and planning parameters
-        double dh    = 0.05;        // Height of end effector above ground
+        double dh    = 0.08;        // Height of end effector above ground
         double minR  = 0.05;        // Min distance at which we plan
         double maxSR;               // Max distance at which we can plan gripper-down
         double maxCR;               // Max complex plan distance
 
+        // LCM Stuff
+        robot_command_t cmd;
+
         public KinematicsThread()
         {
+            cmd = new robot_command_t();
+
             double h0 = l[0]+baseHeight;
             double l1 = l[1]+l[2];
             double q0 = l[3]+l[4]+l[5]+dh - h0;
@@ -244,6 +249,7 @@ public class BoltArmDemo implements LCMSubscriber
         {
             synchronized (goalLock) {
                 goal = goal_;
+                cmd.updateDest = true;
             }
         }
 
@@ -275,6 +281,11 @@ public class BoltArmDemo implements LCMSubscriber
                         if (opts.getBoolean("lcm")) {
                             lcm.publish("ARM_COMMAND", getArmCommandList());
                         }
+                        cmd.utime = TimeUtil.utime();
+                        cmd.dest = LinAlg.resize(goal, 6);
+                        cmd.action = "POINT";
+                        lcm.publish("ROBOT_COMMAND", cmd);
+                        cmd.updateDest = false;
                     }
                 }
                 TimeUtil.sleep(1000/Hz);
@@ -318,7 +329,7 @@ public class BoltArmDemo implements LCMSubscriber
             t[2] = Math.PI - g0;
             t[3] = Math.PI - g2 - g4;
 
-            //t[5] = Math.PI/2;
+            //t[5] = Math.toRadians(112.0);
 
             for (int i = 0; i < t.length; i++) {
                 joints.get(i).set(t[i]);
@@ -347,7 +358,7 @@ public class BoltArmDemo implements LCMSubscriber
             t[1] = Math.PI - g0 - g3;
             t[3] = Math.PI - g2;
 
-            //t[5] = Math.PI/2;
+            //t[5] = Math.toRadians(112.0);
 
             for (int i = 0; i < t.length; i++) {
                 joints.get(i).set(t[i]);
@@ -358,16 +369,18 @@ public class BoltArmDemo implements LCMSubscriber
         private void outOfRange(double r)
         {
             double[] t = new double[6];
+            double tiltFactor = 20;
             t[0] = MathUtil.atan2(goal[1], goal[0]);
-            t[1] = Math.PI/2;
+            t[1] = Math.PI/2 - Math.toRadians(tiltFactor);
+            t[3] = Math.toRadians(tiltFactor);
 
             double l1 = l[0]+baseHeight;
             double l2 = l[1]+l[2];
 
-            t[3] = Math.min(0, MathUtil.atan2(l1, r-l2));
+            //t[3] = Math.min(0, MathUtil.atan2(l1, r-l2));
             //t[3] = MathUtil.atan2(l1, r-l2);
 
-            //t[5] = Math.PI/2;
+            //t[5] = Math.toRadians(112.0);
 
             for (int i = 0; i < t.length; i++) {
                 joints.get(i).set(t[i]);
@@ -380,6 +393,23 @@ public class BoltArmDemo implements LCMSubscriber
         public int getDispatchOrder()
         {
             return 0;
+        }
+
+        public boolean mousePressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e)
+        {
+            double[] xyz = ray.intersectPlaneXY();
+            int mods = e.getModifiersEx();
+            boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
+            boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
+            if (shift) {
+                kt.set(xyz);
+                return true;
+            } else if (ctrl) {
+                kt.set(null);
+                return true;
+            }
+
+            return false;
         }
 
         public boolean mouseDragged(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e)
