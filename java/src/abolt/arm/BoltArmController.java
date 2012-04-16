@@ -25,7 +25,7 @@ public class BoltArmController implements LCMSubscriber
     // Arm parameters and restrictions
     ArrayList<Joint> joints;
     double[] l;
-    double baseHeight   = 0.075;
+    double baseHeight   = BoltArm.baseHeight;
     double dh           = 0.08;     // Goal height of end effector
     double minR         = 0.05;     // Minimum distance away from arm center at which we plan
     double maxSR;                   // Max distance at which we can plan gripper-down
@@ -210,66 +210,12 @@ public class BoltArmController implements LCMSubscriber
      */
     private void initArm()
     {
-        joints = new ArrayList<Joint>();
-        RevoluteJoint j0, j1, j2, j3, j4, j5;
-        RevoluteJoint.Parameters p0, p1, p2, p3, p4, p5;
+        joints = BoltArm.initArm();
         l = new double[6];
-
-        p0 = new RevoluteJoint.Parameters();
-        l[0] = 0.04;
-        p0.lSegment = l[0];
-        p0.rMin = -Math.PI;
-        p0.rMax = Math.PI;
-        p0.orientation = RevoluteJoint.Z_AXIS;
-
-        p1 = new RevoluteJoint.Parameters();
-        l[1] = 0.101;
-        p1.lSegment = l[1];
-        p1.rMin = Math.toRadians(-120.0);
-        p1.rMax = Math.toRadians(120.0);
-        p1.orientation = RevoluteJoint.Y_AXIS;
-
-        p2 = new RevoluteJoint.Parameters();
-        l[2] = 0.098;
-        p2.lSegment = l[2];
-        p2.rMin = Math.toRadians(-125.0);
-        p2.rMax = Math.toRadians(125.0);
-        p2.orientation = RevoluteJoint.Y_AXIS;
-
-        p3 = new RevoluteJoint.Parameters();
-        l[3] = 0.077;
-        p3.lSegment = l[3];
-        p3.rMin = Math.toRadians(-125.0);
-        p3.rMax = Math.toRadians(125.0);
-        p3.orientation = RevoluteJoint.Y_AXIS;
-
-        p4 = new RevoluteJoint.Parameters();        // Wrist
-        l[4] = 0.0;
-        p4.lSegment = l[4];
-        p4.rMin = Math.toRadians(-150.0);
-        p4.rMax = Math.toRadians(150.0);
-        p4.orientation = RevoluteJoint.Z_AXIS;
-
-        p5 = new RevoluteJoint.Parameters();        // Hand joint, actually. Will need an upgrade
-        l[5] = 0.101;
-        p5.lSegment = l[5];
-        p5.rMin = Math.toRadians(-40.0);
-        p5.rMax = Math.toRadians(120.0);
-        p5.orientation = RevoluteJoint.Y_AXIS;
-
-        j0 = new RevoluteJoint(p0);
-        j1 = new RevoluteJoint(p1);
-        j2 = new RevoluteJoint(p2);
-        j3 = new RevoluteJoint(p3);
-        j4 = new RevoluteJoint(p4);
-        j5 = new RevoluteJoint(p5);
-
-        joints.add(j0);
-        joints.add(j1);
-        joints.add(j2);
-        joints.add(j3);
-        joints.add(j4);
-        joints.add(j5);
+        int i = 0;
+        for (Joint j: joints) {
+            l[i++] = ((RevoluteJoint)j).getLength();    //  XXX Will break when we add hand
+        }
     }
 
     /** Handle incoming LCM messages */
@@ -296,6 +242,13 @@ public class BoltArmController implements LCMSubscriber
             robot_command_t cmd = new robot_command_t(ins);
             cmds.put(cmd, cmd.utime);
         }
+    }
+
+    // ==================================================
+    // === Get rendering information ===
+    public ArrayList<Joint> getJoints()
+    {
+        return joints;
     }
 
     // ==================================================

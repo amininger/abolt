@@ -229,4 +229,10 @@ class RevoluteJoint implements Joint
 
     }
 
+    // ==============
+    public double getLength()
+    {
+        return params.lSegment;
+    }
+
 }
