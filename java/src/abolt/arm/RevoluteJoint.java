@@ -235,4 +235,9 @@ class RevoluteJoint implements Joint
         return params.lSegment;
     }
 
+    public double getAngle()
+    {
+        return params.angle;
+    }
+
 }

@@ -28,6 +28,9 @@ public class BoltArmDemo implements LCMSubscriber
     // Rendering thread
     RenderThread rt;
 
+    // Simulation thread
+    SimulationThread st;
+
     ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
     ExpiringMessageCache<dynamixel_command_list_t> cmds = new ExpiringMessageCache<dynamixel_command_list_t>(0.2, true);
 
@@ -39,11 +42,16 @@ public class BoltArmDemo implements LCMSubscriber
         opts = opts_;
         joints = BoltArm.initArm();
 
-        lcm.subscribe("ARM_STATUS", this);
+        // We're going to spoof these if simming, so don't send them
+        if (!opts.getBoolean("sim")) {
+            lcm.subscribe("ARM_STATUS", this);
+        }
         lcm.subscribe("ARM_COMMAND", this);
 
         rt = new RenderThread();
+        st = new SimulationThread();
         rt.start();
+        st.start();
     }
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
@@ -177,7 +185,7 @@ public class BoltArmDemo implements LCMSubscriber
         {
             robot_command_t cmd = new robot_command_t();
             cmd.utime = TimeUtil.utime();
-            cmd.updateDest = dest != null;
+            cmd.updateDest = (dest != null);
             cmd.dest = LinAlg.resize(dest, 6);
             cmd.action = "POINT";   // Not a good message format
 
@@ -220,6 +228,33 @@ public class BoltArmDemo implements LCMSubscriber
             }
 
             return false;
+        }
+    }
+
+    class SimulationThread extends Thread
+    {
+        int Hz = 100;
+
+        public void run()
+        {
+            while (true) {
+                TimeUtil.sleep(1000/Hz);
+
+                long utime = TimeUtil.utime();
+                dynamixel_status_list_t dsl = new dynamixel_status_list_t();
+                dsl.len = joints.size();
+                dsl.statuses = new dynamixel_status_t[joints.size()];
+                for (int i = 0; i < joints.size(); i++) {
+                    RevoluteJoint j = (RevoluteJoint)joints.get(i); // XXX Will break with hand addition
+                    dynamixel_status_t status = new dynamixel_status_t();
+                    status.utime = utime;
+                    status.position_radians = j.getAngle();
+
+                    dsl.statuses[i] = status;
+                }
+
+                lcm.publish("ARM_STATUS", dsl);
+            }
         }
     }
 
