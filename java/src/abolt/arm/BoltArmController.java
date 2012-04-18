@@ -360,7 +360,11 @@ public class BoltArmController implements LCMSubscriber
         l = new double[6];
         int i = 0;
         for (Joint j: joints) {
-            l[i++] = ((RevoluteJoint)j).getLength();    //  XXX Will break when we add hand
+            if (j instanceof RevoluteJoint) {
+                l[i++] = ((RevoluteJoint)j).getLength();
+            } else if (j instanceof HandJoint) {
+                l[i++] = ((HandJoint)j).getLength();
+            }
         }
     }
 

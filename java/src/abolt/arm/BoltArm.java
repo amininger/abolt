@@ -10,7 +10,7 @@ public class BoltArm
     public static ArrayList<Joint> initArm()
     {
         ArrayList<Joint> joints = new ArrayList<Joint>();
-        RevoluteJoint j0, j1, j2, j3, j4, j5;
+        Joint j0, j1, j2, j3, j4, j5;
         RevoluteJoint.Parameters p0, p1, p2, p3, p4, p5;
 
         p0 = new RevoluteJoint.Parameters();
@@ -43,18 +43,19 @@ public class BoltArm
         p4.rMax = Math.toRadians(150.0);
         p4.orientation = RevoluteJoint.Z_AXIS;
 
-        p5 = new RevoluteJoint.Parameters();        // Hand joint, actually. Will need an upgrade
-        p5.lSegment = 0.101;
-        p5.rMin = Math.toRadians(-40.0);
-        p5.rMax = Math.toRadians(120.0);
-        p5.orientation = RevoluteJoint.Y_AXIS;
+        //p5 = new RevoluteJoint.Parameters();        // Hand joint, actually. Will need an upgrade
+        //p5.lSegment = 0.101;
+        //p5.rMin = Math.toRadians(-40.0);
+        //p5.rMax = Math.toRadians(120.0);
+        //p5.orientation = RevoluteJoint.Y_AXIS;
 
         j0 = new RevoluteJoint(p0);
         j1 = new RevoluteJoint(p1);
         j2 = new RevoluteJoint(p2);
         j3 = new RevoluteJoint(p3);
         j4 = new RevoluteJoint(p4);
-        j5 = new RevoluteJoint(p5);
+        //j5 = new RevoluteJoint(p5);
+        j5 = new HandJoint(new HandJoint.Parameters());
 
         joints.add(j0);
         joints.add(j1);

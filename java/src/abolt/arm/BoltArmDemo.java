@@ -246,10 +246,17 @@ public class BoltArmDemo implements LCMSubscriber
                 dsl.len = joints.size();
                 dsl.statuses = new dynamixel_status_t[joints.size()];
                 for (int i = 0; i < joints.size(); i++) {
-                    RevoluteJoint j = (RevoluteJoint)joints.get(i); // XXX Will break with hand addition
                     dynamixel_status_t status = new dynamixel_status_t();
                     status.utime = utime;
-                    status.position_radians = j.getAngle();
+
+                    Joint j = joints.get(i);
+                    if (j instanceof RevoluteJoint) {
+                        RevoluteJoint rj = (RevoluteJoint)j;
+                        status.position_radians = rj.getAngle();
+                    } else if (j instanceof HandJoint) {
+                        HandJoint hj = (HandJoint)j;
+                        status.position_radians = hj.getAngle();
+                    }
 
                     dsl.statuses[i] = status;
                 }
