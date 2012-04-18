@@ -22,6 +22,12 @@ public class BoltArmController implements LCMSubscriber
     ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
     ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(0.2, true);
 
+    // Update rate
+    int Hz = 100;
+
+    // Controller stability stuff
+    double stableError = 0.01;              // If position is always within this much for our window, stable
+
     // Arm parameters and restrictions
     ArrayList<Joint> joints;
     double[] l;
@@ -34,14 +40,11 @@ public class BoltArmController implements LCMSubscriber
     double maxTSR;                  // Max distance at which we can plan gripper-down (transHeight)
     double maxTCR;                  // Max distance at which we can actually plan (transHeight);
 
-    // Controller stability stuff
-    long holdTime = 500000;         // Time to hold position [micro s] until transitioning to next state
-    int minHistory = 10;            // Minimum number of position history to keep
-    double stableError = 0.01;      // If position is always within this much for our window, stable
-
     class PositionTracker
     {
         LinkedList<Pair<double[], Long> > positions = new LinkedList<Pair<double[], Long> >();
+        long holdTime = 250000; // Time to hold position [micro s] until transitioning to next state
+        int minHistory = (int)(Hz*(holdTime/1000000.0));
 
         public void clear()
         {
@@ -90,9 +93,6 @@ public class BoltArmController implements LCMSubscriber
     // A simple elbow-up controller
     class ControlThread extends Thread
     {
-        // Update rate
-        int Hz = 100;
-
         // Current target position
         int state = 0;
         robot_command_t last_cmd = null;
@@ -210,6 +210,7 @@ public class BoltArmController implements LCMSubscriber
 
         void setState(int s)
         {
+            //System.out.printf("State set to [%d]\n", s);
             state = s;
             ptracker.clear();
         }

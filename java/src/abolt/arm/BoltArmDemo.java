@@ -45,13 +45,14 @@ public class BoltArmDemo implements LCMSubscriber
         // We're going to spoof these if simming, so don't send them
         if (!opts.getBoolean("sim")) {
             lcm.subscribe("ARM_STATUS", this);
+        } else {
+            st = new SimulationThread();
+            st.start();
         }
         lcm.subscribe("ARM_COMMAND", this);
 
         rt = new RenderThread();
-        st = new SimulationThread();
         rt.start();
-        st.start();
     }
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
