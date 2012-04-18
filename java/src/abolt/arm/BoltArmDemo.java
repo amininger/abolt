@@ -85,6 +85,11 @@ public class BoltArmDemo implements LCMSubscriber
         }
     }
 
+    static enum ActionState
+    {
+        POINT, GRAB, DROP
+    }
+
     class RenderThread extends Thread
     {
         int fps = 60;
@@ -182,13 +187,23 @@ public class BoltArmDemo implements LCMSubscriber
             return 0;
         }
 
-        robot_command_t getRobotCommand(double[] dest)
+        robot_command_t getRobotCommand(double[] dest, ActionState state)
         {
             robot_command_t cmd = new robot_command_t();
             cmd.utime = TimeUtil.utime();
             cmd.updateDest = (dest != null);
             cmd.dest = LinAlg.resize(dest, 6);
-            cmd.action = "POINT";   // Not a good message format
+            switch (state) {
+                case POINT:
+                    cmd.action = "POINT";
+                    break;
+                case GRAB:
+                    cmd.action = "GRAB";
+                    break;
+                default:
+                    cmd.action = "POINT";
+                    break;
+            }
 
             return cmd;
         }
@@ -199,13 +214,13 @@ public class BoltArmDemo implements LCMSubscriber
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
-            if (shift) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz));
+            if (shift && !ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
                 rt.setGoal(xyz);
                 return true;
-            } else if (ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(null));
-                rt.setGoal(null);
+            } else if (shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.GRAB));
+                rt.setGoal(xyz);
                 return true;
             }
 
@@ -218,13 +233,13 @@ public class BoltArmDemo implements LCMSubscriber
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
-            if (shift) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz));
+            if (shift && !ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
                 rt.setGoal(xyz);
                 return true;
-            } else if (ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(null));
-                rt.setGoal(null);
+            } else if (shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.GRAB));
+                rt.setGoal(xyz);
                 return true;
             }
 
