@@ -26,26 +26,28 @@ public class BoltArmController implements LCMSubscriber
     int Hz = 100;
 
     // Controller stability stuff
-    double stableError = 0.01;              // If position is always within this much for our window, stable
+    double stableError = 0.0005;              // If position is always within this much for our window, stable
 
     // Arm parameters and restrictions
     ArrayList<Joint> joints;
     double[] l;
     double baseHeight   = BoltArm.baseHeight;
-    double goalHeight   = 0.08;     // Goal height of end effector
-    double transHeight  = 0.20;     // Transition height of end effector
-    double grabHeight   = 0.04;     // Height at which we try to grab objects
+
+    // General planning
     double minR         = 0.05;     // Minimum distance away from arm center at which we plan
 
     // Pointing
+    double goalHeight   = 0.08;     // Goal height of end effector
+    double transHeight  = 0.20;     // Transition height of end effector
     double maxGSR;                  // Max distance at which we can plan gripper-down (goalHeight)
     double maxGCR;                  // Max distance at which we can actually plan (goalHeight);
     double maxTSR;                  // Max distance at which we can plan gripper-down (transHeight)
     double maxTCR;                  // Max distance at which we can actually plan (transHeight)
 
     // Grabbing
-    double maxGrabSR;
-    double maxGrabCR;
+    double grabHeight   = 0.035;     // Height at which we try to grab objects
+    double maxGrabSR;               // Max distance at which we plan gripper-down grabbing (grabHeight)
+    double maxGrabCR;               // Max distance at which we plan any grabbing (grabHeight)
 
     class PositionTracker
     {
@@ -147,29 +149,19 @@ public class BoltArmController implements LCMSubscriber
                 // Check for new action
                 if (cmd != null && (last_cmd == null || last_cmd.utime < cmd.utime)) {
                     last_cmd = cmd;
-                    if (cmd.action.contains("POINT")) {
-                        prev = goal;
-                        goal = LinAlg.resize(cmd.dest, 2);
-                        setState(0);
-                        pointStateMachine();
-                    } else if (cmd.action.contains("GRAB")) {
-                        goal = LinAlg.resize(cmd.dest, 2);
-                        setState(0);
-                        grabStateMachine();
-                    } else if (cmd.action.contains("DROP")) {
-                        setState(0);
-                        //dropStateMachine();
-                    } else {
-                        System.err.println("ERR: Unknown action type!");
-                    }
-                    continue;
-                } else if (last_cmd != null) {
+                    prev = goal;
+                    goal = LinAlg.resize(cmd.dest, 2);
+                    setState(0);
+                }
+
+                if (last_cmd != null) {
                     if (last_cmd.action.contains("POINT")) {
                         pointStateMachine();
                     } else if (last_cmd.action.contains("GRAB")) {
+                        //sweepStateMachine();
                         grabStateMachine();
                     } else if (last_cmd.action.contains("DROP")) {
-                        //dropStateMachine();
+                        dropStateMachine();
                     }
                 }
 
@@ -214,13 +206,15 @@ public class BoltArmController implements LCMSubscriber
                     return;
                 }
 
+                double pr = LinAlg.magnitude(prev);
+
                 // Try to move arm up above prev
                 if (r < minR) {
                     // Don't do anythign here. Too close to the arm
-                } else if (r < maxTSR) {
-                    simplePlan(r, prev, transHeight);
-                } else if (r < maxTCR) {
-                    complexPlan(r, prev, transHeight);
+                } else if (pr < maxTSR) {
+                    simplePlan(pr, prev, transHeight);
+                } else if (pr < maxTCR) {
+                    complexPlan(pr, prev, transHeight);
                 } else {
                     setState(state+1);
                 }
@@ -231,11 +225,6 @@ public class BoltArmController implements LCMSubscriber
                 }
 
             } else if (state == 1) {
-                if (prev == null) {
-                    setState(state+1);
-                    return;
-                }
-
                 // Try to move arm up above goal
                 if (r < minR) {
                     // Don't do anythign here. Too close to the arm
@@ -261,6 +250,10 @@ public class BoltArmController implements LCMSubscriber
                 } else {
                     outOfRange(r, goal);
                 }
+
+                if (error < stableError) {
+                    setState(state+1);
+                }
             }
         }
 
@@ -268,7 +261,7 @@ public class BoltArmController implements LCMSubscriber
          *  For now, just try to swing the arm through it to change the
          *  view point
          */
-        private void grabStateMachine()
+        private void sweepStateMachine()
         {
             double r = LinAlg.magnitude(goal);
             double error = ptracker.error();
@@ -282,6 +275,7 @@ public class BoltArmController implements LCMSubscriber
             }
 
             // States
+            //      XXX: Go to transition height above current position
             //      0: Go to a position -30 degrees behind desired up high
             //      1: Move to correct height
             //      2: Ram the arm into the object at position "GOAL"
@@ -344,6 +338,163 @@ public class BoltArmController implements LCMSubscriber
                 } else {
                     outOfRange(r, goal);
                 }
+            }
+        }
+
+        /** Actual grab state machine. Moves to location, centering arm with gripper to
+         *  the side of goal slightly. XXX For now, assumes that block is properly aligned
+         *  for gripping. Moves above, then down, then slowly closes on object until we
+         *  are confident that we are gripping to object OR we have fully closed the hand.
+         *  Then we await further orders.
+         */
+        private void grabStateMachine()
+        {
+            double r = LinAlg.magnitude(goal);
+            double error = ptracker.error();
+
+            // Compute "safe" goal just to side of grab point
+            double offset = 0.015;
+            double angle = Math.atan2(goal[1], goal[0]);
+            double dtheta = Math.asin(offset/r);
+            double newangle = MathUtil.mod2pi(angle+dtheta);
+
+            // States
+            //      0: move to high point at current position
+            //      1: move above point (slightly to side) at a safe height
+            //      2: move down to grabbing height
+            //      3: grab, using a feedback controller to avoid breaking hand
+            if (state == 0) {
+                // Open hand
+                joints.get(5).set(0.0);
+
+
+                if (prev == null) {
+                    setState(state+1);
+                    return;
+                }
+
+                double pr = LinAlg.magnitude(prev);
+
+                if (r < minR) {
+
+                } else if (pr < maxTSR) {
+                    simplePlan(pr, prev, transHeight);
+                } else if (pr < maxTCR) {
+                    complexPlan(pr, prev, transHeight);
+                } else {
+                    setState(state+1);
+                }
+
+                if (error < stableError) {
+                    setState(state+1);
+                }
+            } else if (state == 1) {
+                if (r < minR) {
+
+                } else if (r < maxTSR) {
+                    simplePlan(r, goal, transHeight);
+                } else if (r < maxTCR) {
+                    complexPlan(r, goal, transHeight);
+                } else {
+                    outOfRange(r, goal);
+                }
+
+                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
+                j.set(newangle);
+
+                if (error < stableError) {
+                    setState(state+1);
+                }
+            } else if (state == 2) {
+                if (r < minR) {
+
+                } else if (r < maxGrabSR) {
+                    simplePlan(r, goal, grabHeight);
+                } else if (r < maxGrabCR) {
+                    complexPlan(r, goal, grabHeight);
+                } else {
+                    outOfRange(r, goal);
+                }
+
+                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
+                j.set(newangle);
+
+                if (error < stableError) {
+                    setState(state+1);
+                }
+            } else if (state == 3) {
+                HandJoint j = (HandJoint)(joints.get(5));
+                dynamixel_status_list_t dsl = statuses.get();
+                if (dsl == null) {
+                    j.set(0.0);
+                    return;
+                }
+
+                // Start the hand closing XXX
+                j.set(112.0);
+                if (error < stableError) {
+                    setState(state+1);
+                }
+            } else if (state == 4) {
+                // Check for hand contact with semi-rigid object
+                HandJoint j = (HandJoint)(joints.get(5));
+                dynamixel_status_list_t dsl = statuses.get();
+                if (dsl == null) {
+                    j.set(0.0);
+                    return;
+                }
+
+                dynamixel_status_t gripper_status = dsl.statuses[5];
+                double min_speed = 0.1;
+                double speed = Math.abs(gripper_status.speed);
+
+                if (speed < min_speed) {
+                    j.set(gripper_status.position_radians);
+                    setState(state+1);
+                }
+            } else if (state == 5) {
+                // Tweak grip strength so we don't break the hand
+                HandJoint j = (HandJoint)(joints.get(5));
+                dynamixel_status_list_t dsl = statuses.get();
+                if (dsl == null) {
+                    j.set(0.0);
+                    return;
+                }
+
+                dynamixel_status_t gripper_status = dsl.statuses[5];
+                double maxLoad = 0.4;
+                double minLoad = 0.25;
+                double gripIncr = Math.toRadians(3.0);
+                double load = Math.abs(gripper_status.load);
+                //System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
+
+                if (gripper_status.load <= 0.0 && load < minLoad) {
+                    //System.out.println("Grip moar");
+                    j.set(gripper_status.position_radians + gripIncr);
+                } else if (gripper_status.load <= 0.0 && load > maxLoad) {
+                    //System.out.println("Grip less");
+                    j.set(gripper_status.position_radians - gripIncr);
+                }
+            }
+        }
+
+        /** Drop the object we are currently holding at the goal*/
+        private void dropStateMachine()
+        {
+            double r = LinAlg.magnitude(goal);
+            double error = ptracker.error();
+
+            // States
+            //      0: Up to transition height
+            //      1: Over to drop point
+            //      2: Down to drop height
+            //      3: Release
+
+            if (state < 3) {
+                pointStateMachine();
+            } else {
+                HandJoint j = (HandJoint)(joints.get(5));
+                j.set(0.0);
             }
         }
 
@@ -452,7 +603,7 @@ public class BoltArmController implements LCMSubscriber
         maxGCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
 
         // Initialize controller properties (transHeight)
-        q0 = l[3]+l[4]+l[5]+transHeight + h0;
+        q0 = l[3]+l[4]+l[5]+transHeight - h0;
         maxTSR = Math.sqrt(l1*l1 - q0*q0);
 
         if (transHeight < h0) {
@@ -463,7 +614,7 @@ public class BoltArmController implements LCMSubscriber
         maxTCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
 
         // Initialize controller properties (grabbing)
-        q0 = l[3]+l[4]+l[5]+grabHeight + h0;
+        q0 = l[3]+l[4]+l[5]+grabHeight - h0;
         maxGrabSR = Math.sqrt(l1*l1 - q0*q0);
 
         if (grabHeight < h0) {

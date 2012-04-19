@@ -200,6 +200,9 @@ public class BoltArmDemo implements LCMSubscriber
                 case GRAB:
                     cmd.action = "GRAB";
                     break;
+                case DROP:
+                    cmd.action = "DROP";
+                    break;
                 default:
                     cmd.action = "POINT";
                     break;
@@ -216,6 +219,10 @@ public class BoltArmDemo implements LCMSubscriber
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
             if (shift && !ctrl) {
                 lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
+                rt.setGoal(xyz);
+                return true;
+            } else if (!shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
                 rt.setGoal(xyz);
                 return true;
             } else if (shift && ctrl) {
@@ -235,6 +242,10 @@ public class BoltArmDemo implements LCMSubscriber
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
             if (shift && !ctrl) {
                 lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
+                rt.setGoal(xyz);
+                return true;
+            } else if (!shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
                 rt.setGoal(xyz);
                 return true;
             } else if (shift && ctrl) {
