@@ -34,14 +34,14 @@ public class BoltArmController implements LCMSubscriber
     double baseHeight   = BoltArm.baseHeight;
     double goalHeight   = 0.08;     // Goal height of end effector
     double transHeight  = 0.20;     // Transition height of end effector
-    double grabHeight   = 0.03;     // Height at which we try to grab objects
+    double grabHeight   = 0.04;     // Height at which we try to grab objects
     double minR         = 0.05;     // Minimum distance away from arm center at which we plan
 
     // Pointing
     double maxGSR;                  // Max distance at which we can plan gripper-down (goalHeight)
     double maxGCR;                  // Max distance at which we can actually plan (goalHeight);
     double maxTSR;                  // Max distance at which we can plan gripper-down (transHeight)
-    double maxTCR;                  // Max distance at which we can actually plan (transHeight);
+    double maxTCR;                  // Max distance at which we can actually plan (transHeight)
 
     // Grabbing
     double maxGrabSR;
@@ -50,7 +50,7 @@ public class BoltArmController implements LCMSubscriber
     class PositionTracker
     {
         LinkedList<Pair<double[], Long> > positions = new LinkedList<Pair<double[], Long> >();
-        long holdTime = 250000; // Time to hold position [micro s] until transitioning to next state
+        long holdTime = 500000; // Time to hold position [micro s] until transitioning to next state
         int minHistory = (int)(Hz*(holdTime/1000000.0));
 
         public void clear()
@@ -92,6 +92,7 @@ public class BoltArmController implements LCMSubscriber
                 err += LinAlg.magnitude(LinAlg.subtract(avgXYZ, p.getFirst()));
             }
 
+            //System.out.println(err/positions.size());
             return err/positions.size();
         }
 
@@ -128,12 +129,13 @@ public class BoltArmController implements LCMSubscriber
                     for (int i = 0; i < dsl.len; i++) {
                         if (i == 0) {
                             LinAlg.timesEquals(xform, LinAlg.rotateZ(dsl.statuses[i].position_radians));
-                        } else if (i+1 < dsl.len) {
+                        } else if (i+2 < dsl.len) {
                             LinAlg.timesEquals(xform, LinAlg.rotateY(dsl.statuses[i].position_radians));
                         }
                         LinAlg.timesEquals(xform, joints.get(i).getTranslation());
                     }
                     double[] currXYZ = LinAlg.resize(LinAlg.matrixToXyzrpy(xform), 3);
+                    //System.out.printf("[%f %f %f]\n", currXYZ[0], currXYZ[1], currXYZ[2]);
                     ptracker.add(currXYZ, TimeUtil.utime());
                 }
 
@@ -271,6 +273,14 @@ public class BoltArmController implements LCMSubscriber
             double r = LinAlg.magnitude(goal);
             double error = ptracker.error();
 
+            double angle = Math.atan2(goal[1], goal[0]);
+            double negAngle = angle-Math.toRadians(30);
+            double posAngle = angle+Math.toRadians(30);
+            double newAngle = MathUtil.mod2pi(negAngle);
+            if (newAngle != negAngle) {
+                newAngle = MathUtil.mod2pi(posAngle);
+            }
+
             // States
             //      0: Go to a position -30 degrees behind desired up high
             //      1: Move to correct height
@@ -287,8 +297,8 @@ public class BoltArmController implements LCMSubscriber
                     outOfRange(r, goal);
                 }
 
-                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
-                j.set(MathUtil.mod2pi(j.getAngle()-Math.toRadians(30)));
+                RevoluteJoint j = (RevoluteJoint)joints.get(0);
+                j.set(newAngle);
 
                 if (error < stableError) {
                     setState(state+1);
@@ -304,8 +314,8 @@ public class BoltArmController implements LCMSubscriber
                     outOfRange(r, goal);
                 }
 
-                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
-                j.set(MathUtil.mod2pi(j.getAngle()-Math.toRadians(30)));
+                RevoluteJoint j = (RevoluteJoint)joints.get(0);
+                j.set(newAngle);
 
                 if (error < stableError) {
                     setState(state+1);
