@@ -11,6 +11,9 @@ import abolt.lcmtypes.*;
 
 public class HandJoint implements Joint
 {
+    // Public parameters
+    static double HAND_SPEED = 0.15;
+
     // Current VisObject
     VisObject vobj;
 
@@ -77,7 +80,7 @@ public class HandJoint implements Joint
         dynamixel_command_t cmd = new dynamixel_command_t();
         cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.angle, params.rMin, params.rMax));
 
-        cmd.speed = 0.15;
+        cmd.speed = HAND_SPEED;
         cmd.max_torque = 0.5;
 
         // XXX Receiver sets utimes

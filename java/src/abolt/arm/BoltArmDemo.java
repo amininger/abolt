@@ -27,6 +27,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     // Rendering thread
     RenderThread rt;
+    ActionState action = ActionState.UNKNOWN;
 
     // Simulation thread
     SimulationThread st;
@@ -87,7 +88,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     static enum ActionState
     {
-        POINT, GRAB, DROP, SWEEP
+        POINT, GRAB, DROP, SWEEP, RESET, UNKNOWN
     }
 
     class RenderThread extends Thread
@@ -111,6 +112,19 @@ public class BoltArmDemo implements LCMSubscriber
             vl = new VisLayer(vw);
             vc = new VisCanvas(vl);
             jf.add(vc, BorderLayout.CENTER);
+
+            // ParameterGUI
+            ParameterGUI pg = new ParameterGUI();
+            pg.addButtons("reset", "Reset");
+            jf.add(pg, BorderLayout.SOUTH);
+
+            pg.addListener(new ParameterListener() {
+                public void parameterChanged(ParameterGUI pg, String name) {
+                    if (name.equals("reset")) {
+                        lcm.publish("ROBOT_COMMAND", getRobotCommand(null, ActionState.RESET));
+                    }
+                }
+            });
 
             // Grid
             VzGrid.addGrid(vw);
@@ -162,9 +176,30 @@ public class BoltArmDemo implements LCMSubscriber
                 // Draw current goal
                 {
                     VisWorld.Buffer vb = vw.getBuffer("goal");
+                    Color color;
+                    switch (action) {
+                        case POINT:
+                            color = new Color(0xff6699);
+                            break;
+                        case GRAB:
+                            color = new Color(0x00cc00);
+                            break;
+                        case DROP:
+                            color = new Color(0x005500);
+                            break;
+                        case SWEEP:
+                            color = new Color(0x00ffff);
+                            break;
+                        case RESET:
+                            color = new Color(0xff0000);
+                            break;
+                        default:
+                            color = new Color(0xffffff);
+                            break;
+                    }
                     if (xyz != null) {
                         vb.addBack(new VisChain(LinAlg.translate(xyz),
-                                                new VzCircle(0.015, new VzMesh.Style(Color.yellow))));
+                                                new VzCircle(0.015, new VzMesh.Style(color))));
                     }
                     vb.swap();
                 }
@@ -185,33 +220,6 @@ public class BoltArmDemo implements LCMSubscriber
         public int getDispatchOrder()
         {
             return 0;
-        }
-
-        robot_command_t getRobotCommand(double[] dest, ActionState state)
-        {
-            robot_command_t cmd = new robot_command_t();
-            cmd.utime = TimeUtil.utime();
-            cmd.updateDest = (dest != null);
-            cmd.dest = LinAlg.resize(dest, 6);
-            switch (state) {
-                case POINT:
-                    cmd.action = "POINT";
-                    break;
-                case GRAB:
-                    cmd.action = "GRAB";
-                    break;
-                case SWEEP:
-                    cmd.action = "SWEEP";
-                    break;
-                case DROP:
-                    cmd.action = "DROP";
-                    break;
-                default:
-                    cmd.action = "POINT";
-                    break;
-            }
-
-            return cmd;
         }
 
         public boolean mousePressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e)
@@ -294,6 +302,35 @@ public class BoltArmDemo implements LCMSubscriber
             }
         }
     }
+
+    private robot_command_t getRobotCommand(double[] dest, ActionState state)
+    {
+        action = state;
+        robot_command_t cmd = new robot_command_t();
+        cmd.utime = TimeUtil.utime();
+        cmd.updateDest = (dest != null);
+        cmd.dest = (dest == null) ? new double[6] : LinAlg.resize(dest, 6);
+        switch (state) {
+            case POINT:
+                cmd.action = "POINT";
+                break;
+            case GRAB:
+                cmd.action = "GRAB";
+                break;
+            case SWEEP:
+                cmd.action = "SWEEP";
+                break;
+            case DROP:
+                cmd.action = "DROP";
+                break;
+            default:
+                cmd.action = "RESET";
+                break;
+        }
+
+        return cmd;
+    }
+
 
     static public void main(String[] args)
     {

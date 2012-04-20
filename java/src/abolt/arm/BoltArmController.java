@@ -25,24 +25,10 @@ public class BoltArmController implements LCMSubscriber
     // Update rate
     int Hz = 100;
 
-    // Controller stability stuff
-    double stableError = 0.0005;              // If position is always within this much for our window, stable
-
     // Arm parameters and restrictions
     ArrayList<Joint> joints;
     double[] l;
     double baseHeight   = BoltArm.baseHeight;
-
-    // General planning
-    double minR         = 0.05;     // Minimum distance away from arm center at which we plan
-
-    // Pointing
-    double goalHeight   = 0.08;     // Goal height of end effector
-    double transHeight  = 0.20;     // Transition height of end effector
-
-    // Grabbing & sweeping
-    double sweepHeight  = 0.030;    // Height at which we sweep objects along
-    double grabHeight   = 0.035;    // Height at which we try to grab objects
 
     class PositionTracker
     {
@@ -105,9 +91,23 @@ public class BoltArmController implements LCMSubscriber
         double[] goal = null;
         PositionTracker ptracker;
 
-        // Last issued command for controller
-        dynamixel_command_list_t last_cmds;
+        // Controller stability stuff
+        double stableError = 0.0005;              // If position is always within this much for our window, "stable"
 
+        // previous command/status state
+        dynamixel_command_list_t last_cmds;
+        dynamixel_status_list_t last_status;
+
+        // General planning
+        double minR         = 0.05;     // Minimum distance away from arm center at which we plan
+
+        // Pointing
+        double goalHeight   = 0.08;     // Goal height of end effector
+        double transHeight  = 0.20;     // Transition height of end effector
+
+        // Grabbing & sweeping
+        double sweepHeight  = 0.025;    // Height at which we sweep objects along
+        double grabHeight   = 0.020;    // Height at which we try to grab objects
 
         public ControlThread()
         {
@@ -158,8 +158,11 @@ public class BoltArmController implements LCMSubscriber
                         dropStateMachine();
                     } else if (last_cmd.action.contains("SWEEP")) {
                         sweepStateMachine();
+                    } else if (last_cmd.action.contains("RESET")) {
+                        resetArm();
                     }
                 }
+                last_status = dsl;
 
                 dynamixel_command_list_t desired_cmds = getArmCommandList();
                 lcm.publish("ARM_COMMAND", desired_cmds);
@@ -168,7 +171,8 @@ public class BoltArmController implements LCMSubscriber
 
         void setState(int s)
         {
-            System.out.printf("State set to [%d]\n", s);
+            assert (last_cmd != null);
+            System.out.printf("%s: [%d]\n", last_cmd.action, s);
             state = s;
             ptracker.clear();
         }
@@ -269,7 +273,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 2) {
-                moveTo(goal, sweepHeight);
+                moveTo(goal, sweepHeight, sweepHeight*2);
 
                 RevoluteJoint j = (RevoluteJoint)joints.get(0);
                 j.set(newAngle);
@@ -278,7 +282,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 3) {
-                moveTo(goal, sweepHeight);
+                moveTo(goal, sweepHeight, sweepHeight*2);
 
                 if (error < stableError) {
                     setState(state+1);
@@ -300,10 +304,11 @@ public class BoltArmController implements LCMSubscriber
             double error = ptracker.error();
 
             // Compute "safe" goal just to side of grab point
-            double offset = 0.015;
+            double offset = 0.02;
             double angle = Math.atan2(goal[1], goal[0]);
             double dtheta = Math.asin(offset/r);
             double newangle = MathUtil.mod2pi(angle+dtheta);
+            double minSpeed = HandJoint.HAND_SPEED/2.0;
 
             // States
             //      0: move to high point at current position
@@ -336,7 +341,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 2) {
-                moveTo(goal, grabHeight); // XXX can't grab close objects :(
+                moveTo(goal, grabHeight, grabHeight*2); // XXX can't grab close objects :(
 
                 RevoluteJoint j = (RevoluteJoint)(joints.get(0));
                 j.set(newangle);
@@ -351,10 +356,11 @@ public class BoltArmController implements LCMSubscriber
                     j.set(0.0);
                     return;
                 }
+                dynamixel_status_t gripper_status = dsl.statuses[5];
 
-                // Start the hand closing XXX
+                // Start the hand closing
                 j.set(112.0);
-                if (error < stableError) {
+                if (gripper_status.speed > minSpeed) {
                     setState(state+1);
                 }
             } else if (state == 4) {
@@ -367,10 +373,9 @@ public class BoltArmController implements LCMSubscriber
                 }
 
                 dynamixel_status_t gripper_status = dsl.statuses[5];
-                double min_speed = 0.1;
                 double speed = Math.abs(gripper_status.speed);
 
-                if (speed < min_speed) {
+                if (speed < minSpeed) {
                     j.set(gripper_status.position_radians);
                     setState(state+1);
                 }
@@ -422,8 +427,20 @@ public class BoltArmController implements LCMSubscriber
 
         // ======================================================
 
-        /** Use one of the various planners to move to the specified goal */
+        private void resetArm()
+        {
+            for (Joint j: joints) {
+                j.set(0.0);
+            }
+        }
+
         private void moveTo(double[] goal, double height)
+        {
+            moveTo(goal, height, height);
+        }
+
+        /** Use one of the various planners to move to the specified goal */
+        private void moveTo(double[] goal, double heightS, double heightC)
         {
             // Compute gripping ranges on the fly
             double minR = 0.05;
@@ -433,27 +450,30 @@ public class BoltArmController implements LCMSubscriber
             // Initialize controller properties for height
             double h0 = l[0]+baseHeight;
             double l1 = l[1]+l[2];
-            double q0 = l[3]+l[4]+l[5]+height - h0;
+            double q0 = l[3]+l[4]+l[5]+heightS - h0;
             maxSR = Math.sqrt(l1*l1 - q0*q0);
 
             double q1;
-            if (height < h0) {
-                q1 = height;
+            if (heightC < h0) {
+                q1 = heightC;
             } else {
-                q1 = height - h0;
+                q1 = heightC - h0;
             }
             double l2 = l[3]+l[4]+l[5];
             double l3 = l1+l2;
-            maxCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
+            maxCR = Math.sqrt(l3*l3 - q1*q1)*.90; // XXX Hack
 
             double r = LinAlg.magnitude(LinAlg.resize(goal, 2));
+
+            // Collision check: make sure we haven't gotten stopped by something
+            // before reaching our goal XXX
 
             if (r < minR) {
                 // Do nothing, we can't plan at this range
             } else if (r < maxSR) {
-                simplePlan(r, goal, height);
+                simplePlan(r, goal, heightS);
             } else if (r < maxCR) {
-                complexPlan(r, goal, height);
+                complexPlan(r, goal, heightC);
             } else {
                 outOfRange(r, goal);
             }
@@ -522,7 +542,7 @@ public class BoltArmController implements LCMSubscriber
         private void outOfRange(double r, double[] goal)
         {
             double[] t = new double[5];
-            double tiltFactor = 35;
+            double tiltFactor = 45;
             t[0] = MathUtil.atan2(goal[1], goal[0]);
             t[1] = Math.PI/2 - Math.toRadians(tiltFactor);
             t[3] = Math.toRadians(tiltFactor);
