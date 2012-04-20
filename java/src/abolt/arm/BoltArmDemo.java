@@ -87,7 +87,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     static enum ActionState
     {
-        POINT, GRAB, DROP
+        POINT, GRAB, DROP, SWEEP
     }
 
     class RenderThread extends Thread
@@ -199,6 +199,9 @@ public class BoltArmDemo implements LCMSubscriber
                     break;
                 case GRAB:
                     cmd.action = "GRAB";
+                    break;
+                case SWEEP:
+                    cmd.action = "SWEEP";
                     break;
                 case DROP:
                     cmd.action = "DROP";

@@ -39,15 +39,10 @@ public class BoltArmController implements LCMSubscriber
     // Pointing
     double goalHeight   = 0.08;     // Goal height of end effector
     double transHeight  = 0.20;     // Transition height of end effector
-    double maxGSR;                  // Max distance at which we can plan gripper-down (goalHeight)
-    double maxGCR;                  // Max distance at which we can actually plan (goalHeight);
-    double maxTSR;                  // Max distance at which we can plan gripper-down (transHeight)
-    double maxTCR;                  // Max distance at which we can actually plan (transHeight)
 
-    // Grabbing
-    double grabHeight   = 0.035;     // Height at which we try to grab objects
-    double maxGrabSR;               // Max distance at which we plan gripper-down grabbing (grabHeight)
-    double maxGrabCR;               // Max distance at which we plan any grabbing (grabHeight)
+    // Grabbing & sweeping
+    double sweepHeight  = 0.030;    // Height at which we sweep objects along
+    double grabHeight   = 0.035;    // Height at which we try to grab objects
 
     class PositionTracker
     {
@@ -158,10 +153,11 @@ public class BoltArmController implements LCMSubscriber
                     if (last_cmd.action.contains("POINT")) {
                         pointStateMachine();
                     } else if (last_cmd.action.contains("GRAB")) {
-                        //sweepStateMachine();
                         grabStateMachine();
                     } else if (last_cmd.action.contains("DROP")) {
                         dropStateMachine();
+                    } else if (last_cmd.action.contains("SWEEP")) {
+                        sweepStateMachine();
                     }
                 }
 
@@ -206,18 +202,7 @@ public class BoltArmController implements LCMSubscriber
                     return;
                 }
 
-                double pr = LinAlg.magnitude(prev);
-
-                // Try to move arm up above prev
-                if (r < minR) {
-                    // Don't do anythign here. Too close to the arm
-                } else if (pr < maxTSR) {
-                    simplePlan(pr, prev, transHeight);
-                } else if (pr < maxTCR) {
-                    complexPlan(pr, prev, transHeight);
-                } else {
-                    setState(state+1);
-                }
+                moveTo(prev, transHeight);
 
                 // Check to see if it's time to transition
                 if (error < stableError) {
@@ -225,31 +210,14 @@ public class BoltArmController implements LCMSubscriber
                 }
 
             } else if (state == 1) {
-                // Try to move arm up above goal
-                if (r < minR) {
-                    // Don't do anythign here. Too close to the arm
-                } else if (r < maxTSR) {
-                    simplePlan(r, goal, transHeight);
-                } else if (r < maxTCR) {
-                    complexPlan(r, goal, transHeight);
-                } else {
-                    setState(state+1);
-                }
+                moveTo(goal, transHeight);
 
                 // Check to see if it's time to transition
                 if (error < stableError) {
                     setState(state+1);
                 }
             } else if (state == 2) {
-                if (r < minR) {
-                    // Don't do anything here. Too close to the arm
-                } else if (r < maxGSR) {
-                    simplePlan(r, goal, goalHeight);
-                } else if (r < maxGCR) {
-                    complexPlan(r, goal, goalHeight);
-                } else {
-                    outOfRange(r, goal);
-                }
+                moveTo(goal, goalHeight);
 
                 if (error < stableError) {
                     setState(state+1);
@@ -281,32 +249,18 @@ public class BoltArmController implements LCMSubscriber
             //      2: Ram the arm into the object at position "GOAL"
             //      3: Move back up
             if (state == 0) {
-                if (r < minR) {
-
-                } else if (r < maxTSR) {
-                    simplePlan(r, goal, transHeight);
-                } else if (r < maxTCR) {
-                    complexPlan(r, goal, transHeight);
-                } else {
-                    outOfRange(r, goal);
+                if (prev == null) {
+                    setState(state+1);
+                    return;
                 }
 
-                RevoluteJoint j = (RevoluteJoint)joints.get(0);
-                j.set(newAngle);
+                moveTo(prev, transHeight);
 
                 if (error < stableError) {
                     setState(state+1);
                 }
             } else if (state == 1) {
-                if (r < minR) {
-
-                } else if (r < maxGrabSR) {
-                    simplePlan(r, goal, grabHeight);
-                } else if (r < maxGrabCR) {
-                    complexPlan(r, goal, grabHeight);
-                } else {
-                    outOfRange(r, goal);
-                }
+                moveTo(goal, transHeight);
 
                 RevoluteJoint j = (RevoluteJoint)joints.get(0);
                 j.set(newAngle);
@@ -315,29 +269,22 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 2) {
-                if (r < minR) {
+                moveTo(goal, sweepHeight);
 
-                } else if (r < maxGrabSR) {
-                    simplePlan(r, goal, grabHeight);
-                } else if (r < maxGrabCR) {
-                    complexPlan(r, goal, grabHeight);
-                } else {
-                    outOfRange(r, goal);
-                }
+                RevoluteJoint j = (RevoluteJoint)joints.get(0);
+                j.set(newAngle);
 
                 if (error < stableError) {
                     setState(state+1);
                 }
             } else if (state == 3) {
-                if (r < minR) {
+                moveTo(goal, sweepHeight);
 
-                } else if (r < maxTSR) {
-                    simplePlan(r, goal, transHeight);
-                } else if (r < maxTCR) {
-                    complexPlan(r, goal, transHeight);
-                } else {
-                    outOfRange(r, goal);
+                if (error < stableError) {
+                    setState(state+1);
                 }
+            } else if (state == 3) {
+                moveTo(goal, sweepHeight);
             }
         }
 
@@ -362,42 +309,25 @@ public class BoltArmController implements LCMSubscriber
             //      0: move to high point at current position
             //      1: move above point (slightly to side) at a safe height
             //      2: move down to grabbing height
-            //      3: grab, using a feedback controller to avoid breaking hand
+            //      3: Start closing hand
+            //      4: Check for contact with an object/hand stopping
+            //      5: Adjust grip so we grab tightly, but don't break hand
             if (state == 0) {
                 // Open hand
                 joints.get(5).set(0.0);
-
 
                 if (prev == null) {
                     setState(state+1);
                     return;
                 }
 
-                double pr = LinAlg.magnitude(prev);
-
-                if (r < minR) {
-
-                } else if (pr < maxTSR) {
-                    simplePlan(pr, prev, transHeight);
-                } else if (pr < maxTCR) {
-                    complexPlan(pr, prev, transHeight);
-                } else {
-                    setState(state+1);
-                }
+                moveTo(prev, transHeight);
 
                 if (error < stableError) {
                     setState(state+1);
                 }
             } else if (state == 1) {
-                if (r < minR) {
-
-                } else if (r < maxTSR) {
-                    simplePlan(r, goal, transHeight);
-                } else if (r < maxTCR) {
-                    complexPlan(r, goal, transHeight);
-                } else {
-                    outOfRange(r, goal);
-                }
+                moveTo(goal, transHeight);
 
                 RevoluteJoint j = (RevoluteJoint)(joints.get(0));
                 j.set(newangle);
@@ -406,15 +336,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 2) {
-                if (r < minR) {
-
-                } else if (r < maxGrabSR) {
-                    simplePlan(r, goal, grabHeight);
-                } else if (r < maxGrabCR) {
-                    complexPlan(r, goal, grabHeight);
-                } else {
-                    outOfRange(r, goal);
-                }
+                moveTo(goal, grabHeight); // XXX can't grab close objects :(
 
                 RevoluteJoint j = (RevoluteJoint)(joints.get(0));
                 j.set(newangle);
@@ -436,7 +358,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 4) {
-                // Check for hand contact with semi-rigid object
+                // Check for hand contact with semi-rigid object (we'll stop moving)
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();
                 if (dsl == null) {
@@ -462,8 +384,8 @@ public class BoltArmController implements LCMSubscriber
                 }
 
                 dynamixel_status_t gripper_status = dsl.statuses[5];
-                double maxLoad = 0.4;
-                double minLoad = 0.25;
+                double maxLoad = 0.35;
+                double minLoad = 0.20;
                 double gripIncr = Math.toRadians(3.0);
                 double load = Math.abs(gripper_status.load);
                 //System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
@@ -499,6 +421,43 @@ public class BoltArmController implements LCMSubscriber
         }
 
         // ======================================================
+
+        /** Use one of the various planners to move to the specified goal */
+        private void moveTo(double[] goal, double height)
+        {
+            // Compute gripping ranges on the fly
+            double minR = 0.05;
+            double maxSR;
+            double maxCR;
+
+            // Initialize controller properties for height
+            double h0 = l[0]+baseHeight;
+            double l1 = l[1]+l[2];
+            double q0 = l[3]+l[4]+l[5]+height - h0;
+            maxSR = Math.sqrt(l1*l1 - q0*q0);
+
+            double q1;
+            if (height < h0) {
+                q1 = height;
+            } else {
+                q1 = height - h0;
+            }
+            double l2 = l[3]+l[4]+l[5];
+            double l3 = l1+l2;
+            maxCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
+
+            double r = LinAlg.magnitude(LinAlg.resize(goal, 2));
+
+            if (r < minR) {
+                // Do nothing, we can't plan at this range
+            } else if (r < maxSR) {
+                simplePlan(r, goal, height);
+            } else if (r < maxCR) {
+                complexPlan(r, goal, height);
+            } else {
+                outOfRange(r, goal);
+            }
+        }
 
         // Plans with the wrist DOWN for ease of object grabbing
         private void simplePlan(double r, double[] goal, double height)
@@ -563,7 +522,7 @@ public class BoltArmController implements LCMSubscriber
         private void outOfRange(double r, double[] goal)
         {
             double[] t = new double[5];
-            double tiltFactor = 20;
+            double tiltFactor = 35;
             t[0] = MathUtil.atan2(goal[1], goal[0]);
             t[1] = Math.PI/2 - Math.toRadians(tiltFactor);
             t[3] = Math.toRadians(tiltFactor);
@@ -585,44 +544,6 @@ public class BoltArmController implements LCMSubscriber
     public BoltArmController()
     {
         initArm();
-
-        // Initialize controller properties (goalHeight)
-        double h0 = l[0]+baseHeight;
-        double l1 = l[1]+l[2];
-        double q0 = l[3]+l[4]+l[5]+goalHeight - h0;
-        maxGSR = Math.sqrt(l1*l1 - q0*q0);
-
-        double q1;
-        if (goalHeight < h0) {
-            q1 = goalHeight;
-        } else {
-            q1 = goalHeight - h0;
-        }
-        double l2 = l[3]+l[4]+l[5];
-        double l3 = l1+l2;
-        maxGCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
-
-        // Initialize controller properties (transHeight)
-        q0 = l[3]+l[4]+l[5]+transHeight - h0;
-        maxTSR = Math.sqrt(l1*l1 - q0*q0);
-
-        if (transHeight < h0) {
-            q1 = transHeight;
-        } else {
-            q1 = transHeight - h0;
-        }
-        maxTCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
-
-        // Initialize controller properties (grabbing)
-        q0 = l[3]+l[4]+l[5]+grabHeight - h0;
-        maxGrabSR = Math.sqrt(l1*l1 - q0*q0);
-
-        if (grabHeight < h0) {
-            q1 = grabHeight;
-        } else {
-            q1 = grabHeight - h0;
-        }
-        maxGrabCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
 
         // Start independent control thread.
         ControlThread ct = new ControlThread();
