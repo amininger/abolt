@@ -393,7 +393,7 @@ public class BoltArmController implements LCMSubscriber
                 double minLoad = 0.20;
                 double gripIncr = Math.toRadians(3.0);
                 double load = Math.abs(gripper_status.load);
-                //System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
+                System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
 
                 if (gripper_status.load <= 0.0 && load < minLoad) {
                     //System.out.println("Grip moar");
