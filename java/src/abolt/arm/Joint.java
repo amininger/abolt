@@ -23,17 +23,11 @@ interface Joint
     /** Render the joint in question */
     public VisObject getVis();
 
-    /** Compute the numerical Jacobian column for this joint */
-    public double[] getJacobian(double[][] preXform, double[][] postXform);
-
     /** Get rotation component */
     public double[][] getRotation();
 
     /** Get translation component */
     public double[][] getTranslation();
-
-    /** Set movement value to add the delta*/
-    public void delta(double val);
 
     /** Set the movement value to val */
     public void set(double val);

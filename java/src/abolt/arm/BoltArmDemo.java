@@ -27,11 +27,13 @@ public class BoltArmDemo implements LCMSubscriber
 
     // Rendering thread
     RenderThread rt;
-    KinematicsThread kt;
+    ActionState action = ActionState.UNKNOWN;
 
-    // Cached arm information for planning
-    double[] l;
-    double baseHeight = 0.075;
+    // Simulation thread
+    SimulationThread st;
+
+    ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
+    ExpiringMessageCache<dynamixel_command_list_t> cmds = new ExpiringMessageCache<dynamixel_command_list_t>(0.2, true);
 
     // Command line flags/options
     GetOpt opts;
@@ -39,83 +41,21 @@ public class BoltArmDemo implements LCMSubscriber
     public BoltArmDemo(GetOpt opts_)
     {
         opts = opts_;
+        joints = BoltArm.initArm();
 
-        // Initialize BOLT arm
-        initArm();
-
-        lcm.subscribe("ARM_STATUS", this);
+        // We're going to spoof these if simming, so don't send them
+        if (!opts.getBoolean("sim")) {
+            lcm.subscribe("ARM_STATUS", this);
+        } else {
+            st = new SimulationThread();
+            st.start();
+        }
+        lcm.subscribe("ARM_COMMAND", this);
 
         rt = new RenderThread();
-        kt = new KinematicsThread();
         rt.start();
-        kt.start();
     }
 
-    private void initArm()
-    {
-        joints = new ArrayList<Joint>();
-        RevoluteJoint j0, j1, j2, j3, j4, j5;
-        RevoluteJoint.Parameters p0, p1, p2, p3, p4, p5;
-        l = new double[6];
-
-        p0 = new RevoluteJoint.Parameters();
-        l[0] = 0.04;
-        p0.lSegment = l[0];
-        p0.rMin = -Math.PI;
-        p0.rMax = Math.PI;
-        p0.orientation = RevoluteJoint.Z_AXIS;
-
-        p1 = new RevoluteJoint.Parameters();
-        l[1] = 0.101;
-        p1.lSegment = l[1];
-        p1.rMin = Math.toRadians(-120.0);
-        p1.rMax = Math.toRadians(120.0);
-        p1.orientation = RevoluteJoint.Y_AXIS;
-
-        p2 = new RevoluteJoint.Parameters();
-        l[2] = 0.098;
-        p2.lSegment = l[2];
-        p2.rMin = Math.toRadians(-125.0);
-        p2.rMax = Math.toRadians(125.0);
-        p2.orientation = RevoluteJoint.Y_AXIS;
-
-        p3 = new RevoluteJoint.Parameters();
-        l[3] = 0.077;
-        p3.lSegment = l[3];
-        p3.rMin = Math.toRadians(-125.0);
-        p3.rMax = Math.toRadians(125.0);
-        p3.orientation = RevoluteJoint.Y_AXIS;
-
-        p4 = new RevoluteJoint.Parameters();        // Wrist
-        l[4] = 0.0;
-        p4.lSegment = l[4];
-        p4.rMin = Math.toRadians(-150.0);
-        p4.rMax = Math.toRadians(150.0);
-        p4.orientation = RevoluteJoint.Z_AXIS;
-
-        p5 = new RevoluteJoint.Parameters();        // Hand joint, actually. Will need an upgrade
-        l[5] = 0.101;
-        p5.lSegment = l[5];
-        p5.rMin = Math.toRadians(-40.0);
-        p5.rMax = Math.toRadians(120.0);
-        p5.orientation = RevoluteJoint.Y_AXIS;
-
-        j0 = new RevoluteJoint(p0);
-        j1 = new RevoluteJoint(p1);
-        j2 = new RevoluteJoint(p2);
-        j3 = new RevoluteJoint(p3);
-        j4 = new RevoluteJoint(p4);
-        j5 = new RevoluteJoint(p5);
-
-        joints.add(j0);
-        joints.add(j1);
-        joints.add(j2);
-        joints.add(j3);
-        joints.add(j4);
-        joints.add(j5);
-    }
-
-    // Handle ARM STATUS!
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
     {
         try {
@@ -125,12 +65,30 @@ public class BoltArmDemo implements LCMSubscriber
         }
     }
 
-    // XXX Do something about arm status
     public void messageReceivedEx(LCM lcm, String channel, LCMDataInputStream ins) throws IOException
     {
         if (channel.equals("ARM_STATUS")) {
-            dynamixel_status_list_t statuses = new dynamixel_status_list_t(ins);
+            // If non-simulated, render the arm position from THESE
+            dynamixel_status_list_t status = new dynamixel_status_list_t(ins);
+            long utime = Long.MAX_VALUE;
+            for (dynamixel_status_t s: status.statuses) {
+                utime = Math.min(utime, s.utime);
+            }
+            statuses.put(status, utime);
+        } else if (channel.equals("ARM_COMMAND")) {
+            // If simulated, use these to render the arm position
+            dynamixel_command_list_t cmdl = new dynamixel_command_list_t(ins);
+            long utime = Long.MAX_VALUE;
+            for (dynamixel_command_t c: cmdl.commands) {
+                utime = Math.min(utime, c.utime);
+            }
+            cmds.put(cmdl, utime);
         }
+    }
+
+    static enum ActionState
+    {
+        POINT, GRAB, DROP, SWEEP, RESET, UNKNOWN
     }
 
     class RenderThread extends Thread
@@ -140,6 +98,8 @@ public class BoltArmDemo implements LCMSubscriber
         VisWorld vw;
         VisLayer vl;
         VisCanvas vc;
+
+        double[] xyz = null;
 
         public RenderThread()
         {
@@ -152,6 +112,19 @@ public class BoltArmDemo implements LCMSubscriber
             vl = new VisLayer(vw);
             vc = new VisCanvas(vl);
             jf.add(vc, BorderLayout.CENTER);
+
+            // ParameterGUI
+            ParameterGUI pg = new ParameterGUI();
+            pg.addButtons("reset", "Reset");
+            jf.add(pg, BorderLayout.SOUTH);
+
+            pg.addListener(new ParameterListener() {
+                public void parameterChanged(ParameterGUI pg, String name) {
+                    if (name.equals("reset")) {
+                        lcm.publish("ROBOT_COMMAND", getRobotCommand(null, ActionState.RESET));
+                    }
+                }
+            });
 
             // Grid
             VzGrid.addGrid(vw);
@@ -170,15 +143,27 @@ public class BoltArmDemo implements LCMSubscriber
             while (true) {
                 // Render Arm
                 {
+                    dynamixel_status_list_t dsl = statuses.get();
+                    dynamixel_command_list_t dcl = cmds.get();
+                    if (opts.getBoolean("sim") && dcl != null) {
+                        for (int i = 0; i < dcl.len; i++) {
+                            joints.get(i).set(dcl.commands[i].position_radians);
+                        }
+                    } else if (dsl != null) {
+                        for (int i = 0; i < dsl.len; i++) {
+                            joints.get(i).set(dsl.statuses[i].position_radians);
+                        }
+                    }
+
                     VisWorld.Buffer vb = vw.getBuffer("arm");
                     vb.addBack(new VisChain(LinAlg.rotateZ(-Math.PI/2),
                                             new VzTriangle(0.08, 0.08, 0.08,
                                                            new VzMesh.Style(Color.green))));
-                    vb.addBack(new VisChain(LinAlg.translate(0,0,baseHeight/2),
-                                            new VzBox(0.04, 0.04, baseHeight,
+                    vb.addBack(new VisChain(LinAlg.translate(0,0,BoltArm.baseHeight/2),
+                                            new VzBox(0.04, 0.04, BoltArm.baseHeight,
                                                       new VzMesh.Style(Color.black))));
 
-                    double[][] xform = LinAlg.translate(0,0,baseHeight);
+                    double[][] xform = LinAlg.translate(0,0,BoltArm.baseHeight);
                     for (Joint j: joints) {
                         LinAlg.timesEquals(xform, j.getRotation());
                         vb.addBack(new VisChain(LinAlg.copy(xform),
@@ -191,10 +176,30 @@ public class BoltArmDemo implements LCMSubscriber
                 // Draw current goal
                 {
                     VisWorld.Buffer vb = vw.getBuffer("goal");
-                    double[] xyz = kt.get();
+                    Color color;
+                    switch (action) {
+                        case POINT:
+                            color = new Color(0xff6699);
+                            break;
+                        case GRAB:
+                            color = new Color(0x00cc00);
+                            break;
+                        case DROP:
+                            color = new Color(0x005500);
+                            break;
+                        case SWEEP:
+                            color = new Color(0x00ffff);
+                            break;
+                        case RESET:
+                            color = new Color(0xff0000);
+                            break;
+                        default:
+                            color = new Color(0xffffff);
+                            break;
+                    }
                     if (xyz != null) {
                         vb.addBack(new VisChain(LinAlg.translate(xyz),
-                                                new VzCircle(0.015, new VzMesh.Style(Color.yellow))));
+                                                new VzCircle(0.015, new VzMesh.Style(color))));
                     }
                     vb.swap();
                 }
@@ -202,189 +207,11 @@ public class BoltArmDemo implements LCMSubscriber
                 TimeUtil.sleep(1000/fps);
             }
         }
-    }
 
-    class KinematicsThread extends Thread
-    {
-        // Refresh rate
-        int Hz = 100;
-
-        // Current goal
-        Object goalLock = new Object();
-        double[] goal = null;
-        double[] origin = new double[3];
-
-        // Arm information and planning parameters
-        double dh    = 0.08;        // Height of end effector above ground
-        double minR  = 0.05;        // Min distance at which we plan
-        double maxSR;               // Max distance at which we can plan gripper-down
-        double maxCR;               // Max complex plan distance
-
-        // LCM Stuff
-        robot_command_t cmd;
-
-        public KinematicsThread()
+        /** Set the arm goal point */
+        public void setGoal(double[] goal)
         {
-            cmd = new robot_command_t();
-
-            double h0 = l[0]+baseHeight;
-            double l1 = l[1]+l[2];
-            double q0 = l[3]+l[4]+l[5]+dh - h0;
-            maxSR = Math.sqrt(l1*l1 - q0*q0);
-
-            double q1;
-            if (dh < h0) {
-                q1 = dh;
-            } else {
-                q1 = dh - h0;
-            }
-            double l2 = l[3]+l[4]+l[5];
-            double l3 = l1+l2;
-            maxCR = Math.sqrt(l3*l3 - q1*q1)*.99; // XXX Hack
-
-            System.out.printf("%f %f\n", maxSR, maxCR);
-        }
-
-        public void set(double[] goal_)
-        {
-            synchronized (goalLock) {
-                goal = goal_;
-                cmd.updateDest = true;
-            }
-        }
-
-        public double[] get()
-        {
-            return goal;
-        }
-
-        public void run()
-        {
-            while (true) {
-                synchronized (goalLock) {
-                    // Compute distance of goal from origin. (assume z = 0)
-                    // If this distance r is < maxR, use conservative
-                    // planning. Otherwise, add last angle into the mix.
-                    if (goal != null) {
-                        double r = LinAlg.distance(origin, goal);
-                        if (r < minR) {
-                            // We don't plan this close to the arm
-                        } else if (r < maxSR) {
-                            simplePlan(r);
-                        } else if (r < maxCR) {
-                            complexPlan(r);
-                        } else {
-                            // Out of range
-                            outOfRange(r);
-                            //System.err.println("ERR: Goal outside of gripping range");
-                        }
-                        if (opts.getBoolean("lcm")) {
-                            lcm.publish("ARM_COMMAND", getArmCommandList());
-                        }
-                        cmd.utime = TimeUtil.utime();
-                        cmd.dest = LinAlg.resize(goal, 6);
-                        cmd.action = "POINT";
-                        lcm.publish("ROBOT_COMMAND", cmd);
-                        cmd.updateDest = false;
-                    }
-                }
-                TimeUtil.sleep(1000/Hz);
-            }
-        }
-
-        private dynamixel_command_list_t getArmCommandList()
-        {
-            dynamixel_command_list_t cmds = new dynamixel_command_list_t();
-            cmds.len = joints.size();
-            cmds.commands = new dynamixel_command_t[cmds.len];
-            long utime = TimeUtil.utime();
-            for (int i = 0; i < joints.size(); i++) {
-                dynamixel_command_t cmd = joints.get(i).getArmCommand();
-                cmd.utime = utime;
-                cmds.commands[i] = cmd;
-            }
-            return cmds;
-        }
-
-        // Plans with the wrist DOWN for ease of object grabbing
-        private void simplePlan(double r)
-        {
-            double[] t = new double[6];
-            t[0] = MathUtil.atan2(goal[1], goal[0]);
-
-            double h = (l[3]+l[4]+l[5]+dh) - (l[0]+baseHeight);
-            double lp = Math.sqrt(h*h + r*r);
-
-            double l1_2 = l[1]*l[1];
-            double l2_2 = l[2]*l[2];
-            double lp_2 = lp*lp;
-
-            double g0 = Math.acos((l1_2 + l2_2 - lp_2)/(2*l[1]*l[2]));
-            double g1 = Math.acos((l1_2 + lp_2 - l2_2)/(2*l[1]*lp));
-            double g2 = Math.acos((l2_2 + lp_2 - l1_2)/(2*l[2]*lp));
-            double g3 = Math.acos(r/lp);
-            double g4 = Math.acos(h/lp);
-
-            t[1] = Math.PI/2 - g1 - g3;
-            t[2] = Math.PI - g0;
-            t[3] = Math.PI - g2 - g4;
-
-            //t[5] = Math.toRadians(112.0);
-
-            for (int i = 0; i < t.length; i++) {
-                joints.get(i).set(t[i]);
-            }
-        }
-
-        // Plans with wrist able to take different orientations
-        private void complexPlan(double r)
-        {
-            double[] t = new double[6];
-            t[0] = MathUtil.atan2(goal[1], goal[0]);
-            double h = (l[0]+baseHeight) - dh;
-            double lp = Math.sqrt(h*h + r*r);
-
-            double l1 = l[1]+l[2];
-            double l2 = l[3]+l[4]+l[5];
-
-            double lp_2 = lp*lp;
-            double l1_2 = l1*l1;
-            double l2_2 = l2*l2;
-
-            double g0 = Math.acos(h/lp);
-            double g2 = Math.acos((l1_2 + l2_2 - lp_2)/(2*l1*l2));
-            double g3 = Math.acos((l1_2 + lp_2 - l2_2)/(2*l1*lp));
-
-            t[1] = Math.PI - g0 - g3;
-            t[3] = Math.PI - g2;
-
-            //t[5] = Math.toRadians(112.0);
-
-            for (int i = 0; i < t.length; i++) {
-                joints.get(i).set(t[i]);
-            }
-        }
-
-        // Just point the arm towards the goal...Points a little low. XXX Controller?
-        private void outOfRange(double r)
-        {
-            double[] t = new double[6];
-            double tiltFactor = 20;
-            t[0] = MathUtil.atan2(goal[1], goal[0]);
-            t[1] = Math.PI/2 - Math.toRadians(tiltFactor);
-            t[3] = Math.toRadians(tiltFactor);
-
-            double l1 = l[0]+baseHeight;
-            double l2 = l[1]+l[2];
-
-            //t[3] = Math.min(0, MathUtil.atan2(l1, r-l2));
-            //t[3] = MathUtil.atan2(l1, r-l2);
-
-            //t[5] = Math.toRadians(112.0);
-
-            for (int i = 0; i < t.length; i++) {
-                joints.get(i).set(t[i]);
-            }
+            xyz = LinAlg.copy(goal);
         }
     }
 
@@ -401,11 +228,17 @@ public class BoltArmDemo implements LCMSubscriber
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
-            if (shift) {
-                kt.set(xyz);
+            if (shift && !ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
+                rt.setGoal(xyz);
                 return true;
-            } else if (ctrl) {
-                kt.set(null);
+            } else if (!shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
+                rt.setGoal(xyz);
+                return true;
+            } else if (shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.GRAB));
+                rt.setGoal(xyz);
                 return true;
             }
 
@@ -418,11 +251,17 @@ public class BoltArmDemo implements LCMSubscriber
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
-            if (shift) {
-                kt.set(xyz);
+            if (shift && !ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
+                rt.setGoal(xyz);
                 return true;
-            } else if (ctrl) {
-                kt.set(null);
+            } else if (!shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
+                rt.setGoal(xyz);
+                return true;
+            } else if (shift && ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.GRAB));
+                rt.setGoal(xyz);
                 return true;
             }
 
@@ -430,9 +269,73 @@ public class BoltArmDemo implements LCMSubscriber
         }
     }
 
+    class SimulationThread extends Thread
+    {
+        int Hz = 100;
+
+        public void run()
+        {
+            while (true) {
+                TimeUtil.sleep(1000/Hz);
+
+                long utime = TimeUtil.utime();
+                dynamixel_status_list_t dsl = new dynamixel_status_list_t();
+                dsl.len = joints.size();
+                dsl.statuses = new dynamixel_status_t[joints.size()];
+                for (int i = 0; i < joints.size(); i++) {
+                    dynamixel_status_t status = new dynamixel_status_t();
+                    status.utime = utime;
+
+                    Joint j = joints.get(i);
+                    if (j instanceof RevoluteJoint) {
+                        RevoluteJoint rj = (RevoluteJoint)j;
+                        status.position_radians = rj.getAngle();
+                    } else if (j instanceof HandJoint) {
+                        HandJoint hj = (HandJoint)j;
+                        status.position_radians = hj.getAngle();
+                    }
+
+                    dsl.statuses[i] = status;
+                }
+
+                lcm.publish("ARM_STATUS", dsl);
+            }
+        }
+    }
+
+    private robot_command_t getRobotCommand(double[] dest, ActionState state)
+    {
+        action = state;
+        robot_command_t cmd = new robot_command_t();
+        cmd.utime = TimeUtil.utime();
+        cmd.updateDest = (dest != null);
+        cmd.dest = (dest == null) ? new double[6] : LinAlg.resize(dest, 6);
+        switch (state) {
+            case POINT:
+                cmd.action = "POINT";
+                break;
+            case GRAB:
+                cmd.action = "GRAB";
+                break;
+            case SWEEP:
+                cmd.action = "SWEEP";
+                break;
+            case DROP:
+                cmd.action = "DROP";
+                break;
+            default:
+                cmd.action = "RESET";
+                break;
+        }
+
+        return cmd;
+    }
+
+
     static public void main(String[] args)
     {
         GetOpt opts = new GetOpt();
+        opts.addBoolean('s',"sim",false,"Run in simulation mode");
         opts.addBoolean('h',"help",false,"Display this help screen");
         opts.addBoolean('l',"lcm",false,"Emit LCM");
 
