@@ -44,6 +44,7 @@ freenect_device *f_dev;
 
 // LCM
 lcm_t *k_lcm;
+int max_count = 1;
 
 void video_cb(freenect_device *dev, void *rgb, uint32_t ts)
 {
@@ -140,6 +141,7 @@ void *publcm(void *arg)
     printf("Begin LCM publishing thread...\n");
     // Loop endlessly while waiting for data. Publish it. Repeat
     kinect_status_t ks;
+    int num_sent = 0;
     int depth_bytes = (DEPTH_WIDTH*DEPTH_HEIGHT*2);
     int rgb_bytes = (RGB_WIDTH*RGB_HEIGHT*3);
     ks.rgb;
@@ -166,9 +168,12 @@ void *publcm(void *arg)
 
         got_rgb = 0;
         got_depth = 0;
-        pthread_mutex_unlock(&frame_lock);
-        kinect_status_t_publish(k_lcm, "KINECT_STATUS", &ks);
-        pthread_mutex_lock(&frame_lock);
+        if (num_sent++ >= max_count) {
+            pthread_mutex_unlock(&frame_lock);
+            kinect_status_t_publish(k_lcm, "KINECT_STATUS", &ks);
+            pthread_mutex_lock(&frame_lock);
+            num_sent = 0;
+        }
     }
     pthread_mutex_unlock(&frame_lock);
 }
@@ -176,6 +181,11 @@ void *publcm(void *arg)
 // ====================================================
 int main(int argc, char **argv)
 {
+    // Specified FPS
+    if (argc == 2) {
+        max_count = 30/atoi(argv[1]);
+    }
+
     // Init LCM
     printf("Initializing LCM...\n");
     k_lcm = lcm_create(NULL);
