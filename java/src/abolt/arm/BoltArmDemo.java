@@ -288,33 +288,35 @@ public class BoltArmDemo implements LCMSubscriber
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
-            if (shift && !ctrl) {
-                observations_t obs = observations.get();
-                double minDist = Double.MAX_VALUE;
-                int id = 0;
-                if (obs != null) {
-                    for (object_data_t obj_dat : obs.observations) {
-                        double[] pos = LinAlg.resize(obj_dat.pos, 3);
-                        double mag = LinAlg.distance(pos, xyz);
-                        if (mag < minDist) {
-                            minDist = mag;
-                            id = obj_dat.id;
-                        }
+            observations_t obs = observations.get();
+            double minDist = Double.MAX_VALUE;
+            int id = 0;
+            double[] objPos = null;
+            if (obs != null) {
+                for (object_data_t obj_dat : obs.observations) {
+                    double[] pos = LinAlg.resize(obj_dat.pos, 3);
+                    double mag = LinAlg.distance(pos, xyz);
+                    if (mag < minDist) {
+                        minDist = mag;
+                        id = obj_dat.id;
+                        objPos = pos;
                     }
-                    lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.POINT));
-                } else {
-                    rt.setGoal(xyz);
-                    lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
                 }
+            } else {
+                return false;
+            }
 
+            if (shift && !ctrl) {
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.POINT));
+                rt.setGoal(objPos);
                 return true;
             } else if (!shift && ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
-                rt.setGoal(xyz);
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.DROP));
+                rt.setGoal(objPos);
                 return true;
             } else if (shift && ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.GRAB));
-                rt.setGoal(xyz);
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.GRAB));
+                rt.setGoal(objPos);
                 return true;
             }
 

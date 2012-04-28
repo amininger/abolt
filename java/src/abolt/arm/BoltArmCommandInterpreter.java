@@ -158,8 +158,32 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     /** Instruct the arm to grab the object specified by ID */
     private bolt_arm_command_t processGrabCommand(robot_command_t cmd)
     {
+        bolt_arm_command_t bcmd = new bolt_arm_command_t();
+        bcmd.cmd_id = messageID++;
+        bcmd.action = "GRAB";
 
-        return null;
+
+        // Check for a specified ID
+        String objIDstr = SimUtil.getTokenValue(cmd.action, "GRAB"); // XXX ID? GRAB?
+        if (objIDstr == null) {
+            return null;    // There is no safe way to grab nothing
+        } else {
+            // Found ID
+            int objID = Integer.valueOf(objIDstr);
+            System.out.println("GRAB @ "+objID);
+            ObjectInfo info = getObject(objID);
+            System.out.println("Found info "+info);
+            if (info == null) {
+                return null;    // There is no safe way to grab nothing
+            } else {
+                bcmd.xyz = getCentroidXYZ(info.points);
+
+                // Wrist action XXX
+                bcmd.wrist = 0;
+            }
+        }
+
+        return bcmd;
     }
 
     /** Instruct the arm to drop an object at the specified location */
@@ -211,6 +235,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     {
         for (Integer key: seg.objects.keySet()) {
             ObjectInfo info = seg.objects.get(key);
+            System.out.println(info.repID);
             if (info.repID == id)
                 return info;
         }
