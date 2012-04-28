@@ -59,6 +59,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
                 // Process new commands
                 if (last_cmd != null && !handled) {
+                    System.out.println(last_cmd.action);
                     if (last_cmd.action.contains("POINT")) {
                         bolt_cmd = processPointCommand(last_cmd);
                     } else if (last_cmd.action.contains("GRAB")) {
@@ -189,8 +190,14 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     /** Instruct the arm to drop an object at the specified location */
     private bolt_arm_command_t processDropCommand(robot_command_t cmd)
     {
+        bolt_arm_command_t bcmd = new bolt_arm_command_t();
+        bcmd.cmd_id = messageID++;
+        bcmd.action = "DROP";
 
-        return null;
+        bcmd.xyz = LinAlg.resize(cmd.dest, 3);
+        bcmd.wrist = 0; // XXX
+
+        return bcmd;
     }
 
     /** Instuct the arm to reset to its default position */
@@ -235,7 +242,6 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     {
         for (Integer key: seg.objects.keySet()) {
             ObjectInfo info = seg.objects.get(key);
-            System.out.println(info.repID);
             if (info.repID == id)
                 return info;
         }

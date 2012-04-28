@@ -2,8 +2,8 @@ BINPATH=../bin
 NAME=kinect
 
 # XXX Requires that the user install libfreenect. See readme
-INCLUDES =
-LIBS =  -L../lib -lfreenect -lpthread -llcm -lm
+INCLUDES = -I/usr/local/include/libfreenect
+LIBS =  -L../lib -L/usr/local/lib64 -lfreenect -lpthread -llcm -lm
 FLAGS = -g -O2 -fPIC
 
 # LCM Stuff

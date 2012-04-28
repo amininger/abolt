@@ -302,22 +302,27 @@ public class BoltArmDemo implements LCMSubscriber
                         objPos = pos;
                     }
                 }
-            } else {
-                return false;
             }
 
             if (shift && !ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.POINT));
-                rt.setGoal(objPos);
+                if (minDist < 0.05) {
+                    lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.POINT));
+                    rt.setGoal(objPos);
+                } else {
+                    lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
+                    rt.setGoal(xyz);
+                }
                 return true;
             } else if (!shift && ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.DROP));
-                rt.setGoal(objPos);
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
+                rt.setGoal(xyz);
                 return true;
             } else if (shift && ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.GRAB));
-                rt.setGoal(objPos);
-                return true;
+                if (minDist != Double.MAX_VALUE) {
+                    lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.GRAB));
+                    rt.setGoal(objPos);
+                    return true;
+                }
             }
 
             return false;
