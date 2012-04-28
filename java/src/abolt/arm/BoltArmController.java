@@ -435,8 +435,9 @@ public class BoltArmController implements LCMSubscriber
         private void resetArm()
         {
             for (Joint j: joints) {
-                j.set(defGrip);
+                j.set(0.0);
             }
+            joints.get(5).set(defGrip);
         }
 
         private void moveTo(double[] goal, double height)
