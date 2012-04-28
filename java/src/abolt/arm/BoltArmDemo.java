@@ -231,19 +231,19 @@ public class BoltArmDemo implements LCMSubscriber
                                 if (cat_data.cat.cat != category_t.CAT_COLOR)
                                     continue;
                                 String label = cat_data.label[0];
-                                if (label.equals("red")) {
+                                if (label.contains("red")) {
                                     color = Color.red;
-                                } else if (label.equals("orange")) {
+                                } else if (label.contains("orange")) {
                                     color = Color.orange;
-                                } else if (label.equals("yellow")) {
+                                } else if (label.contains("yellow")) {
                                     color = Color.yellow;
-                                } else if (label.equals("green")) {
+                                } else if (label.contains("green")) {
                                     color = Color.green;
-                                } else if (label.equals("blue")) {
+                                } else if (label.contains("blue")) {
                                     color = Color.blue;
-                                } else if (label.equals("purple")) {
+                                } else if (label.contains("purple")) {
                                     color = Color.magenta;
-                                } else if (label.equals("black")) {
+                                } else if (label.contains("black")) {
                                     color = Color.black;
                                 }
                             }
@@ -252,7 +252,6 @@ public class BoltArmDemo implements LCMSubscriber
                             Formatter f = new Formatter();
                             f.format("ID: %d", od.id);
                             double[] obj_xyz = LinAlg.resize(od.pos, 3);
-                            obj_xyz = KUtils.getWorldCoordinates(obj_xyz);
                             vb.addBack(new VisChain(LinAlg.translate(obj_xyz),
                                                     LinAlg.scale(0.02),
                                                     new VzSphere(new VzMesh.Style(color))));
@@ -295,7 +294,7 @@ public class BoltArmDemo implements LCMSubscriber
                 int id = 0;
                 if (obs != null) {
                     for (object_data_t obj_dat : obs.observations) {
-                        double[] pos = KUtils.getWorldCoordinates(LinAlg.resize(obj_dat.pos, 3));
+                        double[] pos = LinAlg.resize(obj_dat.pos, 3);
                         double mag = LinAlg.distance(pos, xyz);
                         if (mag < minDist) {
                             minDist = mag;

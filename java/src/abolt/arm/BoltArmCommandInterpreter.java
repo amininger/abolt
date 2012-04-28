@@ -13,7 +13,7 @@ import abolt.lcmtypes.*;
 import abolt.util.*;
 
 // XXX
-import kinect.kinect.DataAggregator;
+import kinect.kinect.Segment;
 import kinect.kinect.ObjectInfo;
 
 /** The command interpreter takes in a robot_command_t from
@@ -31,7 +31,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(20.0, true);
 
     // Needs some form of access to point cloud data + IDs
-    DataAggregator dag;
+    Segment seg;
 
     class InterpreterThread extends Thread
     {
@@ -47,12 +47,6 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         {
             while (true) {
                 TimeUtil.sleep(1000/Hz);
-
-                // Print keys
-                /*System.out.println("=====");
-                for (Integer key: dag.objects.keySet()) {
-                    System.out.println(key+" -- "+dag.objects.get(key).repID);
-                }*/
 
                 // Look for new commands
                 robot_command_t cmd = cmds.get();
@@ -88,11 +82,11 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
     }
 
-    public BoltArmCommandInterpreter(DataAggregator dag_)
+    public BoltArmCommandInterpreter(Segment seg_)
     {
         // We'll reference this, or some equivalent, later when
         // recovering point cloud data
-        dag = dag_;
+        seg = seg_;
 
         // Soar sends us robot commands through this channel, ordering
         // us to "POINT", "GRAB", and "DROP" objects.
@@ -215,8 +209,8 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     /** Return the ObjectInfo for a relevant ID */
     private ObjectInfo getObject(int id)
     {
-        for (Integer key: dag.objects.keySet()) {
-            ObjectInfo info = dag.objects.get(key);
+        for (Integer key: seg.objects.keySet()) {
+            ObjectInfo info = seg.objects.get(key);
             if (info.repID == id)
                 return info;
         }
