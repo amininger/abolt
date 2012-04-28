@@ -198,9 +198,9 @@ public class KinectPlugin implements SpyPlugin
         // Convert depth value to meters
         double d2m(int d)
         {
-            if (d >= 2047)
-                return -1;
-            return t_gamma[d];
+            // if (d >= 2047)
+            //     return -1;
+            return d / 1000.0;//return t_gamma[d];
         }
     }
 }

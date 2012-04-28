@@ -37,3 +37,10 @@ code to see examples of how to interact with the robot.
 To run the kinect driver, build kinect.c in src and then run
 ./kinect from bin. lcm-spy should show kinect_status_t messages at ~30 Hz.
 
+
+
+
+Installing from source (Additional packages over typical april install)
+-------------------------------
+
+sudo apt-get install libglut3-dev

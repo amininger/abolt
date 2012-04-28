@@ -88,7 +88,8 @@ void *process(void *arg)
     freenect_set_video_mode(f_dev, freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB));
     freenect_set_video_buffer(f_dev, rgb_back_buf);
     freenect_set_depth_callback(f_dev, depth_cb);
-    freenect_set_depth_mode(f_dev, freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT));
+    freenect_set_depth_mode(f_dev, freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_REGISTERED));
+    /* freenect_set_depth_mode(f_dev, freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT)); */
     freenect_set_depth_buffer(f_dev, d_back_buf);
 
     // Start 'er up
