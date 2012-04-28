@@ -186,8 +186,8 @@ class KinectCalibrator // implements LCMSubscriber
     	// Find the world Matrix in kinect coordinates
     	double[] worldX = LinAlg.normalize(LinAlg.subtract(xPoint, originPoint));
     	double[] worldY = LinAlg.normalize(LinAlg.subtract(yPoint,  originPoint));
-    	double[] worldZ = LinAlg.crossProduct(worldY, worldX);
-    	worldY = LinAlg.crossProduct(worldX, worldZ);
+    	double[] worldZ = LinAlg.crossProduct(worldX, worldY);
+    	worldY = LinAlg.crossProduct(worldZ, worldX);
 
 
     	System.out.println("O: " + v2s(worldX));

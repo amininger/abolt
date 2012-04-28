@@ -8,13 +8,14 @@ import lcm.lcm.*;
 import april.jmat.*;
 import april.util.*;
 
-import abolt.kinect.*;
+//import abolt.kinect.*;
 import abolt.lcmtypes.*;
 import abolt.util.*;
 
 // XXX
 import kinect.kinect.Segment;
 import kinect.kinect.ObjectInfo;
+import kinect.kinect.KUtils;
 
 /** The command interpreter takes in a robot_command_t from
  *  Soar and then processes it for consumption by the
@@ -149,7 +150,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             if (info == null) {
                 bcmd.xyz = LinAlg.resize(cmd.dest, 3);
             } else {
-                bcmd.xyz = getCentroidXYZ(info.points);
+                bcmd.xyz = getCentroidXYZ(k2wPointAlign(info.points));
             }
         }
 
@@ -177,10 +178,30 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             if (info == null) {
                 return null;    // There is no safe way to grab nothing
             } else {
-                bcmd.xyz = getCentroidXYZ(info.points);
+                ArrayList<double[]> wPoints = k2wPointAlign(info.points);
+                bcmd.xyz = getCentroidXYZ(wPoints);
 
-                // Wrist action XXX
-                bcmd.wrist = 0;
+                double[][] ev = get22EigenVectors(wPoints);
+                double[] xaxis = new double[] {1.0, 0, 0};
+                double[] a = LinAlg.normalize(getMeanXY(wPoints));
+                double[] b = LinAlg.normalize(ev[1]);
+                double[] c = LinAlg.normalize(ev[0]);
+                //System.out.printf("[%f %f] . [%f %f]\n", a[0], a[1], b[0], b[1]);
+
+                // Wrist action. Based on quadrants. Rotate to counter arm rotation?
+                double theta = Math.acos(b[0]);
+
+                double[] cross = LinAlg.crossProduct(xaxis, LinAlg.resize(c, 3));
+                if (cross[2] > 0) {
+                    theta = theta - Math.PI/2;
+                } else {
+                    theta = Math.PI/2 - theta;
+                }
+
+                // Account for arm rotation
+                theta += Math.atan2(a[1], a[0]);
+
+                bcmd.wrist = theta;
             }
         }
 
@@ -213,6 +234,19 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     }
 
     // ==========================
+    /** Align the points with the world frame */
+    private ArrayList<double[]> k2wPointAlign(ArrayList<double[]> points)
+    {
+        ArrayList<double[]> wPoints = new ArrayList<double[]>();
+        for (double[] p: points) {
+            double[] w = KUtils.getWorldCoordinates(p);
+            wPoints.add(w);
+            //System.out.printf("[%f %f %f] == [%f %f %f]\n", p[0], p[1], p[2], w[0], w[1], w[2]);
+        }
+
+        return wPoints;
+    }
+
     /** Return the centroid of the given point cloud. Used for
      *  pointing and for gripping.
      */
@@ -229,12 +263,104 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             xyz[1] += p[1]*frac;
             xyz[2] += p[2]*frac;
         }
-        double[] kxyz = kinect.kinect.KUtils.getWorldCoordinates(xyz);
-        System.out.printf("[%f %f %f] -- [%f %f %f]\n", xyz[0], xyz[1], xyz[2],
-                                                        kxyz[0], kxyz[1], kxyz[2]);
 
-        // Hope we loaded up XXX
-        return kxyz;
+        return xyz;
+    }
+
+    /** Find the mean XY position of the pixels */
+    private double[] getMeanXY(ArrayList<double[]> points)
+    {
+        double[] xy = new double[2];
+        double frac = 1.0/points.size();
+        for (int i = 0; i < points.size(); i++) {
+            double[] p = points.get(i);
+            xy[0] += p[0]*frac;
+            xy[1] += p[1]*frac;
+        }
+
+        return xy;
+    }
+
+    private double[][] getCovXY(ArrayList<double[]> points)
+    {
+        if (points.size() < 1) {
+            System.err.println("ERR: Inssuficient points to compute covariance");
+            return null;
+        }
+
+        double[] uxy = getMeanXY(points);
+        //System.out.printf("mean: [%f %f]\n", uxy[0], uxy[1]);
+        double[][] B = new double[2][points.size()];
+        double[][] Bt = new double[points.size()][2];
+
+        int i = 0;
+        for (double[] p: points) {
+            B[0][i] = p[0] - uxy[0];
+            B[1][i] = p[1] - uxy[1];
+            Bt[i][0] = B[0][i];
+            Bt[i][1] = B[1][i];
+
+            i++;
+        }
+
+        double[][] cov = LinAlg.matrixAB(B, Bt);
+        cov = LinAlg.scale(cov, 1.0/points.size());
+        //LinAlg.print(cov);
+        return cov;
+    }
+
+    private double[][] get22EigenVectors(ArrayList<double[]> points)
+    {
+        double[][] A = getCovXY(points);
+
+        double a = A[0][0];
+        double b = A[0][1];
+        double c = A[1][0];
+        double d = A[1][1];
+
+        double tr = a + d;
+        double det = a*d - b*c;
+
+        // Eigenvalues
+        double l0 = tr/2 + Math.sqrt(tr*tr/4 - det);
+        double l1 = tr/2 - Math.sqrt(tr*tr/4 - det);
+
+        // Compute Eigenvectors
+        double[] e0 = new double[2];
+        double[] e1 = new double[2];
+        if (b != 0) {
+            e0[0] = 1.0;
+            e0[1] = e0[0]*(l0 - a)/b;
+
+            e1[0] = 1.0;
+            e1[1] = e1[0]*(l1 - a)/b;
+        } else if (c != 0) {
+            e0[1] = 1.0;
+            e0[0] = e0[1]*(l0 - d)/c;
+
+            e1[1] = 1.0;
+            e1[0] = e1[1]*(l1 - d)/c;
+        } else {
+            e0[0] = 1.0;
+            e0[1] = 0.0;
+            e1[0] = 0.0;
+            e1[1] = 1.0;
+        }
+        e0 = LinAlg.normalize(e0);
+        e1 = LinAlg.normalize(e1);
+
+        // Return "sorted" list of eigenvectors where first
+        // vector returned is the major axis of the object
+        // and the second is the minor
+        double[][] evec = new double[2][2];
+        evec[0][0] = e0[0];
+        evec[0][1] = e0[1];
+        evec[1][0] = e1[0];
+        evec[1][1] = e1[1];
+
+        System.out.printf("[%f %f], [%f %f]\n", e0[0], e0[1], e1[0], e1[1]);
+
+        return evec;
     }
 
     /** Return the ObjectInfo for a relevant ID */

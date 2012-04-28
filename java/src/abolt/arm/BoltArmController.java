@@ -99,7 +99,7 @@ public class BoltArmController implements LCMSubscriber
         dynamixel_status_list_t last_status;
 
         // General planning
-        double minR         = 0.05;     // Minimum distance away from arm center at which we plan
+        double minR         = 0.10;     // Minimum distance away from arm center at which we plan
 
         // Pointing
         double goalHeight   = 0.08;     // Goal height of end effector
@@ -107,7 +107,10 @@ public class BoltArmController implements LCMSubscriber
 
         // Grabbing & sweeping
         double sweepHeight  = 0.025;    // Height at which we sweep objects along
-        double grabHeight   = 0.020;    // Height at which we try to grab objects
+        double grabHeight   = 0.018;    // Height at which we try to grab objects
+
+        // Defaults
+        double defGrip      = Math.toRadians(30.0); // Keep the hand partially closed when possible
 
         public ControlThread()
         {
@@ -321,7 +324,7 @@ public class BoltArmController implements LCMSubscriber
             //      5: Adjust grip so we grab tightly, but don't break hand
             if (state == 0) {
                 // Open hand
-                joints.get(5).set(0.0);
+                joints.get(5).set(defGrip);
 
                 if (prev == null) {
                     setState(state+1);
@@ -343,7 +346,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 2) {
-                moveTo(goal, grabHeight, grabHeight*2); // XXX can't grab close objects :(
+                moveTo(goal, grabHeight, grabHeight*1.8); // XXX can't grab close objects :(
 
                 RevoluteJoint j = (RevoluteJoint)(joints.get(0));
                 j.set(newangle);
@@ -355,7 +358,7 @@ public class BoltArmController implements LCMSubscriber
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();
                 if (dsl == null) {
-                    j.set(0.0);
+                    j.set(defGrip);
                     return;
                 }
                 dynamixel_status_t gripper_status = dsl.statuses[5];
@@ -370,7 +373,7 @@ public class BoltArmController implements LCMSubscriber
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();
                 if (dsl == null) {
-                    j.set(0.0);
+                    j.set(defGrip);
                     return;
                 }
 
@@ -386,7 +389,7 @@ public class BoltArmController implements LCMSubscriber
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();
                 if (dsl == null) {
-                    j.set(0.0);
+                    j.set(defGrip);
                     return;
                 }
 
@@ -395,7 +398,7 @@ public class BoltArmController implements LCMSubscriber
                 double minLoad = 0.20;
                 double gripIncr = Math.toRadians(3.0);
                 double load = Math.abs(gripper_status.load);
-                System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
+                //System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
 
                 if (gripper_status.load <= 0.0 && load < minLoad) {
                     //System.out.println("Grip moar");
@@ -423,7 +426,7 @@ public class BoltArmController implements LCMSubscriber
                 pointStateMachine();
             } else {
                 HandJoint j = (HandJoint)(joints.get(5));
-                j.set(0.0);
+                j.set(defGrip);
             }
         }
 
@@ -432,7 +435,7 @@ public class BoltArmController implements LCMSubscriber
         private void resetArm()
         {
             for (Joint j: joints) {
-                j.set(0.0);
+                j.set(defGrip);
             }
         }
 
@@ -506,9 +509,10 @@ public class BoltArmController implements LCMSubscriber
 
             //t[5] = Math.toRadians(112.0); XXX
 
-            for (int i = 0; i < t.length; i++) {
+            for (int i = 0; i < 4; i++) {
                 joints.get(i).set(t[i]);
             }
+            joints.get(4).set(last_cmd.wrist);  //
         }
 
         // Plans with wrist able to take different orientations
@@ -535,9 +539,10 @@ public class BoltArmController implements LCMSubscriber
 
             //t[5] = Math.toRadians(112.0); XXX
 
-            for (int i = 0; i < t.length; i++) {
+            for (int i = 0; i < 4; i++) {
                 joints.get(i).set(t[i]);
             }
+            joints.get(4).set(last_cmd.wrist);
         }
 
         // Just point the arm towards the goal...Points a little low. XXX Controller?
@@ -557,9 +562,10 @@ public class BoltArmController implements LCMSubscriber
 
             //t[5] = Math.toRadians(112.0); XXX
 
-            for (int i = 0; i < t.length; i++) {
+            for (int i = 0; i < 4; i++) {
                 joints.get(i).set(t[i]);
             }
+            joints.get(4).set(last_cmd.wrist);
         }
     }
 
