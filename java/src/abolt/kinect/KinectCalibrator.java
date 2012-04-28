@@ -17,8 +17,6 @@ import april.jmat.geom.GRay3D;
 import april.util.*;
 
 import abolt.lcmtypes.*;
-import abolt.util.*;
-
 
 class KinectCalibrator // implements LCMSubscriber
  implements LCMSubscriber

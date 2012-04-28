@@ -1,4 +1,4 @@
-package abolt.util;
+package abolt.kinect;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -41,7 +41,7 @@ public class KUtils
      {0,0,0,1}};
 
     public static double[][] kinectToWorldXForm = null;
-    public void loadCalibrationConfig(Config config)
+    public static void loadCalibrationConfig(Config config)
     {
         double[] values = config.getDoubles("calibration.xform");
         assert (values.length == 16);

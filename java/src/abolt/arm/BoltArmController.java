@@ -20,10 +20,10 @@ public class BoltArmController implements LCMSubscriber
     // LCM
     LCM lcm = LCM.getSingleton();
     ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
-    ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(0.2, true);
+    ExpiringMessageCache<bolt_arm_command_t> cmds = new ExpiringMessageCache<bolt_arm_command_t>(20.0, true);
 
     // Update rate
-    int Hz = 100;
+    int Hz = 25;
 
     // Arm parameters and restrictions
     ArrayList<Joint> joints;
@@ -86,7 +86,7 @@ public class BoltArmController implements LCMSubscriber
     {
         // Current target position
         int state = 0;
-        robot_command_t last_cmd = null;
+        bolt_arm_command_t last_cmd = null;
         double[] prev = null;
         double[] goal = null;
         PositionTracker ptracker;
@@ -139,13 +139,15 @@ public class BoltArmController implements LCMSubscriber
                 // Action handler
                 // If a new action comes in, reset to beginning of appropriate state machine
                 // Otherwise, continue executing current state machine
-                robot_command_t cmd = cmds.get();
+                bolt_arm_command_t cmd = cmds.get();
 
                 // Check for new action
-                if (cmd != null && (last_cmd == null || last_cmd.utime < cmd.utime)) {
+                if (cmd != null &&
+                    (last_cmd == null || last_cmd.cmd_id != cmd.cmd_id))
+                {
                     last_cmd = cmd;
                     prev = goal;
-                    goal = LinAlg.resize(cmd.dest, 2);
+                    goal = LinAlg.resize(cmd.xyz, 2);
                     setState(0);
                 }
 
@@ -570,7 +572,7 @@ public class BoltArmController implements LCMSubscriber
         ct.start();
 
         lcm.subscribe("ARM_STATUS", this);
-        lcm.subscribe("ROBOT_COMMAND", this);
+        lcm.subscribe("BOLT_ARM_COMMAND", this);
     }
 
     /** Construct a series of revolute joints representing our current arm
@@ -611,8 +613,9 @@ public class BoltArmController implements LCMSubscriber
                 utime = Math.min(utime, s.utime);
             }
             statuses.put(dsl, utime);
-        } else if (channel.equals("ROBOT_COMMAND")) {
-            robot_command_t cmd = new robot_command_t(ins);
+        } else if (channel.equals("BOLT_ARM_COMMAND")) {
+            //robot_command_t cmd = new robot_command_t(ins);
+            bolt_arm_command_t cmd = new bolt_arm_command_t(ins);
             cmds.put(cmd, cmd.utime);
         }
     }

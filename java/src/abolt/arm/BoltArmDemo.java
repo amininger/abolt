@@ -8,6 +8,7 @@ import java.io.*;
 
 import lcm.lcm.*;
 
+import april.config.*;
 import april.dynamixel.*;
 import april.jserial.*;
 import april.jmat.*;
@@ -16,6 +17,7 @@ import april.vis.*;
 import april.util.*;
 
 import abolt.lcmtypes.*;
+import abolt.kinect.*;
 
 public class BoltArmDemo implements LCMSubscriber
 {
@@ -34,6 +36,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
     ExpiringMessageCache<dynamixel_command_list_t> cmds = new ExpiringMessageCache<dynamixel_command_list_t>(0.2, true);
+    ExpiringMessageCache<observations_t> observations = new ExpiringMessageCache<observations_t>(2.5, true);
 
     // Command line flags/options
     GetOpt opts;
@@ -41,6 +44,14 @@ public class BoltArmDemo implements LCMSubscriber
     public BoltArmDemo(GetOpt opts_)
     {
         opts = opts_;
+        if (opts.getString("kconfig") != null) {
+            try {
+                KUtils.loadCalibrationConfig(new ConfigFile(opts.getString("kconfig")));
+            } catch (IOException ioex) {
+                System.err.println("ERR: could not load config file");
+                ioex.printStackTrace();
+            }
+        }
         joints = BoltArm.initArm();
 
         // We're going to spoof these if simming, so don't send them
@@ -51,6 +62,7 @@ public class BoltArmDemo implements LCMSubscriber
             st.start();
         }
         lcm.subscribe("ARM_COMMAND", this);
+        lcm.subscribe("OBSERVATIONS", this);
 
         rt = new RenderThread();
         rt.start();
@@ -83,6 +95,10 @@ public class BoltArmDemo implements LCMSubscriber
                 utime = Math.min(utime, c.utime);
             }
             cmds.put(cmdl, utime);
+        } else if (channel.equals("OBSERVATIONS")) {
+            // Place observations on the map
+            observations_t obs = new observations_t(ins);
+            observations.put(obs, obs.utime);
         }
     }
 
@@ -93,7 +109,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     class RenderThread extends Thread
     {
-        int fps = 60;
+        int fps = 2;
 
         VisWorld vw;
         VisLayer vl;
@@ -204,6 +220,51 @@ public class BoltArmDemo implements LCMSubscriber
                     vb.swap();
                 }
 
+                // Draw the currently observed objects w/IDs
+                {
+                    VisWorld.Buffer vb = vw.getBuffer("observations");
+                    observations_t obs = observations.get();
+                    if (obs != null) {
+                        for (object_data_t od : obs.observations) {
+                            Color color = Color.cyan;
+                            for (categorized_data_t cat_data: od.cat_dat) {
+                                if (cat_data.cat.cat != category_t.CAT_COLOR)
+                                    continue;
+                                String label = cat_data.label[0];
+                                if (label.equals("red")) {
+                                    color = Color.red;
+                                } else if (label.equals("orange")) {
+                                    color = Color.orange;
+                                } else if (label.equals("yellow")) {
+                                    color = Color.yellow;
+                                } else if (label.equals("green")) {
+                                    color = Color.green;
+                                } else if (label.equals("blue")) {
+                                    color = Color.blue;
+                                } else if (label.equals("purple")) {
+                                    color = Color.magenta;
+                                } else if (label.equals("black")) {
+                                    color = Color.black;
+                                }
+                            }
+                            if (color.equals(Color.black))
+                                continue;
+                            Formatter f = new Formatter();
+                            f.format("ID: %d", od.id);
+                            double[] obj_xyz = LinAlg.resize(od.pos, 3);
+                            obj_xyz = KUtils.getWorldCoordinates(obj_xyz);
+                            vb.addBack(new VisChain(LinAlg.translate(obj_xyz),
+                                                    LinAlg.scale(0.02),
+                                                    new VzSphere(new VzMesh.Style(color))));
+                            vb.addBack(new VisChain(LinAlg.translate(obj_xyz),
+                                                    LinAlg.scale(0.005),
+                                                    new VzText(f.toString())));
+
+                        }
+                    vb.swap();
+                    }
+                }
+
                 TimeUtil.sleep(1000/fps);
             }
         }
@@ -229,8 +290,24 @@ public class BoltArmDemo implements LCMSubscriber
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
             if (shift && !ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
-                rt.setGoal(xyz);
+                observations_t obs = observations.get();
+                double minDist = Double.MAX_VALUE;
+                int id = 0;
+                if (obs != null) {
+                    for (object_data_t obj_dat : obs.observations) {
+                        double[] pos = KUtils.getWorldCoordinates(LinAlg.resize(obj_dat.pos, 3));
+                        double mag = LinAlg.distance(pos, xyz);
+                        if (mag < minDist) {
+                            minDist = mag;
+                            id = obj_dat.id;
+                        }
+                    }
+                    lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.POINT));
+                } else {
+                    rt.setGoal(xyz);
+                    lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
+                }
+
                 return true;
             } else if (!shift && ctrl) {
                 lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
@@ -251,7 +328,7 @@ public class BoltArmDemo implements LCMSubscriber
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
-            if (shift && !ctrl) {
+            /*if (shift && !ctrl) {
                 lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
                 rt.setGoal(xyz);
                 return true;
@@ -263,7 +340,7 @@ public class BoltArmDemo implements LCMSubscriber
                 lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.GRAB));
                 rt.setGoal(xyz);
                 return true;
-            }
+            }*/
 
             return false;
         }
@@ -271,7 +348,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     class SimulationThread extends Thread
     {
-        int Hz = 100;
+        int Hz = 15;
 
         public void run()
         {
@@ -301,6 +378,34 @@ public class BoltArmDemo implements LCMSubscriber
                 lcm.publish("ARM_STATUS", dsl);
             }
         }
+    }
+
+    private robot_command_t getRobotCommand(int id, ActionState state)
+    {
+        action = state;
+        robot_command_t cmd = new robot_command_t();
+        cmd.utime = TimeUtil.utime();
+        cmd.updateDest = false;
+        cmd.dest = new double[] {0,.20,0,0,0,0};
+        switch (state) {
+            case POINT:
+                cmd.action = "POINT="+id;
+                break;
+            case GRAB:
+                cmd.action = "GRAB="+id;
+                break;
+            case SWEEP:
+                cmd.action = "SWEEP="+id;
+                break;
+            case DROP:
+                cmd.action = "DROP="+id;
+                break;
+            default:
+                cmd.action = "RESET="+id;
+                break;
+        }
+
+        return cmd;
     }
 
     private robot_command_t getRobotCommand(double[] dest, ActionState state)
@@ -338,6 +443,7 @@ public class BoltArmDemo implements LCMSubscriber
         opts.addBoolean('s',"sim",false,"Run in simulation mode");
         opts.addBoolean('h',"help",false,"Display this help screen");
         opts.addBoolean('l',"lcm",false,"Emit LCM");
+        opts.addString('k',"kconfig",null,"Kinect calibration config file");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Option error - "+opts.getReason());

@@ -1,0 +1,10 @@
+struct bolt_arm_command_t
+{
+    int64_t utime;
+
+    int8_t cmd_id;      // Unique ID helping to indicate a fresh command
+    string action;      // Simple, human-readable identifier for action type
+
+    double xyz[3];      // World coordinates the end effector should go to
+    double wrist;       // Wrist angle for gripping (act as if elbow up)
+}
