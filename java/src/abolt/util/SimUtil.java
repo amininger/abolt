@@ -12,7 +12,8 @@ public class SimUtil
         String[] tokens = params.split(",");
         for (String token: tokens) {
             String[] keyValuePair = token.split("=");
-            assert (keyValuePair.length > 1);
+            if (keyValuePair.length < 2)
+                continue;
             if (keyValuePair[0].equals(tokenKey))
                 return keyValuePair[1];
         }

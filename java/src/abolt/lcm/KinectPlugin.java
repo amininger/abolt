@@ -56,7 +56,7 @@ public class KinectPlugin implements SpyPlugin
         VisWorld vw;
 
         double[] t_gamma;
-        double[] cutoffs = new double[]{1.0, 2.5, 4.0, 5.5, 7.0, 8.5};
+        double[] cutoffs = new double[]{1.0, 1.2, 1.4, 1.6, 1.8, 2.0};
 
         public Viewer(ChannelData cd_)
         {
