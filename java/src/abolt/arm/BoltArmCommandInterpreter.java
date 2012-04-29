@@ -330,21 +330,21 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
     private double clampAngle(double theta)
     {
-        System.out.printf("theta: [%f] ",theta);
+        //System.out.printf("theta: [%f] ",theta);
         theta = MathUtil.mod2pi(theta);
-        System.out.printf("mod2pi: [%f] ",theta);
+        //System.out.printf("mod2pi: [%f] ",theta);
         double max = Math.toRadians(150.0);
         double min = Math.toRadians(-150.0);
         if (theta > 0 && theta > max) {
             theta = MathUtil.mod2pi(theta - Math.PI);
-            System.out.printf(" big: [%f]\n", theta);
+            //System.out.printf(" big: [%f]\n", theta);
             return theta;
         } else if (theta < 0 && theta < min) {
             theta = MathUtil.mod2pi(theta + Math.PI);
-            System.out.printf(" small: [%f]\n", theta);
+            //System.out.printf(" small: [%f]\n", theta);
             return theta;
         }
-        System.out.printf("\n");
+        //System.out.printf("\n");
         return theta;
     }
 
@@ -559,7 +559,14 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             maxY = Math.max(maxY, p[1]);
         }
 
-        if (maxX - minX > maxY - minY) {
+        // Deal with case that the ranges are nearly equal
+        double equalityThresh = 0.01;
+        double dx = maxX - minX;
+        double dy = maxY - minY;
+
+        if (Math.abs(dx-dy) < equalityThresh) {
+            return new double[][] {{1.0, 0}, {0, 1.0}}; // Sideways grip bias
+        } else if (dx > dy) {
             return new double[][] {{1.0, 0}, {0, 1.0}};
         } else {
             return new double[][] {{0, 1.0}, {1.0, 0}};

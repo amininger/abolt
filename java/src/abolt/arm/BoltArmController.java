@@ -350,7 +350,7 @@ public class BoltArmController implements LCMSubscriber
             wrVec = LinAlg.normalize(wrVec);
             //System.out.printf("[%f %f]\n", wrVec[0], wrVec[1]);
             //double[] behind = LinAlg.scale(goal, 0.80);
-            double offset = 0.02;   // meters
+            double offset = 0.03;   // meters
             double[] behind = new double[] {goal[0] + (offset*wrVec[0]),
                                             goal[1] + (offset*wrVec[1])};
 

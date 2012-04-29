@@ -256,7 +256,7 @@ public class BoltArmDemo implements LCMSubscriber
                                                     LinAlg.scale(0.02),
                                                     new VzSphere(new VzMesh.Style(color))));
                             vb.addBack(new VisChain(LinAlg.translate(obj_xyz),
-                                                    LinAlg.scale(0.005),
+                                                    LinAlg.scale(0.002),
                                                     new VzText(f.toString())));
 
                         }
