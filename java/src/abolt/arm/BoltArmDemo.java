@@ -122,7 +122,7 @@ public class BoltArmDemo implements LCMSubscriber
             JFrame jf = new JFrame("Bolt Arm Simulation Demo");
             jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             jf.setLayout(new BorderLayout());
-            jf.setSize(1920, 1080);
+            jf.setSize(800, 600);
 
             vw = new VisWorld();
             vl = new VisLayer(vw);
@@ -392,7 +392,7 @@ public class BoltArmDemo implements LCMSubscriber
         robot_command_t cmd = new robot_command_t();
         cmd.utime = TimeUtil.utime();
         cmd.updateDest = false;
-        cmd.dest = new double[] {0,.20,0,0,0,0};
+        cmd.dest = new double[6];
         switch (state) {
             case POINT:
                 cmd.action = "POINT="+id;

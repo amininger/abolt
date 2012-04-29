@@ -107,6 +107,7 @@ public class BoltArmController implements LCMSubscriber
 
         // Grabbing & sweeping
         double sweepHeight  = 0.025;    // Height at which we sweep objects along
+        double preGrabHeight = 0.075;   // Height at which we pause before final grabbing motion
         double grabHeight   = 0.0175;    // Height at which we try to grab objects
 
         // Defaults
@@ -315,13 +316,17 @@ public class BoltArmController implements LCMSubscriber
             double newangle = MathUtil.mod2pi(angle+dtheta);
             double minSpeed = HandJoint.HAND_SPEED/2.0;
 
+            // Compute "behind" point
+            double[] behind = LinAlg.scale(goal, 0.80);
+
             // States
             //      0: move to high point at current position
-            //      1: move above point (slightly to side) at a safe height
-            //      2: move down to grabbing height
-            //      3: Start closing hand
-            //      4: Check for contact with an object/hand stopping
-            //      5: Adjust grip so we grab tightly, but don't break hand
+            //      1: move behind point (slightly to side) at a safe height
+            //      2: move closer behind point
+            //      3: move down to grabbing height
+            //      4: Start closing hand
+            //      5: Check for contact with an object/hand stopping
+            //      6: Adjust grip so we grab tightly, but don't break hand
             if (state == 0) {
                 // Open hand
                 joints.get(5).set(defGrip);
@@ -337,7 +342,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 1) {
-                moveTo(goal, transHeight);
+                moveTo(behind, transHeight);
 
                 RevoluteJoint j = (RevoluteJoint)(joints.get(0));
                 j.set(newangle);
@@ -346,7 +351,7 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 2) {
-                moveTo(goal, grabHeight, grabHeight*1.8);
+                moveTo(behind, preGrabHeight);
 
                 RevoluteJoint j = (RevoluteJoint)(joints.get(0));
                 j.set(newangle);
@@ -355,6 +360,15 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 3) {
+                moveTo(goal, grabHeight, grabHeight*2.0);
+
+                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
+                j.set(newangle);
+
+                if (error < stableError) {
+                    setState(state+1);
+                }
+            } else if (state == 4) {
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();
                 if (dsl == null) {
@@ -368,7 +382,7 @@ public class BoltArmController implements LCMSubscriber
                 if (gripper_status.speed > minSpeed) {
                     setState(state+1);
                 }
-            } else if (state == 4) {
+            } else if (state == 5) {
                 // Check for hand contact with semi-rigid object (we'll stop moving)
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();
@@ -384,7 +398,7 @@ public class BoltArmController implements LCMSubscriber
                     j.set(gripper_status.position_radians);
                     setState(state+1);
                 }
-            } else if (state == 5) {
+            } else if (state == 7) {
                 // Tweak grip strength so we don't break the hand
                 HandJoint j = (HandJoint)(joints.get(5));
                 dynamixel_status_list_t dsl = statuses.get();

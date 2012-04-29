@@ -150,7 +150,8 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             if (info == null) {
                 bcmd.xyz = LinAlg.resize(cmd.dest, 3);
             } else {
-                bcmd.xyz = getCentroidXYZ(k2wPointAlign(info.points));
+                ArrayList<double[]> points = flattenPoints(k2wPointAlign(info.points));
+                bcmd.xyz = getCentroidXYZ(points);
             }
         }
 
@@ -179,11 +180,12 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 return null;    // There is no safe way to grab nothing
             } else {
                 ArrayList<double[]> wPoints = k2wPointAlign(info.points);
-                bcmd.xyz = getCentroidXYZ(wPoints);
+                ArrayList<double[]> xyPoints = flattenPoints(wPoints);
+                bcmd.xyz = LinAlg.resize(getMeanXY(xyPoints), 3);
 
                 double[][] ev = get22EigenVectors(wPoints);
                 double[] xaxis = new double[] {1.0, 0, 0};
-                double[] a = LinAlg.normalize(getMeanXY(wPoints));
+                double[] a = LinAlg.normalize(getMeanXY(xyPoints));
                 double[] b = LinAlg.normalize(ev[1]);
                 double[] c = LinAlg.normalize(ev[0]);
                 //System.out.printf("[%f %f] . [%f %f]\n", a[0], a[1], b[0], b[1]);
@@ -245,6 +247,18 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
 
         return wPoints;
+    }
+
+    /** Flatten the supplied points onto the XY plane, trying to preserve only
+     *  the upper shape of the object
+     */
+    private ArrayList<double[]> flattenPoints(ArrayList<double[]> points)
+    {
+        ArrayList<Integer> idxs = new ArrayList<Integer>();
+        idxs.add(0);
+        idxs.add(1);
+        double r = 0.0025;
+        return Binner.binPoints(points, idxs, r);
     }
 
     /** Return the centroid of the given point cloud. Used for
