@@ -309,15 +309,19 @@ public class BoltArmController implements LCMSubscriber
             double r = LinAlg.magnitude(goal);
             double error = ptracker.error();
 
-            // Compute "safe" goal just to side of grab point
-            double offset = 0.00;
             double angle = Math.atan2(goal[1], goal[0]);
-            double dtheta = Math.asin(offset/r);
-            double newangle = MathUtil.mod2pi(angle+dtheta);
             double minSpeed = HandJoint.HAND_SPEED/2.0;
 
-            // Compute "behind" point
-            double[] behind = LinAlg.scale(goal, 0.80);
+            // Compute a point "behind" our object in gripper space
+            double[] wrVec = new double[] {0.0, 1.0};
+            wrVec = LinAlg.transform(LinAlg.rotateZ(angle), wrVec); // Base rotation
+            wrVec = LinAlg.transform(LinAlg.rotateZ(-last_cmd.wrist), wrVec);
+            wrVec = LinAlg.normalize(wrVec);
+            //System.out.printf("[%f %f]\n", wrVec[0], wrVec[1]);
+            //double[] behind = LinAlg.scale(goal, 0.80);
+            double offset = 0.02;   // meters
+            double[] behind = new double[] {goal[0] + (offset*wrVec[0]),
+                                            goal[1] + (offset*wrVec[1])};
 
             // States
             //      0: move to high point at current position
@@ -344,26 +348,17 @@ public class BoltArmController implements LCMSubscriber
             } else if (state == 1) {
                 moveTo(behind, transHeight);
 
-                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
-                j.set(newangle);
-
                 if (error < stableError) {
                     setState(state+1);
                 }
             } else if (state == 2) {
                 moveTo(behind, preGrabHeight);
 
-                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
-                j.set(newangle);
-
                 if (error < stableError) {
                     setState(state+1);
                 }
             } else if (state == 3) {
                 moveTo(goal, grabHeight, grabHeight*1.8);
-
-                RevoluteJoint j = (RevoluteJoint)(joints.get(0));
-                j.set(newangle);
 
                 if (error < stableError) {
                     setState(state+1);

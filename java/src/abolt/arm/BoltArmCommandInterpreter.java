@@ -101,6 +101,8 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             VisLayer vl = new VisLayer(vw);
             VisCanvas vc = new VisCanvas(vl);
 
+            vl.cameraManager.fit2D(new double[] {-1,-1}, new double[] {1,1}, true);
+
             VzGrid grid = VzGrid.addGrid(vw);
 
             JFrame jf = new JFrame("Bolt Arm Command Interpreter Debugger");
@@ -127,6 +129,8 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 vb.swap();
             }
 
+            double theta = getMinimalRotation(flat);
+            ArrayList<double[]> rorigin = rotateAtOrigin(theta, flat);
 
             // Render the flattened points
             {
@@ -136,23 +140,25 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 vb.swap();
             }
 
-            double[][] evec = get22EigenVectors(flat);
+            double[][] evec = getGripAxes(rorigin);//get22EigenVectors(rorigin);
+            evec = rotateGripAxes(-theta, evec);
             // Render the major and minor axis
             {
-                ArrayList<double[]> lines = new ArrayList<double[]>();
-                lines.add(evec[0]);
-                lines.add(evec[1]);
+                ArrayList<double[]> major = new ArrayList<double[]>();
+                ArrayList<double[]> minor = new ArrayList<double[]>();
+                major.add(new double[2]);
+                major.add(evec[0]);
+                minor.add(new double[2]);
+                minor.add(evec[1]);
                 VisWorld.Buffer vb = vw.getBuffer("eigen");
-                /*
                 vb.addBack(new VisChain(LinAlg.translate(cxy),
-                                        new VzLines(new VisVertexData(evec[0]),
+                                        new VzLines(new VisVertexData(major),
                                                     VzLines.LINES,
-                                                    new VzLines.Style(Color.green, 2))));
+                                                    new VzLines.Style(Color.yellow, 2))));
                 vb.addBack(new VisChain(LinAlg.translate(cxy),
-                                        new VzLines(new VisVertexData(evec[1]),
+                                        new VzLines(new VisVertexData(minor),
                                                     VzLines.LINES,
-                                                    new VzLines.Style(Color.blue, 2))));
-                */
+                                                    new VzLines.Style(Color.cyan, 2))));
                 vb.swap();
             }
 
@@ -276,11 +282,16 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 }
                 ArrayList<double[]> wPoints = k2wPointAlign(info.points);
                 ArrayList<double[]> xyPoints = flattenPoints(wPoints);
-                bcmd.xyz = LinAlg.resize(getMeanXY(xyPoints), 3);
+                double[] uxy = getMeanXY(xyPoints);
+                bcmd.xyz = LinAlg.resize(uxy, 3);
 
-                double[][] ev = get22EigenVectors(xyPoints);
+                double minBoxRot = getMinimalRotation(xyPoints);
+                ArrayList<double[]> rorigin = rotateAtOrigin(minBoxRot, xyPoints);
+                double[][] ev = getGripAxes(rorigin);//get22EigenVectors(rorigin);
+                ev = rotateGripAxes(-minBoxRot, ev);
+
                 double[] xaxis = new double[] {1.0, 0, 0};
-                double[] a = LinAlg.normalize(getMeanXY(xyPoints));
+                double[] a = LinAlg.normalize(uxy);
                 double[] b = LinAlg.normalize(ev[1]);
                 double[] c = LinAlg.normalize(ev[0]);
                 //System.out.printf("[%f %f] . [%f %f]\n", a[0], a[1], b[0], b[1]);
@@ -304,13 +315,33 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 theta += Math.atan2(a[1], a[0]);
 
                 // Mod the angle...
-                theta = MathUtil.mod2pi(theta);
+                theta = clampAngle(theta);
 
                 bcmd.wrist = theta;
             }
         }
 
         return bcmd;
+    }
+
+    private double clampAngle(double theta)
+    {
+        System.out.printf("theta: [%f] ",theta);
+        theta = MathUtil.mod2pi(theta);
+        System.out.printf("mod2pi: [%f] ",theta);
+        double max = Math.toRadians(150.0);
+        double min = Math.toRadians(-150.0);
+        if (theta > 0 && theta > max) {
+            theta = MathUtil.mod2pi(theta - Math.PI);
+            System.out.printf(" big: [%f]\n", theta);
+            return theta;
+        } else if (theta < 0 && theta < min) {
+            theta = MathUtil.mod2pi(theta + Math.PI);
+            System.out.printf(" small: [%f]\n", theta);
+            return theta;
+        }
+        System.out.printf("\n");
+        return theta;
     }
 
     /** Instruct the arm to drop an object at the specified location */
@@ -426,6 +457,110 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         return cov;
     }
 
+    /** Find the angle of rotation around Z that minimizes the area
+     *  of the axis-aligned bounding box. */
+    private double getMinimalRotation(ArrayList<double[]> points)
+    {
+        // Transform points to origin.
+        double[] cxy = getMeanXY(points);
+        ArrayList<double[]> centered = LinAlg.transform(LinAlg.translate(-cxy[0], -cxy[1]),
+                                                        points);
+
+        // for every rotation 0-180 degrees, compute the bounding box.
+        // Pick the minimal bounding box and rotate the points to that orientation and
+        // return them.
+        double minArea = Double.MAX_VALUE;
+        double angle = 0;
+        for (double i = 0.0; i < 180.0; i += 0.25) {
+            ArrayList<double[]> rotate = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(i)),
+                                                          centered);
+            double minX = Double.MAX_VALUE;
+            double maxX = Double.MIN_VALUE;
+            double minY = Double.MAX_VALUE;
+            double maxY = Double.MIN_VALUE;
+
+            for (double[] p: rotate) {
+                minX = Math.min(minX, p[0]);
+                maxX = Math.max(maxX, p[0]);
+                minY = Math.min(minY, p[1]);
+                maxY = Math.max(maxY, p[1]);
+            }
+
+            double area = (maxX - minX) * (maxY - minY);
+            if (area < minArea) {
+                minArea = area;
+                angle = Math.toRadians(i);
+            }
+        }
+
+        return angle;
+    }
+
+    /** Rotate the points around their centroid and move them to the origin */
+    private ArrayList<double[]> rotateAtOrigin(double theta, ArrayList<double[]> points)
+    {
+        double[] cxy = getMeanXY(points);
+        ArrayList<double[]> centered = LinAlg.transform(LinAlg.translate(-cxy[0], -cxy[1]),
+                                                        points);
+
+        ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(theta),
+                                                       centered);
+        return rotated;
+    }
+
+    /** Rotate the points around their centroid by the given angle */
+    private ArrayList<double[]> rotateInPlace(double theta, ArrayList<double[]> points)
+    {
+        double[] cxy = getMeanXY(points);
+        return LinAlg.transform(LinAlg.translate(cxy), rotateAtOrigin(theta, points));
+    }
+
+    /** Rotate the vectors such that they remain pointing towards "positive" */
+    private double[][] rotateGripAxes(double theta, double[][] axes)
+    {
+        double[] ax0 = LinAlg.transform(LinAlg.rotateZ(theta), axes[0]);
+        double[] ax1 = LinAlg.transform(LinAlg.rotateZ(theta), axes[1]);
+
+        if (ax1[0] < 0) {
+            ax1[0] = -ax1[0];
+            ax1[1] = -ax1[1];
+        }
+
+        if (ax0[0] < 0) {
+            ax0[0] = -ax0[0];
+            ax0[1] = -ax0[1];
+        }
+
+        if (debug) {
+            System.out.printf("[%f %f], [%f %f]\n", ax0[0], ax0[1], ax1[0], ax1[1]);
+        }
+
+        return new double[][] {ax0, ax1};
+    }
+
+    /** Return the axis-aligned vectors in the major and minor directions */
+    private double[][] getGripAxes(ArrayList<double[]> points)
+    {
+        double minX = Double.MAX_VALUE;
+        double maxX = Double.MIN_VALUE;
+        double minY = Double.MAX_VALUE;
+        double maxY = Double.MIN_VALUE;
+
+        for (double[] p: points) {
+            minX = Math.min(minX, p[0]);
+            maxX = Math.max(maxX, p[0]);
+            minY = Math.min(minY, p[1]);
+            maxY = Math.max(maxY, p[1]);
+        }
+
+        if (maxX - minX > maxY - minY) {
+            return new double[][] {{1.0, 0}, {0, 1.0}};
+        } else {
+            return new double[][] {{0, 1.0}, {1.0, 0}};
+        }
+    }
+
+    /** Return eigenvectors along the major and minor axes of the points */
     private double[][] get22EigenVectors(ArrayList<double[]> points)
     {
         double[][] A = getCovXY(points);
