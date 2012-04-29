@@ -452,9 +452,17 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 7) {
-                grabbedObject = toGrab;
+                dynamixel_status_list_t dsl = statuses.get();
+                if (dsl != null) {
+                    if (Math.abs(dsl.statuses[5].position_radians - defGrip) < Math.toRadians(5.0)) {
+                        grabbedObject = 0;
+                    } else {
+                        grabbedObject = toGrab;
+                    }
+                }
                 toGrab = 0;
                 curAction = ActionMode.WAIT;
+                setState(state+1);
             }
         }
 
@@ -474,6 +482,7 @@ public class BoltArmController implements LCMSubscriber
             //      4: Change state back to waiting
 
             if (state < 3) {
+                // Reuse pointing to drop
                 pointStateMachine();
                 curAction = ActionMode.DROP;
             } else if (state == 3) {
