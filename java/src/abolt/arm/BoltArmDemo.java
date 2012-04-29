@@ -44,14 +44,14 @@ public class BoltArmDemo implements LCMSubscriber
     public BoltArmDemo(GetOpt opts_)
     {
         opts = opts_;
-        if (opts.getString("kconfig") != null) {
+        /*if (opts.getString("kconfig") != null) {
             try {
                 KUtils.loadCalibrationConfig(new ConfigFile(opts.getString("kconfig")));
             } catch (IOException ioex) {
                 System.err.println("ERR: could not load config file");
                 ioex.printStackTrace();
             }
-        }
+        }*/
         joints = BoltArm.initArm();
 
         // We're going to spoof these if simming, so don't send them
