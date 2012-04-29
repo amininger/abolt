@@ -200,8 +200,16 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                     theta = Math.PI/2 - theta;
                 }
 
+                // If in the positive Y quadrant, rotate angle 180 degrees
+                if (a[1] > 0.0) {
+                    theta += Math.PI;
+                }
+
                 // Account for arm rotation
                 theta += Math.atan2(a[1], a[0]);
+
+                // Mod the angle...
+                theta = MathUtil.mod2pi(theta);
 
                 bcmd.wrist = theta;
             }
