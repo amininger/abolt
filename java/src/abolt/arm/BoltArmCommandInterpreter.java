@@ -134,6 +134,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         bcmd.cmd_id = messageID++;
         bcmd.action = "POINT";
         bcmd.wrist = 0.0;         // We don't care about the wrist
+        bcmd.obj_id = 0;
 
         // Check for a specified ID
         String objIDstr = SimUtil.getTokenValue(cmd.action, "POINT");  // XXX ID? POINT?
@@ -144,6 +145,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         } else {
             // Found ID
             int objID = Integer.valueOf(objIDstr);
+            bcmd.obj_id = objID;
             System.out.println("POINT @ "+objID);
             ObjectInfo info = getObject(objID);
             System.out.println("Found info "+info);
@@ -163,7 +165,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         bolt_arm_command_t bcmd = new bolt_arm_command_t();
         bcmd.cmd_id = messageID++;
         bcmd.action = "GRAB";
-
+        bcmd.obj_id = 0;
 
         // Check for a specified ID
         String objIDstr = SimUtil.getTokenValue(cmd.action, "GRAB"); // XXX ID? GRAB?
@@ -172,6 +174,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         } else {
             // Found ID
             int objID = Integer.valueOf(objIDstr);
+            bcmd.obj_id = objID;
             System.out.println("GRAB @ "+objID);
             ObjectInfo info = getObject(objID);
             System.out.println("Found info "+info);
@@ -215,6 +218,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         bcmd.cmd_id = messageID++;
         bcmd.action = "DROP";
 
+        bcmd.obj_id = 0; // XXX - not true
         bcmd.xyz = LinAlg.resize(cmd.dest, 3);
         bcmd.wrist = 0; // XXX
 
@@ -229,6 +233,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         bcmd.action = "RESET";
         bcmd.xyz = new double[3];
         bcmd.wrist = 0;
+        bcmd.obj_id = 0;
 
         return bcmd;
     }

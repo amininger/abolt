@@ -122,7 +122,7 @@ public class BoltArmDemo implements LCMSubscriber
             JFrame jf = new JFrame("Bolt Arm Simulation Demo");
             jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             jf.setLayout(new BorderLayout());
-            jf.setSize(1920, 1080);
+            jf.setSize(720, 580);
 
             vw = new VisWorld();
             vl = new VisLayer(vw);
