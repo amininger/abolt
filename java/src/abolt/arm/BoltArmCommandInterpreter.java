@@ -2,11 +2,14 @@ package abolt.arm;
 
 import java.io.*;
 import java.util.*;
+import java.awt.*;
+import javax.swing.*;
 
 import lcm.lcm.*;
 
 import april.jmat.*;
 import april.util.*;
+import april.vis.*;
 
 //import abolt.kinect.*;
 import abolt.lcmtypes.*;
@@ -33,6 +36,10 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
     // Needs some form of access to point cloud data + IDs
     Segment seg;
+
+    // Debugging
+    boolean debug;
+    DebugThread dthread;
 
     class InterpreterThread extends Thread
     {
@@ -84,8 +91,88 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
     }
 
+    class DebugThread extends Thread
+    {
+        VisWorld vw;
+        public void run()
+        {
+            System.out.println("Starting debugging thread");
+            vw = new VisWorld();
+            VisLayer vl = new VisLayer(vw);
+            VisCanvas vc = new VisCanvas(vl);
+
+            VzGrid grid = VzGrid.addGrid(vw);
+
+            JFrame jf = new JFrame("Bolt Arm Command Interpreter Debugger");
+            jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            jf.setLayout(new BorderLayout());
+            jf.setSize(800, 600);
+
+            jf.add(vc, BorderLayout.CENTER);
+
+            jf.setVisible(true);
+        }
+
+        public void render(ArrayList<double[]> points)
+        {
+            System.out.println("Render object");
+            ArrayList<double[]> flat = flattenPoints(k2wPointAlign(points));
+
+            double[] cxy = getMeanXY(flat);
+            // Render the XY centroid
+            {
+                VisWorld.Buffer vb = vw.getBuffer("centroid");
+                vb.addBack(new VzPoints(new VisVertexData(cxy),
+                                        new VzPoints.Style(Color.white, 4)));
+                vb.swap();
+            }
+
+
+            // Render the flattened points
+            {
+                VisWorld.Buffer vb = vw.getBuffer("points");
+                vb.addBack(new VzPoints(new VisVertexData(flat),
+                                        new VzPoints.Style(Color.red, 2)));
+                vb.swap();
+            }
+
+            double[][] evec = get22EigenVectors(flat);
+            // Render the major and minor axis
+            {
+                ArrayList<double[]> lines = new ArrayList<double[]>();
+                lines.add(evec[0]);
+                lines.add(evec[1]);
+                VisWorld.Buffer vb = vw.getBuffer("eigen");
+                /*
+                vb.addBack(new VisChain(LinAlg.translate(cxy),
+                                        new VzLines(new VisVertexData(evec[0]),
+                                                    VzLines.LINES,
+                                                    new VzLines.Style(Color.green, 2))));
+                vb.addBack(new VisChain(LinAlg.translate(cxy),
+                                        new VzLines(new VisVertexData(evec[1]),
+                                                    VzLines.LINES,
+                                                    new VzLines.Style(Color.blue, 2))));
+                */
+                vb.swap();
+            }
+
+
+        }
+    }
+
     public BoltArmCommandInterpreter(Segment seg_)
     {
+        this(seg_, false);
+    }
+
+    public BoltArmCommandInterpreter(Segment seg_, boolean debug_)
+    {
+        debug = debug_;
+        if (debug) {
+            dthread = new DebugThread();
+            dthread.start();
+        }
+
         // We'll reference this, or some equivalent, later when
         // recovering point cloud data
         seg = seg_;
@@ -144,12 +231,16 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         } else {
             // Found ID
             int objID = Integer.valueOf(objIDstr);
-            System.out.println("POINT @ "+objID);
+            if (debug) {
+                System.out.println("POINT @ "+objID);
+            }
             ObjectInfo info = getObject(objID);
-            System.out.println("Found info "+info);
             if (info == null) {
                 bcmd.xyz = LinAlg.resize(cmd.dest, 3);
             } else {
+                if (debug) {
+                    dthread.render(info.points);
+                }
                 ArrayList<double[]> points = flattenPoints(k2wPointAlign(info.points));
                 bcmd.xyz = getCentroidXYZ(points);
             }
@@ -173,17 +264,21 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         } else {
             // Found ID
             int objID = Integer.valueOf(objIDstr);
-            System.out.println("GRAB @ "+objID);
+            if (debug) {
+                System.out.println("GRAB @ "+objID);
+            }
             ObjectInfo info = getObject(objID);
-            System.out.println("Found info "+info);
             if (info == null) {
                 return null;    // There is no safe way to grab nothing
             } else {
+                if (debug) {
+                    dthread.render(info.points);
+                }
                 ArrayList<double[]> wPoints = k2wPointAlign(info.points);
                 ArrayList<double[]> xyPoints = flattenPoints(wPoints);
                 bcmd.xyz = LinAlg.resize(getMeanXY(xyPoints), 3);
 
-                double[][] ev = get22EigenVectors(wPoints);
+                double[][] ev = get22EigenVectors(xyPoints);
                 double[] xaxis = new double[] {1.0, 0, 0};
                 double[] a = LinAlg.normalize(getMeanXY(xyPoints));
                 double[] b = LinAlg.normalize(ev[1]);
@@ -380,7 +475,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         evec[1][0] = e1[0];
         evec[1][1] = e1[1];
 
-        System.out.printf("[%f %f], [%f %f]\n", e0[0], e0[1], e1[0], e1[1]);
+        if (debug) {
+            System.out.printf("[%f %f], [%f %f]\n", e0[0], e0[1], e1[0], e1[1]);
+        }
 
         return evec;
     }
