@@ -20,7 +20,8 @@ public class BoltArmController implements LCMSubscriber
     // LCM
     LCM lcm = LCM.getSingleton();
     ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
-    ExpiringMessageCache<bolt_arm_command_t> cmds = new ExpiringMessageCache<bolt_arm_command_t>(20.0, true);
+    //ExpiringMessageCache<bolt_arm_command_t> cmds = new ExpiringMessageCache<bolt_arm_command_t>(20.0, true);
+    Queue<bolt_arm_command_t> cmds = new LinkedList<bolt_arm_command_t>();
 
     // Update rate
     int Hz = 25;
@@ -146,10 +147,8 @@ public class BoltArmController implements LCMSubscriber
                     ptracker.add(currXYZ, TimeUtil.utime());
                 }
 
-                // Action handler
-                // If a new action comes in, reset to beginning of appropriate state machine
-                // Otherwise, continue executing current state machine
-                bolt_arm_command_t cmd = cmds.get();
+                // Action handler - get the most recent command
+                bolt_arm_command_t cmd = cmds.peek();
 
                 // Check for new action
                 if (cmd != null &&
@@ -179,6 +178,12 @@ public class BoltArmController implements LCMSubscriber
                 }
                 last_status = dsl;
 
+                // If we are no longer acting, remove that command
+                if (curAction == ActionMode.WAIT) {
+                    cmds.poll();
+                }
+
+
                 dynamixel_command_list_t desired_cmds = getArmCommandList();
                 lcm.publish("ARM_COMMAND", desired_cmds);
                 robot_action_t current_action = getCurrentAction();
@@ -197,16 +202,16 @@ public class BoltArmController implements LCMSubscriber
 
         private dynamixel_command_list_t getArmCommandList()
         {
-            dynamixel_command_list_t cmds = new dynamixel_command_list_t();
-            cmds.len = joints.size();
-            cmds.commands = new dynamixel_command_t[cmds.len];
+            dynamixel_command_list_t acmds = new dynamixel_command_list_t();
+            acmds.len = joints.size();
+            acmds.commands = new dynamixel_command_t[acmds.len];
             long utime = TimeUtil.utime();
             for (int i = 0; i < joints.size(); i++) {
                 dynamixel_command_t cmd = joints.get(i).getArmCommand();
                 cmd.utime = utime;
-                cmds.commands[i] = cmd;
+                acmds.commands[i] = cmd;
             }
-            return cmds;
+            return acmds;
         }
 
         private robot_action_t getCurrentAction()
@@ -692,7 +697,8 @@ public class BoltArmController implements LCMSubscriber
         } else if (channel.equals("BOLT_ARM_COMMAND")) {
             //robot_command_t cmd = new robot_command_t(ins);
             bolt_arm_command_t cmd = new bolt_arm_command_t(ins);
-            cmds.put(cmd, cmd.utime);
+            //cmds.put(cmd, cmd.utime);
+            cmds.add(cmd);
         }
     }
 

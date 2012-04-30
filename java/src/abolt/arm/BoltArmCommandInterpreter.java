@@ -32,7 +32,11 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     static private byte messageID = 0;
 
     // Don't hold on to old messages
-    ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(20.0, true);
+    //ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(20.0, true);
+
+    // Queue up messages as we receive them, assuming we'll get
+    // only one of each
+    Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();
 
     // Needs some form of access to point cloud data + IDs
     Segment seg;
@@ -57,7 +61,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 TimeUtil.sleep(1000/Hz);
 
                 // Look for new commands
-                robot_command_t cmd = cmds.get();
+                robot_command_t cmd = cmds.poll();
                 if ((cmd != null) &&
                     (last_cmd == null || last_cmd.utime < cmd.utime))
                 {
@@ -80,12 +84,12 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                         System.err.println("ERR: Unknown command - "+last_cmd.action);
                     }
                     handled = true;
-                }
 
-                // Broadcast command message to robot
-                if (bolt_cmd != null) {
-                    bolt_cmd.utime = TimeUtil.utime();
-                    lcm.publish("BOLT_ARM_COMMAND", bolt_cmd);
+                    // Broadcast command message to robot
+                    if (bolt_cmd != null) {
+                        bolt_cmd.utime = TimeUtil.utime();
+                        lcm.publish("BOLT_ARM_COMMAND", bolt_cmd);
+                    }
                 }
             }
         }
@@ -212,7 +216,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         if (channel.equals("ROBOT_COMMAND")) {
             System.out.println("GOT ROBOT COMMAND");
             robot_command_t cmd = new robot_command_t(ins);
-            cmds.put(cmd, cmd.utime);
+            cmds.add(cmd);
         }
     }
 
