@@ -164,17 +164,17 @@ public class SimBlock implements SimObject, SimBoltObject, SimActionable, SimGra
 
         // COLOR
         category = new HashMap<String, Double>();
-        category.put(colorStr, Math.random() * .3 + .7);
+        category.put("color-" + colorStr, Math.random() * .3 + .7);
         categories.put(category_t.CAT_COLOR, category);
 
         // SHAPE
         category = new HashMap<String, Double>();
-        category.put(shapeStr, Math.random() * .3 + .7);
+        category.put("shape-" + shapeStr, Math.random() * .3 + .7);
         categories.put(category_t.CAT_SHAPE, category);
 
         // SIZE
         category = new HashMap<String, Double>();
-        category.put(sizeStr, Math.random() * .3 + .7);
+        category.put("size-" + sizeStr, Math.random() * .3 + .7);
         categories.put(category_t.CAT_SIZE, category);
     }
 

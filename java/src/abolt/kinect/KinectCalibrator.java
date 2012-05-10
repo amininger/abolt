@@ -1,22 +1,25 @@
+
 package abolt.kinect;
-
-import java.io.*;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.image.*;
-
-import lcm.lcm.LCM;
-import lcm.lcm.LCMDataInputStream;
-import lcm.lcm.LCMSubscriber;
-import lcm.logging.*;
 
 import april.vis.*;
 import april.jmat.*;
 import april.jmat.geom.GRay3D;
 import april.util.*;
 
+import lcm.lcm.LCM;
+import lcm.lcm.LCMDataInputStream;
+import lcm.lcm.LCMSubscriber;
+import lcm.logging.*;
 import abolt.lcmtypes.*;
+
+
+import java.io.*;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.image.*;
+
 
 class KinectCalibrator // implements LCMSubscriber
  implements LCMSubscriber
@@ -47,6 +50,7 @@ class KinectCalibrator // implements LCMSubscriber
     kinect_status_t ks = null;
 
     public KinectCalibrator()
+
     {
     	// Calibration variables
         calibFilename = "kinect_calib.config";
@@ -235,13 +239,16 @@ class KinectCalibrator // implements LCMSubscriber
                         out.write(k2wTransform[i][j] + ", ");
                     }
     			}
-    			System.out.println(String.format("|%5f, %5f, %5f, %5f|", k2wTransform[i][0], k2wTransform[i][1],
-    					k2wTransform[i][2], k2wTransform[i][3]));
+                System.out.println(String.format("|%5f, %5f, %5f, %5f|",
+                                                 k2wTransform[i][0],
+                                                 k2wTransform[i][1],
+                                                 k2wTransform[i][2],
+                                                 k2wTransform[i][3]));
     		}
             out.write("}\n");
     		out.close();
     	} catch (IOException e){
-    		System.out.println("Couldn't write kinect_calib.config");
+    		System.out.println("Couldn't write kinect.calib");
     	}
 
     	// Tests, should come out to unit vectors
@@ -260,7 +267,7 @@ class KinectCalibrator // implements LCMSubscriber
     	y = KINECT_HEIGHT-y;
 		int index = y*KINECT_WIDTH + x;
 		int depth = ((ks.depth[2*index+1]&0xff) << 8) | (ks.depth[2*index+0]&0xff);
-		double[] xyzrgb = KUtils.getXYZRGB(x, y, depthLookUp[depth], ks);
+		double[] xyzrgb = KUtils.getRegisteredXYZRGB(x, y, ks);
     	//System.out.println("Point: " + x + ", " + y);
     	//System.out.println("Depth: " + depthLookUp[depth]);
     	//System.out.println(String.format("(%f, %f, %f)", xyzrgb[0], xyzrgb[1], xyzrgb[2]));

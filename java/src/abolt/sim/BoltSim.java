@@ -257,6 +257,8 @@ public class BoltSim implements VisConsole.Listener
             ex.printStackTrace();
             return;
         }
+        
+        
 
         VisWorld vw = new VisWorld();
         VisLayer vl = new VisLayer(vw);

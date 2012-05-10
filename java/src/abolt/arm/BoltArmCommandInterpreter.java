@@ -15,10 +15,9 @@ import april.vis.*;
 import abolt.lcmtypes.*;
 import abolt.util.*;
 
-// XXX
-import kinect.kinect.Segment;
-import kinect.kinect.ObjectInfo;
-import kinect.kinect.KUtils;
+import abolt.kinect.Segment;
+import abolt.kinect.ObjectInfo;
+import abolt.kinect.KUtils;
 
 /** The command interpreter takes in a robot_command_t from
  *  Soar and then processes it for consumption by the
