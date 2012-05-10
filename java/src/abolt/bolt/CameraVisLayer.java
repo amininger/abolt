@@ -6,7 +6,6 @@ import april.jmat.geom.GRay3D;
 import lcm.lcm.*;
 import abolt.lcmtypes.*;
 import abolt.kinect.*;
-import abolt.ispy.*;
 import abolt.classify.*;
 
 import java.io.*;
@@ -32,19 +31,20 @@ public class CameraVisLayer extends VisLayer
 	private final Bolt bolt;
 	private VisCanvas canvas;
 	private boolean drawSegmentation = false;
+	private WorldObjectManager objMgr;
 
-
-	public CameraVisLayer(VisWorld world, Bolt bolt){
+	public CameraVisLayer(VisWorld world, Bolt bolt, WorldObjectManager objManager){
 		super(world);
 		this.bolt = bolt;
 		canvas = new VisCanvas(this);
+		this.objMgr = objManager;
 
         // Set up camera
-        this.cameraManager.uiLookAt(new double[]{Bolt.viewRegion.getCenterX(),
-                                                 kinect_status_t.HEIGHT-Bolt.viewRegion.getCenterY(),
-                                                 Bolt.viewRegion.width},  //Position
-                                    new double[]{Bolt.viewRegion.getCenterX(),
-                                                 kinect_status_t.HEIGHT-Bolt.viewRegion.getCenterY(),
+        this.cameraManager.uiLookAt(new double[]{WorldObjectManager.viewRegion.getCenterX(),
+                                                 kinect_status_t.HEIGHT-WorldObjectManager.viewRegion.getCenterY(),
+                                                 WorldObjectManager.viewRegion.width},  //Position
+                                    new double[]{WorldObjectManager.viewRegion.getCenterX(),
+                                                 kinect_status_t.HEIGHT-WorldObjectManager.viewRegion.getCenterY(),
                                                  0}, // Lookat
                                     new double[]{0, 1, 0}, false); // Up
         this.addEventHandler(new DisplayClickEventHandler());
@@ -65,7 +65,8 @@ public class CameraVisLayer extends VisLayer
             double[] intersect = ray.intersectPlaneXY();
             double x = intersect[0];
             double y = K_HEIGHT - intersect[1];
-            bolt.mouseClicked(x, y);
+           // objMgr.mouseClicked(x, y);
+            // TODO: mouse clicks
             return false;
         }
     }
@@ -79,7 +80,7 @@ public class CameraVisLayer extends VisLayer
         for (int i = 0; i < buf.length; i+=3) {
             int x = (i/3)%kinect_status_t.WIDTH;
             int y = (i/3)/kinect_status_t.WIDTH;
-            if(Bolt.viewRegion.contains(x, y)){
+            if(WorldObjectManager.viewRegion.contains(x, y)){
                 buf[i] = kinectData.rgb[i+2];   // B
                 buf[i+1] = kinectData.rgb[i+1]; // G
                 buf[i+2] = kinectData.rgb[i];   // R
@@ -88,15 +89,16 @@ public class CameraVisLayer extends VisLayer
         return image;
     }
 
-    public void drawObjects(VisWorld.Buffer buffer, Map<Integer, SpyObject> objects){
-    	double width = Bolt.viewRegion.getWidth() / 2 + 80;
-    	double height = Bolt.viewRegion.getHeight() / 2 + 60;
+    public void drawObjects(VisWorld.Buffer buffer, Map<Integer, WorldBoltObject> objects){
+    	/*
+    	double width = WorldObjectManager.viewRegion.getWidth() / 2 + 80;
+    	double height = WorldObjectManager.viewRegion.getHeight() / 2 + 60;
 
     	double theta = 0;
-    	for(SpyObject obj : objects.values()){
+    	for(WorldBoltObject obj : objects.values()){
     		if(drawSegmentation){
-        		VzImage img = new VzImage(obj.object.getImage());
-        		buffer.addBack(new VisChain(LinAlg.translate(obj.bbox.getMinX(), K_HEIGHT - obj.bbox.getMinY()), LinAlg.scale(1, -1, 1), img));
+        		VzImage img = new VzImage(obj.getInfo().getImage());
+        		buffer.addBack(new VisChain(LinAlg.translate(obj.getBBox()[0][0], K_HEIGHT - obj.bbox.getMinY()), LinAlg.scale(1, -1, 1), img));
     		}
 
     		double x, y;
@@ -145,15 +147,16 @@ public class CameraVisLayer extends VisLayer
     		VzRectangle rect = new VzRectangle(obj.bbox.getWidth(), obj.bbox.getHeight(), new VzLines.Style(obj.boxColor, 3));
     		buffer.addBack(new VisChain(LinAlg.translate(obj.bbox.getCenterX(), K_HEIGHT - obj.bbox.getCenterY()), rect));
     	}
+    	*/
     }
 
-    public void drawScene(kinect_status_t kinectData, Map<Integer, SpyObject> objects){
+    public void drawScene(kinect_status_t kinectData, Map<Integer, WorldBoltObject> objects){
         VisWorld.Buffer worldBuffer = this.world.getBuffer("displayImage");
 
     	BufferedImage background = getKinectImage(kinectData);
 		double[] pt = new double[2];
-		for(int y = (int)Bolt.viewRegion.getMinY(); y < Bolt.viewRegion.getMaxY(); y++){
-			for(int x = (int)Bolt.viewRegion.getMinX(); x < Bolt.viewRegion.getMaxX(); x++){
+		for(int y = (int)WorldObjectManager.viewRegion.getMinY(); y < WorldObjectManager.viewRegion.getMaxY(); y++){
+			for(int x = (int)WorldObjectManager.viewRegion.getMinX(); x < WorldObjectManager.viewRegion.getMaxX(); x++){
 	            int i = y*kinect_status_t.WIDTH + x;
 	            int d = ((kinectData.depth[2*i+1]&0xff) << 8) |
 	                    (kinectData.depth[2*i+0]&0xff);

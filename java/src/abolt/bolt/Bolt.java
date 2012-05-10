@@ -1,6 +1,9 @@
 package abolt.bolt;
 
 import april.config.*;
+import april.sim.SimObject;
+import april.sim.SimWorld;
+import april.sim.Simulator;
 import april.util.*;
 import april.vis.*;
 import april.jmat.*;
@@ -8,13 +11,18 @@ import april.jmat.geom.GRay3D;
 import lcm.lcm.*;
 
 import abolt.lcmtypes.*;
+import abolt.sim.BoltSim;
+import abolt.vis.SelectionAnimation;
 import abolt.kinect.*;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 
 import java.io.*;
+
 import javax.swing.*;
+
 import java.util.*;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.event.*;
@@ -22,13 +30,13 @@ import java.awt.image.*;
 
 import abolt.arm.*;
 
-public class BoltManager extends JFrame implements LCMSubscriber
+public class Bolt extends JFrame implements LCMSubscriber
 {    
     private IObjectManager objectManager;
     private ClassifierManager classifierManager;    
     
     // objects for visualization
-    private CameraVisLayer sceneRenderer;
+    private WorldSimulator simulator;
     private JMenuItem clearData, reloadData;
 
     // LCM
@@ -38,9 +46,16 @@ public class BoltManager extends JFrame implements LCMSubscriber
     GetOpt opts;
     Config config;
 
-    public BoltManager(GetOpt opts_)
+	// Sim stuff
+    Simulator editor;
+    SimWorld world;
+
+
+    public Bolt(GetOpt opts_)
     {
         super("BOLT");
+       
+        
         this.setSize(800, 600);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -63,25 +78,23 @@ public class BoltManager extends JFrame implements LCMSubscriber
 
         classifierManager = new ClassifierManager(config);
         objectManager = new WorldObjectManager(classifierManager);
+        
 
-        setupGUI();
-
-        //sceneRenderer = new RenderScene(visWorld, this);
-        this.add(sceneRenderer.getCanvas());
+        setupMenuBar();
+    	simulator = new WorldSimulator(opts);
+    	this.add(simulator.getVisCanvas());
 
         // Subscribe to LCM
-        lcm.subscribe("KINECT_STATUS", this);
         lcm.subscribe("TRAINING_DATA", this);
-        lcm.subscribe("ALLDONE", this);
 
         // TODO: arm stuff here
        //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(segmenter, opts.getBoolean("debug"));
 
         this.setVisible(true);
     }
+   
     
-    
-    private void setupGUI(){
+    private void setupMenuBar(){
     	JMenuBar menuBar = new JMenuBar();
         JMenu controlMenu = new JMenu("Control");
         menuBar.add(controlMenu);
@@ -109,6 +122,7 @@ public class BoltManager extends JFrame implements LCMSubscriber
         this.setJMenuBar(menuBar);
     }
     
+    
     public IObjectManager getObjectManager(){
     	return objectManager;
     }
@@ -116,15 +130,6 @@ public class BoltManager extends JFrame implements LCMSubscriber
     public ClassifierManager getClassifierManager(){
     	return classifierManager;
     }
-
-
-    /** When the user clicks on an object, we notify Soar about which object
-        they have selected. **/
-    public void mouseClicked(double x, double y)
-    {
-    	// TODO: get this working in the simulator
-    }
-
 
     @Override
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
@@ -170,6 +175,9 @@ public class BoltManager extends JFrame implements LCMSubscriber
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('c', "config", null, "Specify the configuration file");
         opts.addBoolean('d', "debug", false, "Toggle debugging mode");
+        opts.addString('w', "world", "", "World file");
+        opts.addInt('\0', "fps", 10, "Maximum frame rate");
+        opts.addBoolean('\0', "start", false, "Start simulation automatically");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: GetOpt - "+opts.getReason());
@@ -183,6 +191,8 @@ public class BoltManager extends JFrame implements LCMSubscriber
         }
 
         KUtils.createDepthMap();
-        BoltManager bolt = new BoltManager(opts);
+        Bolt bolt = new Bolt(opts);
     }
 }
+
+

@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public abstract class FeatureExtractor {
+/**
+ * @author Contains utility functions used by the FeatureExtractors
+ */
+public abstract class FEUtil {
 	protected static void divideEquals(double[] values, double divisor)
     {
 		assert (divisor != 0);

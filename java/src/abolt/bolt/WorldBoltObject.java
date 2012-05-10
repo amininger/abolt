@@ -36,7 +36,12 @@ public class WorldBoltObject extends BoltObject {
 		return null;
 	}
 	
+	public ObjectInfo getInfo(){
+		return info;
+	}
+	
 	public void updateObject(ObjectInfo info){
+		this.info = info;
 		double[] bb = SizeFeatureExtractor.boundingBoxWorld(info.points);
         double[] min = new double[]{bb[0], bb[1], bb[2]};
         double[] max = new double[]{bb[3], bb[4], bb[5]};

@@ -7,12 +7,12 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
-import kinect.classify.ConfidenceLabel;
-import kinect.classify.Features;
-import kinect.classify.Features.FeatureCategory;
-import kinect.kinect.ObjectInfo;
-import kinect.lcmtypes.categorized_data_t;
-import kinect.lcmtypes.category_t;
+import abolt.classify.ConfidenceLabel;
+import abolt.classify.Features;
+import abolt.classify.Features.FeatureCategory;
+import abolt.kinect.ObjectInfo;
+import abolt.lcmtypes.categorized_data_t;
+import abolt.lcmtypes.category_t;
 
 /**
  * @author Aaron

@@ -9,7 +9,7 @@ import april.jmat.LinAlg;
  * @author Aaron
  * Contains methods for extracting size features from an object or point cloud
  */
-public class SizeFeatureExtractor extends FeatureExtractor{
+public class SizeFeatureExtractor{
 	public static ArrayList<Double> getFeatures(ObjectInfo object)
     {
 		return getFeatures(object.points);

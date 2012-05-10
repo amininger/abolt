@@ -6,7 +6,7 @@ import java.io.*;
 import java.util.*;
 
 import abolt.classify.ColorFeatureExtractor;
-import abolt.classify.FeatureExtractor;
+import abolt.classify.FEUtil;
 import abolt.classify.Features;
 import abolt.classify.Features.FeatureCategory;
 import abolt.classify.ShapeFeatureExtractor;
@@ -87,7 +87,7 @@ public class PtsFileConverter
                 bsr.blockEnd();
                 
                 ArrayList<Double> features = Features.getFeatures(type, points);
-                String featureString = FeatureExtractor.featuresToString(features);
+                String featureString = FEUtil.featuresToString(features);
                 
                 boolean hasLabel = false;
                 for(int i = 0; i < labels.size(); i++){

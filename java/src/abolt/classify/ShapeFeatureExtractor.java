@@ -12,7 +12,7 @@ import abolt.kinect.*;
  * @author Aaron
  * Contains methods for extracting shape features from an object or point cloud
  */
-public class ShapeFeatureExtractor extends FeatureExtractor
+public class ShapeFeatureExtractor
 {
 	public static ArrayList<Double> getFeatures(ObjectInfo object) {
 		return getFeatures(object.getImage());

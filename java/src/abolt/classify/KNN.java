@@ -19,8 +19,8 @@ class KNNPoint {
     String label;
     
     public KNNPoint(String featureString){
-    	this.coords = FeatureExtractor.getFeaturesFromString(featureString);
-    	this.label = FeatureExtractor.getLabelFromString(featureString);
+    	this.coords = FEUtil.getFeaturesFromString(featureString);
+    	this.label = FEUtil.getLabelFromString(featureString);
     }
     
     public KNNPoint(double[] coords, String label) {

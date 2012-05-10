@@ -9,15 +9,15 @@ import abolt.kinect.ObjectInfo;
  * @author Aaron
  * Contains methods for extracting color features from an object or point cloud
  */
-public class ColorFeatureExtractor extends FeatureExtractor{
+public class ColorFeatureExtractor{
 	public static ArrayList<Double> getFeatures(ObjectInfo object) {
 		return getFeatures(object.points);
 	}
 
 	public static ArrayList<Double> getFeatures(ArrayList<double[]> points) {
 		ArrayList<Double> features = new ArrayList<Double>();
-		addArray(features, avgRGB(points));
-		addArray(features, avgHSV(points));
+		FEUtil.addArray(features, avgRGB(points));
+		FEUtil.addArray(features, avgHSV(points));
 		return features;
 	}
 	
@@ -36,7 +36,7 @@ public class ColorFeatureExtractor extends FeatureExtractor{
 			avg[1] += bgr.getGreen();
 			avg[0] += bgr.getBlue();
 		}
-		divideEquals(avg, 255.0 * points.size());
+		FEUtil.divideEquals(avg, 255.0 * points.size());
 		return avg;
 	}
 
@@ -56,7 +56,7 @@ public class ColorFeatureExtractor extends FeatureExtractor{
 			var[1] += (bgr.getGreen() - avg[1]) * (bgr.getGreen() - avg[1]);
 			var[0] += (bgr.getBlue() - avg[2]) * (bgr.getBlue() - avg[2]);
 		}
-		divideEquals(var, points.size());
+		FEUtil.divideEquals(var, points.size());
 		return var;
 	}
 
@@ -77,7 +77,7 @@ public class ColorFeatureExtractor extends FeatureExtractor{
 				avg[i] += (double) hsv[i];
 			}
 		}
-		divideEquals(avg, points.size());
+		FEUtil.divideEquals(avg, points.size());
 		return avg;
 	}
 
@@ -100,7 +100,7 @@ public class ColorFeatureExtractor extends FeatureExtractor{
 				var[i] += (hsv - avg[i]) * (hsv - avg[i]);
 			}
 		}
-		divideEquals(var, points.size());
+		FEUtil.divideEquals(var, points.size());
 		return var;
 	}
 }
