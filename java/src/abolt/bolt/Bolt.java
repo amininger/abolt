@@ -1,18 +1,14 @@
 package abolt.bolt;
 
 import april.config.*;
-import april.sim.SimObject;
-import april.sim.SimWorld;
-import april.sim.Simulator;
 import april.util.*;
-import april.vis.*;
-import april.jmat.*;
-import april.jmat.geom.GRay3D;
 import lcm.lcm.*;
 
 import abolt.lcmtypes.*;
-import abolt.sim.BoltSim;
-import abolt.vis.SelectionAnimation;
+import abolt.objects.BoltObject;
+import abolt.objects.IObjectManager;
+import abolt.objects.SimObjectManager;
+import abolt.objects.WorldObjectManager;
 import abolt.kinect.*;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
@@ -22,50 +18,69 @@ import java.io.*;
 import javax.swing.*;
 
 import java.util.*;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Rectangle;
+import java.util.Timer;
 import java.awt.event.*;
-import java.awt.image.*;
-
-import abolt.arm.*;
 
 public class Bolt extends JFrame implements LCMSubscriber
 {    
+	private static Bolt boltInstance;
+	public static Bolt getSingleton(){
+		return boltInstance;
+	}
+	public static IObjectManager getObjectManager(){
+		if(boltInstance == null){
+			return null;
+		}
+		return boltInstance.objectManager;
+	}
+	public static SensableManager getSensableManager(){
+		if(boltInstance == null){
+			return null;
+		}
+		return boltInstance.sensableManager;
+	}
+	public static ClassifierManager getClassifierManager(){
+		if(boltInstance == null){
+			return null;
+		}
+		return boltInstance.classifierManager;
+	}
+	public static IBoltGUI getBoltGUI(){
+		if(boltInstance == null){
+			return null;
+		}
+		return boltInstance.gui;
+	}
+	
     private IObjectManager objectManager;
+    private SensableManager sensableManager;
     private ClassifierManager classifierManager;    
     
     // objects for visualization
-    private WorldSimulator simulator;
+    private IBoltGUI gui;
     private JMenuItem clearData, reloadData;
 
     // LCM
     static LCM lcm = LCM.getSingleton();
+    private Timer sendObservationTimer;
+    private static final int OBSERVATION_RATE = 2; // # sent per second
 
-    // Opts/Config
-    GetOpt opts;
-    Config config;
-
-	// Sim stuff
-    Simulator editor;
-    SimWorld world;
-
-
-    public Bolt(GetOpt opts_)
+    public Bolt(GetOpt opts)
     {
         super("BOLT");
        
-        
+        boltInstance = this;
         this.setSize(800, 600);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Handle Options
-        opts = opts_;
+        Config config;
         try {
             config = new ConfigFile(opts.getString("config"));
         } catch (IOException ioex) {
             System.err.println("ERR: Could not load configuration from file");
             ioex.printStackTrace();
+            return;
         }
 
         // Load calibration
@@ -75,14 +90,25 @@ public class Bolt extends JFrame implements LCMSubscriber
             System.err.println("ERR: Could not load calibration from file");
             ioex.printStackTrace();
         }
-
-        classifierManager = new ClassifierManager(config);
-        objectManager = new WorldObjectManager(classifierManager);
         
 
         setupMenuBar();
-    	simulator = new WorldSimulator(opts);
-    	this.add(simulator.getVisCanvas());
+        
+        classifierManager = new ClassifierManager(config);
+        sensableManager = new SensableManager();
+        
+        if(false){
+        	// Simulated Version
+        	objectManager = new SimObjectManager();
+        } else {
+        	// Real-world Version
+        	objectManager = new WorldObjectManager();
+        	
+        }
+        //gui = new CameraGUI();
+    	gui = new BoltSimulator(opts);
+        
+    	this.add(gui.getCanvas());
 
         // Subscribe to LCM
         lcm.subscribe("TRAINING_DATA", this);
@@ -91,6 +117,13 @@ public class Bolt extends JFrame implements LCMSubscriber
        //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(segmenter, opts.getBoolean("debug"));
 
         this.setVisible(true);
+        class SendObservationTask extends TimerTask{
+			public void run() {
+        		sendMessage();
+			}
+        }
+        sendObservationTimer = new Timer();
+        sendObservationTimer.schedule(new SendObservationTask(), 1000, 1000/OBSERVATION_RATE);
     }
    
     
@@ -122,14 +155,6 @@ public class Bolt extends JFrame implements LCMSubscriber
         this.setJMenuBar(menuBar);
     }
     
-    
-    public IObjectManager getObjectManager(){
-    	return objectManager;
-    }
-    
-    public ClassifierManager getClassifierManager(){
-    	return classifierManager;
-    }
 
     @Override
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
@@ -140,13 +165,28 @@ public class Bolt extends JFrame implements LCMSubscriber
 
                 for(int i=0; i<training.num_labels; i++){
                     training_label_t tl = training.labels[i];
-                    BoltObject obj = objectManager.getObjects().get(tl.id);
+                    HashMap<Integer, BoltObject> objects = objectManager.getObjects();
+                    BoltObject obj;
+                    synchronized(objects){
+                        obj = objects.get(tl.id);
+                    }
                     if(obj != null){
                         FeatureCategory cat = Features.getFeatureCategory(tl.cat.cat);
-                        classifierManager.addDataPoint(cat, obj.getFeatures(cat), tl.label);
+                        ArrayList<Double> features = obj.getFeatures(cat);
+                        if(features != null){
+                            classifierManager.addDataPoint(cat, features, tl.label);
+                        }
                     }
                 }
             }catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+        } else if(channel.equals("ROBOT_COMMAND")){
+        	try{
+        		robot_command_t command = new robot_command_t(ins);
+        		sensableManager.performAction(command.action);
+        	}catch (IOException e) {
                 e.printStackTrace();
                 return;
             }
@@ -158,8 +198,13 @@ public class Bolt extends JFrame implements LCMSubscriber
     {
         observations_t obs = new observations_t();
         obs.utime = TimeUtil.utime();
-        obs.click_id = objectManager.getSelectedId();
-        obs.sensables = new String[0];
+        BoltObject selectedObj = gui.getSelectedObject();
+        if(selectedObj != null){
+        	obs.click_id = selectedObj.getID();
+        } else {
+        	obs.click_id = -1;
+        }
+        obs.sensables = sensableManager.getSensableStrings();
         obs.nsens = obs.sensables.length;
         obs.observations = objectManager.getObjectData();
         obs.nobs = obs.observations.length;
@@ -173,25 +218,25 @@ public class Bolt extends JFrame implements LCMSubscriber
         GetOpt opts = new GetOpt();
 
         opts.addBoolean('h', "help", false, "Show this help screen");
-        opts.addString('c', "config", null, "Specify the configuration file");
+        opts.addString('c', "config", null, "Specify the configuration file for Bolt");
         opts.addBoolean('d', "debug", false, "Toggle debugging mode");
         opts.addString('w', "world", "", "World file");
+        opts.addString('s', "sim-config", "", "Configuration file for the Simulator");
         opts.addInt('\0', "fps", 10, "Maximum frame rate");
-        opts.addBoolean('\0', "start", false, "Start simulation automatically");
 
-        if (!opts.parse(args)) {
-            System.err.println("ERR: GetOpt - "+opts.getReason());
+        if (!opts.parse(args) || opts.getBoolean("help") || opts.getExtraArgs().size() > 0) {
+            opts.doHelp();
             return;
         }
 
-        if (opts.getBoolean("help") || opts.getString("config") == null) {
+        if (opts.getString("config") == null) {
             System.out.println("Usage: Must specify a configuration file");
             opts.doHelp();
             return;
         }
 
         KUtils.createDepthMap();
-        Bolt bolt = new Bolt(opts);
+        new Bolt(opts);
     }
 }
 

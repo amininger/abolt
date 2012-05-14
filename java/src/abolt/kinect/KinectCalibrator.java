@@ -49,11 +49,11 @@ class KinectCalibrator // implements LCMSubscriber
     // The most recently accessed kinect status
     kinect_status_t ks = null;
 
-    public KinectCalibrator()
+    public KinectCalibrator(String filename)
 
     {
     	// Calibration variables
-        calibFilename = "kinect_calib.config";
+        calibFilename = filename;
 
         // Setup Frame
         JFrame frame = new JFrame("Calibrate Kinect");
@@ -321,8 +321,22 @@ class KinectCalibrator // implements LCMSubscriber
 
     public static void main(String[] args)
     {
+    	GetOpt opts = new GetOpt();
 
+        opts.addBoolean('h', "help", false, "Show this help screen");
+        opts.addString('c', "config", null, "Configuration file to write to");
+
+        if (!opts.parse(args) || opts.getBoolean("help") || opts.getExtraArgs().size() > 0) {
+            opts.doHelp();
+            return;
+        }
+
+        if (opts.getString("config") == null) {
+            System.out.println("Usage: Must specify a configuration file");
+            opts.doHelp();
+            return;
+        }
         //segment = new Segment(da, true);
-        KinectCalibrator kc = new KinectCalibrator();
+        KinectCalibrator kc = new KinectCalibrator(opts.getString("config"));
     }
 }

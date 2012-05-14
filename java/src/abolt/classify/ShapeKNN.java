@@ -20,6 +20,10 @@ public class ShapeKNN extends KNN {
     	if(pt.getCoords().size() != dim || pt.getCoords().size() == 0){
     		return;
     	}
+    	if(pt.getLabel() == null){
+    		System.out.println("NULL label");
+    		return;
+    	}
     	
     	List<Double> coords = pt.getCoords();
     	

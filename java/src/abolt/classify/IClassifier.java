@@ -2,12 +2,12 @@ package abolt.classify;
 
 import java.util.ArrayList;
 
-import abolt.bolt.BoltObject;
+import abolt.objects.BoltObject;
 
 public interface IClassifier {
     /**
      * @param object
-     * Adds the given object to the classifier 
+     * Adds the given training example to the classifier 
      */
     void add(ArrayList<Double> features, String label);
     

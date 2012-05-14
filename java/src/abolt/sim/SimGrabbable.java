@@ -2,6 +2,6 @@ package abolt.sim;
 
 public interface SimGrabbable
 {
-    void setLoc(double[] xyzrpy);
+    void setPos(double[] xyzrpy);
     public boolean inActionRange(double[] xyt);
 }

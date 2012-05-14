@@ -7,9 +7,9 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import abolt.bolt.BoltObject;
 import abolt.classify.Features.FeatureCategory;
 import abolt.kinect.ObjectInfo;
+import abolt.objects.BoltObject;
 
 /*
  * @author James Kirk
@@ -24,13 +24,14 @@ class KNNPoint {
     }
     
     public KNNPoint(double[] coords, String label) {
-    	this.label = "unknown";
+    	this.label = label;
 		this.coords = new ArrayList<Double>(coords.length);
 		for (int i = 0; i < coords.length; i++)
 		    this.coords.add(coords[i]);
 	}
 
     public KNNPoint(List<Double> coords, String label) {
+    	this.label = label;
         this.coords = new ArrayList<Double>(coords.size());
         for (int i = 0; i < coords.size(); i++)
             this.coords.add(coords.get(i));
@@ -83,6 +84,10 @@ public class KNN implements IClassifier{
 
     public void add(KNNPoint pt) {
     	if(pt.getCoords().size() != dim){
+    		return;
+    	}
+    	if(pt.getLabel() == null){
+    		System.out.println("NULL");
     		return;
     	}
         data.add(pt);
@@ -217,6 +222,37 @@ public class KNN implements IClassifier{
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }
+        
+   
+    }
+    
+    public void printAverage(){
+    	// Prints out the average features for each label
+		HashMap<String, Integer> tallies = new HashMap<String, Integer>();
+		HashMap<String, ArrayList<Double>> totals = new HashMap<String, ArrayList<Double>>();
+		for (KNNPoint pt : data) {
+			if (totals.containsKey(pt.getLabel())) {
+				ArrayList<Double> f = totals.get(pt.getLabel());
+				for (int i = 0; i < dim; i++) {
+					f.set(i, f.get(i) + pt.getCoords().get(i));
+				}
+				tallies.put(pt.getLabel(), tallies.get(pt.getLabel()) + 1);
+			} else {
+				tallies.put(pt.getLabel(), 1);
+				ArrayList<Double> f = new ArrayList<Double>();
+				for (int i = 0; i < dim; f.add(i++, 0.0))
+					;
+				totals.put(pt.getLabel(), f);
+			}
+		}
+		for (String label : tallies.keySet()) {
+			System.out.println(label + ":" + tallies.get(label));
+			for (int i = 0; i < dim; i++) {
+				System.out.print(totals.get(label).get(i) / tallies.get(label)
+						+ " ");
+			}
+			System.out.print("\n");
+		}
     }
 
     public double LOOCV() {

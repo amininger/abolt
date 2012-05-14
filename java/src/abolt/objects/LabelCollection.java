@@ -1,4 +1,4 @@
-package abolt.bolt;
+package abolt.objects;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -19,12 +19,12 @@ import abolt.lcmtypes.category_t;
  * A container class designed to store the label history for an object
  * as well as the current best (highest confidence) labels
  */
-public class ObjectLabels {
+public class LabelCollection {
 	private HashMap<FeatureCategory, Integer> queueSizes;
 	private HashMap<FeatureCategory, Queue<ConfidenceLabel>> labels;
 	private HashMap<FeatureCategory, ConfidenceLabel> bestLabels;
 	
-	public ObjectLabels(){
+	public LabelCollection(){
 		labels = new HashMap<FeatureCategory, Queue<ConfidenceLabel> >();
 		bestLabels = new HashMap<FeatureCategory, ConfidenceLabel>();
 		for(FeatureCategory cat : FeatureCategory.values()){

@@ -1,5 +1,6 @@
 package abolt.kinect;
 
+import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -44,6 +45,10 @@ public class KUtils
 
     public static float[] depthLookup;          //holds depth conversions so we only have to calculate them once
 
+    public final static int[] viewBorders = new int[] {180, 180, 560, 380 };
+    public final static Rectangle viewRegion 
+    	= new Rectangle(viewBorders[0], viewBorders[1],
+                        viewBorders[2] - viewBorders[0], viewBorders[3] - viewBorders[1]);
 
     public static double[][] kinectToWorldXForm = null;
     /*static{

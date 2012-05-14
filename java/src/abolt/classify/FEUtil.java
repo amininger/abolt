@@ -5,7 +5,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * @author Contains utility functions used by the FeatureExtractors
+ * @author Aaron 
+ * Contains utility functions used by the FeatureExtractors
  */
 public abstract class FEUtil {
 	protected static void divideEquals(double[] values, double divisor)

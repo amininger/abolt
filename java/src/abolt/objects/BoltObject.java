@@ -1,4 +1,4 @@
-package abolt.bolt;
+package abolt.objects;
 
 import java.awt.Color;
 import java.awt.Rectangle;
@@ -25,19 +25,21 @@ public abstract class BoltObject implements SimObject{
     protected double[] pos;
     protected double[][] bbox;
 
-    protected ObjectLabels labels;
+    protected LabelCollection labels;
 
     public BoltObject(SimWorld world)
     {
         this.id = SimUtil.nextID();
 		this.bbox = new double[2][3];
 		this.pos = new double[6];
-        this.labels = new ObjectLabels();
+        this.labels = new LabelCollection();
     }
     
     public BoltObject(int id){
     	this.id = id;
-    	this.labels = new ObjectLabels();
+    	this.labels = new LabelCollection();
+		this.bbox = new double[2][3];
+		this.pos = new double[6];
     }
     
     public int getID(){
@@ -48,11 +50,15 @@ public abstract class BoltObject implements SimObject{
     	return pos;
     }
     
+    public void setPos(double[] pos){
+    	this.pos = pos;
+    }
+    
     public double[][] getBBox(){
     	return bbox;
     }
     
-    public ObjectLabels getLabels(){
+    public LabelCollection getLabels(){
     	return labels;
     }
     

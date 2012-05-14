@@ -62,7 +62,7 @@ public class SoarSymbols {
 		shapeSymbols.put("arch", "shape-arch");
 		//shapeSymbols.put("doughnut", "shape-doughnut");
 		shapeSymbols.put("half-cylinder", "shape-half-cylinder");
-		shapeSymbols.put("cylinder", "shape-half-cylinder");
+		shapeSymbols.put("cylinder", "shape-cylinder");
 		shapeSymbols.put("sphere", "shape-half-sphere");
 		
 		colorSymbols = new HashMap<String, String>();

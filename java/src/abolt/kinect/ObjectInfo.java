@@ -4,6 +4,8 @@ import april.vis.*;
 import april.jmat.*;
 import april.util.UnionFindSimple;
 
+import abolt.classify.Features;
+import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.*;
 import lcm.lcm.*;
 
@@ -31,12 +33,11 @@ public class ObjectInfo{
     public boolean matched;
     public Rectangle projBBox = null;
 
-    public String colorFeatures;
-    public String shapeFeatures;
-    public String sizeFeatures;
     public ArrayList<double[]> points;
+    private HashMap<FeatureCategory, ArrayList<Double> > features;
 
     public ObjectInfo(){
+    	features = new HashMap<FeatureCategory, ArrayList<Double> >();
     }
 
     /** Create a new object with info about it. Objects begin with a single point.**/
@@ -60,6 +61,7 @@ public class ObjectInfo{
 
         this.points = new ArrayList<double[]>();
         this.points.add(point);
+    	features = new HashMap<FeatureCategory, ArrayList<Double> >();
     }
 
     /** Add a new point to this object. **/
@@ -83,6 +85,16 @@ public class ObjectInfo{
         sumColor[2] += c.getGreen();
 
         this.points.add(point);
+    }
+    
+    public ArrayList<Double> getFeatures(FeatureCategory cat){
+    	if(features.containsKey(cat)){
+    		return features.get(cat);
+    	} else {
+    		ArrayList<Double> fts = Features.getFeatures(cat, points);
+    		features.put(cat, fts);
+    		return fts;
+    	}
     }
 
     /** Get the center of the object (mean x, y,z). **/

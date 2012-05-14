@@ -5,15 +5,14 @@ import java.util.HashMap;
 
 import april.config.Config;
 
-import abolt.bolt.BoltObject;
 import abolt.classify.Features.FeatureCategory;
+import abolt.objects.BoltObject;
 
 public class ClassifierManager {
 	
 	private HashMap<FeatureCategory, IClassifier> classifiers;
 	
 	public ClassifierManager(Config config){
-        
         String colorDataFile = "", shapeDataFile = "", sizeDataFile = "";
 		// Load .dat files
         try {
@@ -35,9 +34,13 @@ public class ClassifierManager {
 	
 	public ConfidenceLabel classify(FeatureCategory cat, BoltObject obj){
 		IClassifier classifier = classifiers.get(cat);
+		ArrayList<Double> features = obj.getFeatures(cat);
+		if(features == null){
+			return null;
+		}
 		ConfidenceLabel label;
 		synchronized(classifier){
-			label = classifier.classify(obj.getFeatures(cat));
+			label = classifier.classify(features);
 		}
 		return label;
 	}

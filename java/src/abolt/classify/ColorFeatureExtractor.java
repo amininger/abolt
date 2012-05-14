@@ -103,4 +103,10 @@ public class ColorFeatureExtractor{
 		FEUtil.divideEquals(var, points.size());
 		return var;
 	}
+	
+	public static Color getColorFromFeatures(ArrayList<Double> colorFeatures){
+		return new Color((float)colorFeatures.get(0).doubleValue(),
+				         (float)colorFeatures.get(1).doubleValue(),
+				         (float)colorFeatures.get(2).doubleValue());
+	}
 }
