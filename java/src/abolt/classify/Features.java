@@ -20,8 +20,8 @@ public class Features {
 	static{
 		featureToLCMCat = new HashMap<FeatureCategory, Integer>();
 		featureToLCMCat.put(FeatureCategory.COLOR, category_t.CAT_COLOR);
-		featureToLCMCat.put(FeatureCategory.SHAPE, category_t.CAT_COLOR);
-		featureToLCMCat.put(FeatureCategory.SIZE, category_t.CAT_COLOR);
+		featureToLCMCat.put(FeatureCategory.SHAPE, category_t.CAT_SHAPE);
+		featureToLCMCat.put(FeatureCategory.SIZE, category_t.CAT_SIZE);
 	}
 	public static Integer getLCMCategory(FeatureCategory cat){
 		return featureToLCMCat.get(cat);
@@ -32,8 +32,8 @@ public class Features {
 	static{
 		lcmToFeatureCat = new HashMap<Integer, FeatureCategory>();
 		lcmToFeatureCat.put(category_t.CAT_COLOR, FeatureCategory.COLOR);
-		lcmToFeatureCat.put(category_t.CAT_COLOR, FeatureCategory.SHAPE);
-		lcmToFeatureCat.put(category_t.CAT_COLOR, FeatureCategory.SIZE);
+		lcmToFeatureCat.put(category_t.CAT_SHAPE, FeatureCategory.SHAPE);
+		lcmToFeatureCat.put(category_t.CAT_SIZE, FeatureCategory.SIZE);
 	}
 	public static FeatureCategory getFeatureCategory(Integer lcmCat){
 		return lcmToFeatureCat.get(lcmCat);

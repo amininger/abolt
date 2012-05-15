@@ -10,6 +10,7 @@ import abolt.objects.IObjectManager;
 import abolt.objects.SimObjectManager;
 import abolt.objects.WorldObjectManager;
 import abolt.kinect.*;
+import abolt.arm.ArmSimulator;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 
@@ -59,6 +60,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     // objects for visualization
     private IBoltGUI gui;
     private JMenuItem clearData, reloadData;
+    private ArmSimulator armSimulator;
 
     // LCM
     static LCM lcm = LCM.getSingleton();
@@ -97,13 +99,13 @@ public class Bolt extends JFrame implements LCMSubscriber
         classifierManager = new ClassifierManager(config);
         sensableManager = new SensableManager();
         
-        if(false){
+        if(true){
         	// Simulated Version
         	objectManager = new SimObjectManager();
+        	armSimulator = new ArmSimulator();
         } else {
         	// Real-world Version
         	objectManager = new WorldObjectManager();
-        	
         }
         //gui = new CameraGUI();
     	gui = new BoltSimulator(opts);
@@ -112,6 +114,8 @@ public class Bolt extends JFrame implements LCMSubscriber
 
         // Subscribe to LCM
         lcm.subscribe("TRAINING_DATA", this);
+        lcm.subscribe("ROBOT_COMMAND", this);
+        
 
         // TODO: arm stuff here
        //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(segmenter, opts.getBoolean("debug"));

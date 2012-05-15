@@ -215,5 +215,14 @@ public class CameraGUI implements IBoltGUI, LCMSubscriber
             drawKinectData();
         }
     }
+	
+    @Override
+    public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
+    	VisWorld.Buffer buffer = world.getBuffer(bufferName);
+    	for(VisObject obj : objects){
+    		buffer.addBack(obj);
+    	}	
+    	buffer.swap();
+    }
 
 }

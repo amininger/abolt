@@ -1,6 +1,7 @@
 struct robot_command_t
 {
     int64_t utime;
-
+	  boolean updateDest; // true -- interpret dest as a movement command | false -- values are merely a position report
+    double dest[6]; // xyzrpy -- warning, some positions may not be possible, but simulation does not yet reflect this
     string action; // turn off a switch: "NAME=SWITCH,STATE=OFF"
 }

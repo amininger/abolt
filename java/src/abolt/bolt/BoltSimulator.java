@@ -31,6 +31,7 @@ import april.vis.VisChain;
 import april.vis.VisConsole;
 import april.vis.VisEventAdapter;
 import april.vis.VisLayer;
+import april.vis.VisObject;
 import april.vis.VisWorld;
 import april.vis.VzLines;
 import april.vis.VzMesh;
@@ -246,4 +247,13 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
     		objectBuffer.swap();	
     	}			
 	}
+    
+    @Override
+    public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
+    	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
+    	for(VisObject obj : objects){
+    		buffer.addBack(obj);
+    	}	
+    	buffer.swap();
+    }
 }
