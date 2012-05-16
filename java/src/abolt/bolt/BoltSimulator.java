@@ -146,7 +146,8 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
                     }
                 }
                 
-                if(bestd == Double.MAX_VALUE){HashMap<Integer, SimSensable> sensables = Bolt.getSensableManager().getSensables();
+                if(bestd == Double.MAX_VALUE){
+                	HashMap<Integer, SimSensable> sensables = Bolt.getSensableManager().getSensables();
 	                synchronized(sensables){
 	                	for (SimSensable sens : sensables.values()) {
 	                		if(!(sens instanceof BoltObject)){

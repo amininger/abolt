@@ -9,10 +9,12 @@ import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import abolt.arm.BoltArmController.ActionMode;
 import abolt.bolt.Bolt;
 import abolt.bolt.IBoltGUI;
 import abolt.lcmtypes.bolt_arm_command_t;
 import abolt.lcmtypes.observations_t;
+import abolt.lcmtypes.robot_action_t;
 import abolt.lcmtypes.robot_command_t;
 import abolt.objects.BoltObject;
 import abolt.util.SimUtil;
@@ -28,10 +30,7 @@ import lcm.lcm.LCMDataInputStream;
 import lcm.lcm.LCMSubscriber;
 
 public class ArmSimulator implements LCMSubscriber{
-	private enum SimArmState{
-		STANDBY, GRABBING, MOVING, DROPPING, POINTING
-	}
-	private SimArmState curState = SimArmState.STANDBY;
+	private ActionMode curState = ActionMode.WAIT;
 
 	private static LCM lcm = LCM.getSingleton();
 	
@@ -67,14 +66,14 @@ public class ArmSimulator implements LCMSubscriber{
 	}
 	
 	public void update(){
-		if(curState == SimArmState.STANDBY){
+		if(curState == ActionMode.WAIT){
 			if(!cmds.isEmpty()){
 				executeCommand(cmds.poll());
 			}
 		} else {
 			if(--stepsLeft == 0){
-				curState = SimArmState.STANDBY;
-				if(curState == SimArmState.DROPPING){
+				curState = ActionMode.WAIT;
+				if(curState == ActionMode.DROP){
 					grabbedID = -1;
 				}
 			} else {
@@ -82,7 +81,7 @@ public class ArmSimulator implements LCMSubscriber{
 				pos[1] += (goal[1] - pos[1])/stepsLeft;
 			}
 		}
-		if(grabbedID != -1 && (curState == SimArmState.MOVING || curState == SimArmState.DROPPING)){
+		if(grabbedID != -1 && curState != ActionMode.GRAB){
 			HashMap<Integer, BoltObject> objects = Bolt.getObjectManager().getObjects();
 			BoltObject obj;
 			synchronized(objects){
@@ -104,7 +103,7 @@ public class ArmSimulator implements LCMSubscriber{
 		IBoltGUI gui = Bolt.getBoltGUI();
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
-		if(grabbedID != -1 && curState != SimArmState.GRABBING){
+		if(grabbedID != -1 && curState != ActionMode.GRAB){
 			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
 		gui.drawVisObjects("arm", visObjs);
@@ -113,7 +112,7 @@ public class ArmSimulator implements LCMSubscriber{
 	private void executeCommand(robot_command_t command){
 		String action = command.action;
 		if(action.contains("POINT")){
-			curState = SimArmState.POINTING;
+			curState = ActionMode.POINT;
 			goal[0] = command.dest[0];
 			goal[1] = command.dest[1];
 			stepsLeft = POINTING_TIME;
@@ -127,21 +126,22 @@ public class ArmSimulator implements LCMSubscriber{
 			if(obj == null){
 				return;
 			}
-			curState = SimArmState.GRABBING;
+			curState = ActionMode.GRAB;
 			goal[0] = obj.getPos()[0];
 			goal[1] = obj.getPos()[1];
 			grabbedID = id;
 			stepsLeft = GRABBING_TIME;	
 		} else if(action.contains("DROP")){
-			curState = SimArmState.DROPPING;
+			curState = ActionMode.DROP;
 			goal[0] = command.dest[0];
 			goal[1] = command.dest[1];
 			stepsLeft = DROPPING_TIME;
 		} else if(action.contains("RESET")){
-			curState = SimArmState.MOVING;
+			curState = ActionMode.POINT;
 			goal[0] = 0;
 			goal[1] = 0;
-			stepsLeft = MOVING_TIME;
+			grabbedID = -1;
+			stepsLeft = POINTING_TIME;
 		}
 	}
 	
@@ -159,34 +159,29 @@ public class ArmSimulator implements LCMSubscriber{
 	}
 	
 	private void sendStatusUpdate(){
-		bolt_arm_command_t status = new bolt_arm_command_t();
+		robot_action_t status = new robot_action_t();
 		status.utime = TimeUtil.utime();
 		switch(curState){
-		case POINTING:
+		case POINT:
 			status.action = "POINT";
 			break;
-		case GRABBING:
+		case GRAB:
 			status.action = "GRAB";
 			break;
-		case MOVING:
-			status.action = "MOVE";
-			break;
-		case DROPPING:
+		case DROP:
 			status.action = "DROP";
 			break;
 		default:
 			status.action = "WAIT";
 			break;
 		}
-		if(grabbedID != -1 && curState != SimArmState.GRABBING){
+		if(grabbedID != -1 && curState != ActionMode.GRAB){
 			status.obj_id = grabbedID;
 		} else {
 			status.obj_id = -1;
 		}
-		status.wrist = 0;
 		status.xyz = pos.clone();
-		status.cmd_id = 0;
 
-        lcm.publish("BOLT_ARM_COMMAND", status);
+        lcm.publish("ROBOT_ACTION", status);
 	}
 }
