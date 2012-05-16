@@ -54,7 +54,7 @@ public class ArmSimulator implements LCMSubscriber{
 	public ArmSimulator(){
         lcm.subscribe("ROBOT_COMMAND", this);
         
-        pos = new double[]{0, 0, 0};
+        pos = new double[]{0, 0, 0.001};
         goal = new double[]{0, 0};
         
 		class UpdateTask extends TimerTask{
@@ -103,9 +103,9 @@ public class ArmSimulator implements LCMSubscriber{
 	private void drawArm(){
 		IBoltGUI gui = Bolt.getBoltGUI();
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
-		visObjs.add(new VisChain(LinAlg.scale(.1), LinAlg.translate(pos), new VzCircle(new VzMesh.Style(Color.black))));
+		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != SimArmState.GRABBING){
-			visObjs.add(new VisChain(LinAlg.scale(.09), LinAlg.translate(new double[]{pos[0], pos[1], .001}), new VzCircle(new VzMesh.Style(Color.cyan))));
+			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
 		gui.drawVisObjects("arm", visObjs);
 	}

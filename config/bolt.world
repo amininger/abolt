@@ -48,7 +48,7 @@
 	# XYZRPY 
 	vec 6
 	-.25 .25 .05 0 0 0
-	red
+	blue
 	cylinder
 	medium
 }
@@ -57,9 +57,18 @@
 	# XYZRPY 
 	vec 6
 	.25 -.25 .05 0 0 0
-	red
+	green
 	sphere
 	large
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	-.25 -.25 .05 0 0 0
+	red
+	sphere
+	medium
 }
 "abolt.sim.SimLocation"
 {

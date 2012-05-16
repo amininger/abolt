@@ -99,16 +99,21 @@ public class Bolt extends JFrame implements LCMSubscriber
         classifierManager = new ClassifierManager(config);
         sensableManager = new SensableManager();
         
-        if(true){
-        	// Simulated Version
-        	objectManager = new SimObjectManager();
-        	armSimulator = new ArmSimulator();
-        } else {
-        	// Real-world Version
+        if(opts.getBoolean("kinect")){
+        	// Uses kinect data and real arm
         	objectManager = new WorldObjectManager();
+        	if(opts.getBoolean("seg")){
+        		// Show the segmentation and the camera view
+                gui = new CameraGUI();
+        	} else {
+            	gui = new BoltSimulator(opts);
+        	}
+        } else {
+        	// All done in simulation
+        	objectManager = new SimObjectManager();
+        	gui = new BoltSimulator(opts);
+        	armSimulator = new ArmSimulator();
         }
-        //gui = new CameraGUI();
-    	gui = new BoltSimulator(opts);
         
     	this.add(gui.getCanvas());
 
@@ -224,6 +229,8 @@ public class Bolt extends JFrame implements LCMSubscriber
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('c', "config", null, "Specify the configuration file for Bolt");
         opts.addBoolean('d', "debug", false, "Toggle debugging mode");
+        opts.addBoolean('k', "kinect", false, "Use kinect data to create objects");
+        opts.addBoolean('\0', "seg", false, "Show the segmentation instead of the simulator");
         opts.addString('w', "world", "", "World file");
         opts.addString('s', "sim-config", "", "Configuration file for the Simulator");
         opts.addInt('\0', "fps", 10, "Maximum frame rate");

@@ -72,9 +72,9 @@ public class SimFeatures {
 	private static HashMap<String, Double[]> shapeFeatures;
 	static{
 		shapeFeatures = new HashMap<String, Double[]>();
-		shapeFeatures.put("square",   new Double[]{1.0, 0.31, 0.19, 0.116, 0.058, 0.048, 0.212, 0.47, 0.53, 0.27, 0.019, 0.01, 0.116, 0.232, 0.348});
-		shapeFeatures.put("cylinder", new Double[]{1.15, 0.39, 0.21, 0.052, 0.0, 0.0, 0.123, 0.335, 0.335, 0.052, 0.026, 0.0, 0.026, 0.026, 0.335});
-		shapeFeatures.put("sphere",   new Double[]{1.0, 0.051});
+		shapeFeatures.put("square",   new Double[]{1.0,  0.31,  0.19,  0.116, 0.058, 0.048, 0.212, 0.47,  0.53,  0.27,  0.019, 0.01, 0.116, 0.232, 0.348});
+		shapeFeatures.put("cylinder", new Double[]{1.15, 0.39,  0.21,  0.052, 0.0,   0.0,   0.123, 0.335, 0.335, 0.052, 0.026, 0.0,  0.026, 0.026, 0.335});
+		shapeFeatures.put("sphere",   new Double[]{1.0,  0.336, 0.107, 0.015, 0.0,   0.015, 0.107, 0.321, 0.347, 0.118, 0.027, 0.0,  0.019, 0.103, 0.317});
 	}
 	public static ArrayList<Double> getShapeFeatures(String shape){
 		return new ArrayList<Double>(Arrays.asList(shapeFeatures.get(shape.toLowerCase())));

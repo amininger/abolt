@@ -198,11 +198,11 @@ public class PCA {
     {
 		BufferedImage img = null;
 		try {
-		    img = ImageIO.read(new File("simple_tri.png"));
-		    ArrayList<Double> f  = getFeatures(img, 10);
+		    img = ImageIO.read(new File("circle.png"));
+		    ArrayList<Double> f  = getFeatures(img, 7);
 		    for(int i = 0; i < f.size(); i++){
 		    	System.out.print(f.get(i) + ", ");
-		    	if(i%10==9){
+		    	if(i%10==7){
 		    		System.out.print("\n");
 		    	}
 		    }
