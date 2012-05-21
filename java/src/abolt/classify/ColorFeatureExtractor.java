@@ -7,7 +7,7 @@ import abolt.kinect.ObjectInfo;
 
 /**
  * @author Aaron
- * Contains methods for extracting color features from an object or point cloud
+ * @purpose Contains methods for extracting color features from an object or point cloud
  */
 public class ColorFeatureExtractor{
 	public static ArrayList<Double> getFeatures(ObjectInfo object) {

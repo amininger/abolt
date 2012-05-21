@@ -8,6 +8,7 @@ import java.util.*;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.classify.FEUtil;
 import abolt.classify.Features;
+import abolt.classify.SoarSymbols;
 import abolt.classify.Features.FeatureCategory;
 import abolt.classify.ShapeFeatureExtractor;
 import abolt.classify.SizeFeatureExtractor;

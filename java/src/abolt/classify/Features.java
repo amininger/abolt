@@ -9,43 +9,52 @@ import java.util.regex.Pattern;
 import abolt.kinect.ObjectInfo;
 import abolt.lcmtypes.category_t;
 
+/**
+ * @author aaron
+ * @purpose Contains mappings between a FeatureCategory and the LCM category_t
+ *          enum and a general interface for extracting features from a point
+ *          cloud
+ */
 public class Features {
-	public enum FeatureCategory
-    {
+	public enum FeatureCategory {
 		COLOR, SHAPE, SIZE
 	}
-	
+
 	// Mapping from a FeatureCategory to the category_t enum
 	private static HashMap<FeatureCategory, Integer> featureToLCMCat;
-	static{
+	static {
 		featureToLCMCat = new HashMap<FeatureCategory, Integer>();
 		featureToLCMCat.put(FeatureCategory.COLOR, category_t.CAT_COLOR);
 		featureToLCMCat.put(FeatureCategory.SHAPE, category_t.CAT_SHAPE);
 		featureToLCMCat.put(FeatureCategory.SIZE, category_t.CAT_SIZE);
 	}
-	public static Integer getLCMCategory(FeatureCategory cat){
+
+	public static Integer getLCMCategory(FeatureCategory cat) {
 		return featureToLCMCat.get(cat);
 	}
-	
+
 	// Mapping from the LCM category_t.cat enum to a FeatureCategory
 	private static HashMap<Integer, FeatureCategory> lcmToFeatureCat;
-	static{
+	static {
 		lcmToFeatureCat = new HashMap<Integer, FeatureCategory>();
 		lcmToFeatureCat.put(category_t.CAT_COLOR, FeatureCategory.COLOR);
 		lcmToFeatureCat.put(category_t.CAT_SHAPE, FeatureCategory.SHAPE);
 		lcmToFeatureCat.put(category_t.CAT_SIZE, FeatureCategory.SIZE);
 	}
-	public static FeatureCategory getFeatureCategory(Integer lcmCat){
+
+	public static FeatureCategory getFeatureCategory(Integer lcmCat) {
 		return lcmToFeatureCat.get(lcmCat);
 	}
-	
+
 	// Mapping from the FeatureCategory to a FeatureExtractor
-	public static ArrayList<Double> getFeatures(FeatureCategory cat, ObjectInfo object){
+	public static ArrayList<Double> getFeatures(FeatureCategory cat,
+			ObjectInfo object) {
 		return getFeatures(cat, object.points);
 	}
-	
-	public static ArrayList<Double> getFeatures(FeatureCategory cat, ArrayList<double[]> points){
-		switch(cat){
+
+	public static ArrayList<Double> getFeatures(FeatureCategory cat,
+			ArrayList<double[]> points) {
+		switch (cat) {
 		case COLOR:
 			return ColorFeatureExtractor.getFeatures(points);
 		case SIZE:

@@ -40,6 +40,10 @@ public class WorldObjectManager implements IObjectManager, LCMSubscriber {
     	lcm.subscribe("KINECT_STATUS", this);
     }
     
+    public Segment getSegment(){
+    	return segment;
+    }
+    
     /** Use the most recent frame from the kinect to extract a 3D point cloud
     and map it to the frame of the arm. **/
 	private ArrayList<double[]> extractPointCloudData(kinect_status_t kinectData)

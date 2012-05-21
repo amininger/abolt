@@ -8,6 +8,10 @@ import april.config.Config;
 import abolt.classify.Features.FeatureCategory;
 import abolt.objects.BoltObject;
 
+/**
+ * @author aaron
+ * Creates the classifiers used in the system and acts as a point of contact to them
+ */
 public class ClassifierManager {
 	
 	private HashMap<FeatureCategory, IClassifier> classifiers;

@@ -10,6 +10,10 @@ import april.jmat.LinAlg;
 import april.sim.SimObject;
 import april.vis.*;
 
+/**
+ * @author aaron
+ * @purpose Creates fake features for simulator objects when used in classifiers
+ */
 public class SimFeatures {
 	// COLOR
 	// Mapping from a color string to the features used in the classifier

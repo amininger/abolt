@@ -7,10 +7,12 @@ import lcm.lcm.*;
 import abolt.lcmtypes.*;
 import abolt.objects.BoltObject;
 import abolt.objects.IObjectManager;
+import abolt.objects.SensableManager;
 import abolt.objects.SimObjectManager;
 import abolt.objects.WorldObjectManager;
 import abolt.kinect.*;
 import abolt.arm.ArmSimulator;
+import abolt.arm.BoltArmCommandInterpreter;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 
@@ -51,6 +53,12 @@ public class Bolt extends JFrame implements LCMSubscriber
 			return null;
 		}
 		return boltInstance.gui;
+	}
+	public static Segment getSegment(){
+		if(boltInstance == null || !(boltInstance.objectManager instanceof WorldObjectManager)){
+			return null;
+		}
+		return ((WorldObjectManager)boltInstance.objectManager).getSegment();
 	}
 	
     private IObjectManager objectManager;
@@ -108,6 +116,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         	} else {
             	gui = new BoltSimulator(opts);
         	}
+            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
         	// All done in simulation
         	objectManager = new SimObjectManager();
@@ -123,7 +132,6 @@ public class Bolt extends JFrame implements LCMSubscriber
         
 
         // TODO: arm stuff here
-       //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(segmenter, opts.getBoolean("debug"));
 
         this.setVisible(true);
         class SendObservationTask extends TimerTask{

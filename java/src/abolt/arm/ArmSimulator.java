@@ -38,7 +38,6 @@ public class ArmSimulator implements LCMSubscriber{
 	private static final int GRABBING_TIME = UPDATE_RATE*3;
 	private static final int POINTING_TIME = UPDATE_RATE*2;
 	private static final int DROPPING_TIME = UPDATE_RATE;
-	private static final int MOVING_TIME = UPDATE_RATE;
 	private Timer updateTimer;
 	
     Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();

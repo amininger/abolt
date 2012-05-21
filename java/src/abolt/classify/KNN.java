@@ -11,8 +11,10 @@ import abolt.classify.Features.FeatureCategory;
 import abolt.kinect.ObjectInfo;
 import abolt.objects.BoltObject;
 
-/*
+
+/**
  * @author James Kirk
+ * @purpose A point data structure used in the KNN
  */
 class KNNPoint {
     List<Double> coords;
@@ -59,6 +61,10 @@ class KNNPoint {
     }
 }
 
+/**
+ * @author James
+ * @purpose a basic K-Nearest-Neighbor implementation with testing functionality
+ */
 public class KNN implements IClassifier{
     protected List<KNNPoint> data;
     protected String datafile;
