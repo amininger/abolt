@@ -1,11 +1,16 @@
 package abolt.bolt;
 
 import april.config.*;
+import april.jmat.LinAlg;
+import april.sim.Collisions;
+import april.sim.Shape;
+import april.sim.SphereShape;
 import april.util.*;
 import lcm.lcm.*;
 
 import abolt.lcmtypes.*;
 import abolt.objects.BoltObject;
+import abolt.objects.BoltObjectManager;
 import abolt.objects.IObjectManager;
 import abolt.objects.SensableManager;
 import abolt.objects.SimObjectManager;
@@ -30,7 +35,7 @@ public class Bolt extends JFrame implements LCMSubscriber
 	public static Bolt getSingleton(){
 		return boltInstance;
 	}
-	public static IObjectManager getObjectManager(){
+	public static BoltObjectManager getObjectManager(){
 		if(boltInstance == null){
 			return null;
 		}
@@ -54,19 +59,27 @@ public class Bolt extends JFrame implements LCMSubscriber
 		}
 		return boltInstance.gui;
 	}
-	public static Segment getSegment(){
-		if(boltInstance == null || !(boltInstance.objectManager instanceof WorldObjectManager)){
+	public static IBoltCamera getCamera(){
+		if(boltInstance == null){
 			return null;
 		}
-		return ((WorldObjectManager)boltInstance.objectManager).getSegment();
+		return boltInstance.camera;
+	}
+	public static Segment getSegment(){
+		if(boltInstance == null || !(boltInstance.camera instanceof KinectCamera)){
+			return null;
+		}
+		return ((KinectCamera)boltInstance.camera).getSegment();
 	}
 	
-    private IObjectManager objectManager;
+    private BoltObjectManager objectManager;
     private SensableManager sensableManager;
-    private ClassifierManager classifierManager;    
+    private ClassifierManager classifierManager; 
+    private IBoltCamera camera;
     
     // objects for visualization
     private IBoltGUI gui;
+    private JMenuBar menuBar;
     private JMenuItem clearData, reloadData;
     private ArmSimulator armSimulator;
 
@@ -106,25 +119,27 @@ public class Bolt extends JFrame implements LCMSubscriber
         
         classifierManager = new ClassifierManager(config);
         sensableManager = new SensableManager();
+    	objectManager = new BoltObjectManager();
+
+        
+        if(opts.getBoolean("seg")){
+        	// Show the segmentation and the camera view
+            gui = new CameraGUI();
+    	} else {
+        	gui = new BoltSimulator(opts, menuBar);
+    	}
         
         if(opts.getBoolean("kinect")){
-        	// Uses kinect data and real arm
-        	objectManager = new WorldObjectManager();
-        	if(opts.getBoolean("seg")){
-        		// Show the segmentation and the camera view
-                gui = new CameraGUI();
-        	} else {
-            	gui = new BoltSimulator(opts);
-        	}
+        	camera = new KinectCamera();        		
             BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
         	// All done in simulation
-        	objectManager = new SimObjectManager();
-        	gui = new BoltSimulator(opts);
+        	camera = new SimKinect(800, 600);
         	armSimulator = new ArmSimulator();
         }
         
     	this.add(gui.getCanvas());
+    	this.setJMenuBar(menuBar);
 
         // Subscribe to LCM
         lcm.subscribe("TRAINING_DATA", this);
@@ -145,7 +160,7 @@ public class Bolt extends JFrame implements LCMSubscriber
    
     
     private void setupMenuBar(){
-    	JMenuBar menuBar = new JMenuBar();
+    	menuBar = new JMenuBar();
         JMenu controlMenu = new JMenu("Control");
         menuBar.add(controlMenu);
 
@@ -169,7 +184,6 @@ public class Bolt extends JFrame implements LCMSubscriber
                 }
             });
         controlMenu.add(reloadData);
-        this.setJMenuBar(menuBar);
     }
     
 
@@ -182,10 +196,9 @@ public class Bolt extends JFrame implements LCMSubscriber
 
                 for(int i=0; i<training.num_labels; i++){
                     training_label_t tl = training.labels[i];
-                    HashMap<Integer, BoltObject> objects = objectManager.getObjects();
                     BoltObject obj;
-                    synchronized(objects){
-                        obj = objects.get(tl.id);
+                    synchronized(objectManager.objects){
+                        obj = objectManager.objects.get(tl.id);
                     }
                     if(obj != null){
                         FeatureCategory cat = Features.getFeatureCategory(tl.cat.cat);

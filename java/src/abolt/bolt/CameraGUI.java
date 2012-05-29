@@ -7,6 +7,7 @@ import april.jmat.geom.GRay3D;
 import lcm.lcm.*;
 import abolt.lcmtypes.*;
 import abolt.objects.BoltObject;
+import abolt.objects.BoltObjectManager;
 import abolt.objects.SimBoltObject;
 import abolt.objects.WorldBoltObject;
 import abolt.sim.SimSensable;
@@ -61,6 +62,11 @@ public class CameraGUI implements IBoltGUI, LCMSubscriber
 	public VisCanvas getCanvas(){
 		return canvas;
 	}
+	
+	@Override
+	public VisLayer getLayer(){
+		return layer;
+	}
 
 	@Override
 	public BoltObject getSelectedObject() {
@@ -75,13 +81,17 @@ public class CameraGUI implements IBoltGUI, LCMSubscriber
             double x = intersect[0];
             double y = K_HEIGHT - intersect[1];
             
-    		for(BoltObject obj : Bolt.getObjectManager().getObjects().values()){
-    			if(obj instanceof WorldBoltObject){
-    				if(((WorldBoltObject)obj).getInfo().getProjectedBBox().contains(x, y)){
-                    	selectedObject = obj;
-    				}
-    			}
-    		}
+            BoltObjectManager objManager = Bolt.getObjectManager();
+            synchronized(objManager.objects){
+            	for(BoltObject obj : objManager.objects.values()){
+        			if(obj instanceof WorldBoltObject){
+        				if(((WorldBoltObject)obj).getInfo().getProjectedBBox().contains(x, y)){
+                        	selectedObject = obj;
+        				}
+        			}
+        		}
+            }
+    		
             if(selectedObject != null){
             	System.out.println("CLICKED: " + selectedObject.getID());
             }
@@ -139,12 +149,7 @@ public class CameraGUI implements IBoltGUI, LCMSubscriber
     	buffer.setDrawOrder(10);
 
     	double theta = 0;
-    	for(BoltObject boltObj : objects.values()){
-    		if(!(boltObj instanceof WorldBoltObject)){
-    			continue;    			
-    		}
-    		WorldBoltObject obj = (WorldBoltObject)boltObj;
-    		
+    	for(BoltObject obj : objects.values()){
 
     		// This code draws a white background behind objects to make the segmentation clear
 //        		VzImage img = new VzImage(obj.getInfo().getImage());

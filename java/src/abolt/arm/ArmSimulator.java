@@ -17,6 +17,7 @@ import abolt.lcmtypes.observations_t;
 import abolt.lcmtypes.robot_action_t;
 import abolt.lcmtypes.robot_command_t;
 import abolt.objects.BoltObject;
+import abolt.objects.BoltObjectManager;
 import abolt.util.SimUtil;
 import april.jmat.LinAlg;
 import april.util.TimeUtil;
@@ -81,13 +82,13 @@ public class ArmSimulator implements LCMSubscriber{
 			}
 		}
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
-			HashMap<Integer, BoltObject> objects = Bolt.getObjectManager().getObjects();
+			BoltObjectManager objManager = Bolt.getObjectManager();
 			BoltObject obj;
-			synchronized(objects){
-				obj = objects.get(grabbedID);
+			synchronized(objManager.objects){
+				obj = objManager.objects.get(grabbedID);
 			}
 			if(obj != null){
-				double[] objPos = obj.getPos();
+				double[] objPos = obj.getPose();
 				objPos[0] = pos[0];
 				objPos[1] = pos[1];
 				obj.setPos(objPos);
@@ -117,17 +118,17 @@ public class ArmSimulator implements LCMSubscriber{
 			stepsLeft = POINTING_TIME;
 		} else if(action.contains("GRAB")){
 			int id = Integer.parseInt(SimUtil.getTokenValue(action, "GRAB"));
-			HashMap<Integer, BoltObject> objects = Bolt.getObjectManager().getObjects();
+			BoltObjectManager objManager = Bolt.getObjectManager();
 			BoltObject obj;
-			synchronized(objects){
-				obj = objects.get(id);
+			synchronized(objManager.objects){
+				obj = objManager.objects.get(grabbedID);
 			}
 			if(obj == null){
 				return;
 			}
 			curState = ActionMode.GRAB;
-			goal[0] = obj.getPos()[0];
-			goal[1] = obj.getPos()[1];
+			goal[0] = obj.getPose()[0];
+			goal[1] = obj.getPose()[1];
 			grabbedID = id;
 			stepsLeft = GRABBING_TIME;	
 		} else if(action.contains("DROP")){

@@ -67,7 +67,7 @@
 	vec 6
 	-.25 -.25 .05 0 0 0
 	red
-	sphere
+	triangle
 	medium
 }
 "abolt.sim.SimLocation"

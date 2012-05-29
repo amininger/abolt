@@ -4,6 +4,7 @@ import april.vis.*;
 import april.jmat.*;
 import april.util.UnionFindSimple;
 
+import abolt.bolt.Bolt;
 import abolt.classify.Features;
 import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.*;
@@ -157,12 +158,16 @@ public class ObjectInfo{
     	BufferedImage image;
 		int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
 		int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+		IBoltCamera camera = Bolt.getCamera();
 		for(double[] pt : points){
-			double[] pixel = KUtils.getPixel(pt);
-			minX = (pixel[0] < minX ? (int)Math.round(pixel[0]) : minX);
-			maxX = (pixel[0] > maxX ? (int)Math.round(pixel[0]) : maxX);
-			minY = (pixel[1] < minY ? (int)Math.round(pixel[1]) : minY);
-			maxY = (pixel[1] > maxY ? (int)Math.round(pixel[1]) : maxY);
+			int[] pixel = camera.getPixel(pt);
+			if(pixel == null){
+				continue;
+			}
+			minX = (pixel[0] < minX ? pixel[0] : minX);
+			maxX = (pixel[0] > maxX ? pixel[0] : maxX);
+			minY = (pixel[1] < minY ? pixel[1] : minY);
+			maxY = (pixel[1] > maxY ? pixel[1] : maxY);
 		}
 		int margin = 5;
 		if(projBBox != null){
@@ -170,11 +175,14 @@ public class ObjectInfo{
 		}
 		image = new BufferedImage((maxX - minX + 1) + 2*margin, (maxY - minY + 1) + 2*margin, BufferedImage.TYPE_3BYTE_BGR);
 		for(int i = 0; i < points.size(); i++){
-			double[] pixel = KUtils.getPixel(points.get(i));
+			int[] pixel = Bolt.getCamera().getPixel(points.get(i));
+			if(pixel == null){
+				continue;
+			}
 			try{
 				Color c =  new Color((int)points.get(i)[3]);
 				Color rc = new Color(c.getBlue(), c.getGreen(), c.getRed());
-    			image.setRGB((int)Math.round(pixel[0])+margin-minX, (int)Math.round(pixel[1])+margin-minY, rc.getRGB());
+    			image.setRGB(pixel[0]+margin-minX, pixel[1]+margin-minY, rc.getRGB());
 			} catch (Exception e){
 				//System.out.println("Out of Bounds pixel in ObjectInfo: " + pixel[0] + ", " + pixel[1]);
 				//System.out.println(points.get(i)[0] + ", " + points.get(i)[1] + ", " + points.get(i)[2]);

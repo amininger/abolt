@@ -13,6 +13,7 @@ import abolt.objects.BoltObject;
 import april.jmat.LinAlg;
 import april.sim.BoxShape;
 import april.sim.Shape;
+import april.sim.SimObject;
 import april.sim.SimWorld;
 import april.sim.SphereShape;
 import april.util.StructureReader;
@@ -23,18 +24,21 @@ import april.vis.VzLines;
 import april.vis.VzRectangle;
 import april.vis.VzText;
 
-public class SimLocation extends BoltObject implements SimSensable {
+public class SimLocation implements SimSensable, SimObject {
     protected VisObject model;
     protected Shape shape;
     
-    private String name;
-    private String colorStr;
+    protected int id;
+    protected double[] pose;
+    protected double[][] bbox;
+    
+    protected String name;
+    protected String colorStr;
     
     protected double size = .2;
 
     public SimLocation(SimWorld sw)
     {
-    	super(sw);
     }
     
     public Shape getShape()
@@ -47,18 +51,33 @@ public class SimLocation extends BoltObject implements SimSensable {
         return model;
     }
     
-	@Override
-	public ArrayList<Double> getFeatures(FeatureCategory cat) {
-		return null;
-	}
-	
 	public String getName() {
 		return name;
+	}
+	
+
+	@Override
+	public double[][] getPose() {
+		return LinAlg.xyzrpyToMatrix(pose);
+	}
+
+	@Override
+	public void setPose(double[][] poseMatrix) {
+		pose = LinAlg.matrixToXyzrpy(poseMatrix);
+	}
+
+	@Override
+	public void setRunning(boolean arg0) {
+	}
+
+	@Override
+	public int getID() {
+		return id;
 	}
 
 	public String getProperties() {
 		String props = String.format("ID=%d,NAME=%s,", id, name);
-		props += String.format("POSE=[%f %f %f %f %f %f],", pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]);
+		props += String.format("POSE=[%f %f %f %f %f %f],", pose[0], pose[1], pose[2], pose[3], pose[4], pose[5]);
 		props += String.format("BBOX=[%f %f %f %f %f %f]", bbox[0][0], bbox[0][1], bbox[0][2], bbox[1][0], bbox[1][1], bbox[1][2]);
 		return props;
 	}
@@ -66,7 +85,7 @@ public class SimLocation extends BoltObject implements SimSensable {
 	public void read(StructureReader ins) throws IOException
     {
 		double[] xy = ins.readDoubles();
-    	pos = new double[]{xy[0], xy[1], size/2, 0, 0, 0};
+    	pose = new double[]{xy[0], xy[1], size/2, 0, 0, 0};
     	bbox = new double[][]{new double[]{-size, -size, -size/2}, new double[]{size, size, size/2}};
 
     	name = ins.readString();
@@ -82,7 +101,6 @@ public class SimLocation extends BoltObject implements SimSensable {
 
         shape = new BoxShape(new double[]{2*size, 2*size, 0});
         
-        
     	if(Bolt.getSensableManager() != null){
             Bolt.getSensableManager().addSensable(this);
     	}
@@ -91,7 +109,7 @@ public class SimLocation extends BoltObject implements SimSensable {
     public void write(StructureWriter outs) throws IOException
     {
     	outs.writeComment("XY");
-        outs.writeDoubles(new double[]{pos[0], pos[1]});
+        outs.writeDoubles(new double[]{pose[0], pose[1]});
         outs.writeString(colorStr);
     }
 
@@ -99,4 +117,5 @@ public class SimLocation extends BoltObject implements SimSensable {
 	public boolean inSenseRange(double[] xyt) {
 		return true;
 	}
+
 }
