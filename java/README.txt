@@ -19,7 +19,6 @@ Arguments that can be passed to Bolt:
 -w/--world      (file)   File used to initialize the simulator
 -s/--sim-config (file)   Config file used for the simulator
 -k/--kinect     (bool)   If true, Bolt creates objects using data from the kinect
-  /--seg        (bool)   If true, the display shows the camera feed and segmentation instead (only used if -k is true)
 -d/--debug      (bool)   If true, extra debugging information is shown
   /--fps        (int)    The desired fps for the simulator to run
 
@@ -58,7 +57,7 @@ Bolt Components:
 		Also constructs the string[] array used in observations_t
 	ClassifierManager - A collection of the various classifiers used for different visual features
 		This is where the settings for each classifier can be tweaked
-	IBoltGUI - The user interface being shown to the user
+	BoltSimulator - The user interface being shown to the user
 		Contains a VisWorld and handles various drawing functionality for that world
 	IBoltCamera - The camera extracting point cloud data for the objects 
 	Segment (optional) - The segmenter currently in use (only if using --kinect)
