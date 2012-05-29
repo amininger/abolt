@@ -3,12 +3,15 @@ package abolt.collision;
 import java.util.ArrayList;
 
 import april.jmat.LinAlg;
+import april.vis.VisVertexData;
 import abolt.collision.Face.RayType;
 
 public class ConvexShape implements Shape{
 	public double[][] vertices;
 	public Face[] faces;
 	public double radius;
+	float[] vertexBuffer;
+	float[] normalBuffer;
 	
 	public ConvexShape(double[][] vertices, Face[] faces){
 		this.vertices = vertices;
@@ -20,6 +23,13 @@ public class ConvexShape implements Shape{
 				radius = mag;
 			}
 		}
+		
+		int nVertices = 0;
+		for(int i = 0; i < faces.length; i++){
+			nVertices += 3 * (faces[i].indices.length - 2); 
+		}
+		vertexBuffer = new float[3*nVertices];
+		normalBuffer = new float[3*nVertices];
 	}
 
 	@Override
@@ -78,5 +88,21 @@ public class ConvexShape implements Shape{
         }
 
         return enter;
+	}
+	
+	public VisVertexData getVertexData(){
+		int index = 0;
+		for(Face face : faces){
+			index = face.fillVertexData(vertices, vertexBuffer, index);
+		}
+		return new VisVertexData(vertexBuffer, vertexBuffer.length/3, 3);
+	}
+	
+	public VisVertexData getNormals(){
+		int index = 0;
+		for(Face face : faces){
+			index = face.fillNormalData(normalBuffer, index);
+		}
+		return new VisVertexData(normalBuffer, normalBuffer.length/3, 3);
 	}
 }

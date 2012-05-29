@@ -1,5 +1,8 @@
 package abolt.collision;
 
+import april.vis.Style;
+import april.vis.VisObject;
+
 public interface Shape
 {
     /** Return max possible distance from center to facilitate

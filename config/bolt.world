@@ -58,14 +58,14 @@
 	vec 6
 	.25 -.25 .05 0 0 0
 	green
-	sphere
+	t-shape
 	large
 }
 "abolt.sim.SimBlock"
 {
 	# XYZRPY 
 	vec 6
-	-.25 -.25 .05 0 0 0
+	-.25 -.25 .05  0 1.6 0
 	red
 	triangle
 	medium

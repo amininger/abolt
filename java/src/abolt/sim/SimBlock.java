@@ -19,7 +19,6 @@ import abolt.lcmtypes.categorized_data_t;
 import abolt.lcmtypes.category_t;
 import abolt.objects.BoltObject;
 import abolt.objects.ISimBoltObject;
-import abolt.objects.SimBoltObject;
 import abolt.util.*;
 
 public class SimBlock implements SimGrabbable, ISimBoltObject
@@ -98,7 +97,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
         sizeStr = ins.readString();       
         color = SimFeatures.getColorValue(colorStr);
         double sizeScale = .05 * SimFeatures.getSizeValue(sizeStr);
-        aboltShape = SimFeatures.constructShape(shapeStr, sizeScale);
+        aboltShape = SimFeatures.getShape(shapeStr, sizeScale);
         shape = new SphereShape(sizeScale);
     }
 

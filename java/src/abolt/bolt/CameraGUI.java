@@ -8,8 +8,6 @@ import lcm.lcm.*;
 import abolt.lcmtypes.*;
 import abolt.objects.BoltObject;
 import abolt.objects.BoltObjectManager;
-import abolt.objects.SimBoltObject;
-import abolt.objects.WorldBoltObject;
 import abolt.sim.SimSensable;
 import abolt.kinect.*;
 import abolt.classify.*;
@@ -84,11 +82,9 @@ public class CameraGUI implements IBoltGUI, LCMSubscriber
             BoltObjectManager objManager = Bolt.getObjectManager();
             synchronized(objManager.objects){
             	for(BoltObject obj : objManager.objects.values()){
-        			if(obj instanceof WorldBoltObject){
-        				if(((WorldBoltObject)obj).getInfo().getProjectedBBox().contains(x, y)){
-                        	selectedObject = obj;
-        				}
-        			}
+    				if(obj.getInfo().getProjectedBBox().contains(x, y)){
+                    	selectedObject = obj;
+    				}
         		}
             }
     		

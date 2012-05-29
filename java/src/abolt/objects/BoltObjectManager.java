@@ -60,7 +60,7 @@ public class BoltObjectManager {
 
 	public void addObject(BoltObject obj) {
 		synchronized(objects){
-			objects.put(obj.getID(), (WorldBoltObject)obj);
+			objects.put(obj.getID(), obj);
 		}
 	}
 }

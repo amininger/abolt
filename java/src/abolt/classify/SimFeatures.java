@@ -39,43 +39,25 @@ public class SimFeatures {
 		return sizeValues.get(size.toLowerCase());
 	}
 	
-	// Mapping from a shape string to a sim object with the given shape
-	public static VisObject constructVisObject(String shape, Color color, double scale){
-		shape = shape.toLowerCase();
-		VzMesh.Style style = new VzMesh.Style(color);
-		VisObject obj;
-		if(shape.equals("square")){
-			obj = new VzBox(style);
-			scale *= 1.8;
-		} else if(shape.equals("cylinder")){
-			obj = new VzCylinder(style);
-		} else if(shape.equals("sphere")){
-			obj = new VzSphere(style);
-		} else {
-			return null;
-		}
-		return new VisChain(LinAlg.scale(scale), obj);
-	}
-	
-	public static Shape constructShape(String shapeStr, double scale){
+	public static Shape getShape(String shapeStr, double scale){
 		if(shapeStr.equals("square")){
 			scale *= 2;
 			return new BoxShape(scale, scale, scale);
 		} else if(shapeStr.equals("triangle")){
+			scale *= 2;
 			double[][] v = new double[][]{
 					new double[]{-.9, -.4},
 					new double[]{.9, -.4},
 					new double[]{0, .6}};
 			
-			
-//			double[][] v = new double[][]{
-//					new double[]{0, .5},
-//					new double[]{-.5, .1},
-//					new double[]{-.3, -.2},
-//					new double[]{.3, -.2},
-//					new double[]{.5, .1}};
-//			return new FlatPolygonShape(v, scale * 4);
 			return ShapeFactory.constructFlatPolygon(LinAlg.scale(v, scale), scale/2);
+		} else if(shapeStr.equals("t-shape")){
+			scale *= .8;
+			Shape top = new BoxShape(LinAlg.scale(new double[]{1, 1, 1}, scale));
+			Shape bot = new BoxShape(LinAlg.scale(new double[]{3, 1, 1}, scale));
+			return new CompoundShape(LinAlg.translate(new double[]{0, -scale/2, 0}), bot, 
+									LinAlg.translate(new double[]{0, scale, 0}), top);
+			
 		} else {
 			return new SphereShape(scale);
 		}

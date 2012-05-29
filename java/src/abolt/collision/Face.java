@@ -1,6 +1,7 @@
 package abolt.collision;
 
 import april.jmat.LinAlg;
+import april.vis.VisVertexData;
 
 /**
  * Face is a support class for Shapes, it defines a face of a shape with 
@@ -122,5 +123,29 @@ public class Face {
 			}
 		}
 		return distToPlane;
+	}
+	
+	public int fillVertexData(double[][] vertices, float[] vertexBuffer, int index){
+		for(int i = 1; i < indices.length - 1; i++){
+			vertexBuffer[index++] = (float)vertices[indices[0]][0];
+			vertexBuffer[index++] = (float)vertices[indices[0]][1];
+			vertexBuffer[index++] = (float)vertices[indices[0]][2];
+			vertexBuffer[index++] = (float)vertices[indices[i]][0];
+			vertexBuffer[index++] = (float)vertices[indices[i]][1];
+			vertexBuffer[index++] = (float)vertices[indices[i]][2];
+			vertexBuffer[index++] = (float)vertices[indices[i+1]][0];
+			vertexBuffer[index++] = (float)vertices[indices[i+1]][1];
+			vertexBuffer[index++] = (float)vertices[indices[i+1]][2];
+		}
+		return index;
+	}
+	
+	public int fillNormalData(float[] normalBuffer, int index){
+		for(int i = 0; i < 3 * (indices.length - 2); i++){
+			for(int j = 0; j < 3; j++){
+				normalBuffer[index++] = (float)normal[j];
+			}
+		}
+		return index;
 	}
 }

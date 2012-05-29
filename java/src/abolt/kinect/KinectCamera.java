@@ -10,7 +10,6 @@ import lcm.lcm.LCMSubscriber;
 import abolt.bolt.Bolt;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.lcmtypes.kinect_status_t;
-import abolt.objects.WorldBoltObject;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
@@ -21,13 +20,11 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     // LCM
     static LCM lcm = LCM.getSingleton();
 
-    private HashMap<Integer, WorldBoltObject> objects;
     private Segment segment;
     private kinect_status_t kinectData = null;
     private ArrayList<double[]> pointCloudData = null;
     
     public KinectCamera(){
-    	objects = new HashMap<Integer, WorldBoltObject>();
     	segment = new Segment((int)(KUtils.viewRegion.width),
                 (int)(KUtils.viewRegion.height));
     	lcm.subscribe("KINECT_STATUS", this);

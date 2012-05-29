@@ -14,11 +14,12 @@ import javax.swing.*;
 
 import abolt.classify.ConfidenceLabel;
 import abolt.classify.Features.FeatureCategory;
+import abolt.collision.ShapeToVisObject;
 import abolt.kinect.KUtils;
 import abolt.kinect.SimKinect;
 import abolt.objects.BoltObject;
 import abolt.objects.BoltObjectManager;
-import abolt.objects.SimBoltObject;
+import abolt.objects.ISimBoltObject;
 import abolt.sim.SimSensable;
 import abolt.vis.SelectionAnimation;
 import april.config.Config;
@@ -29,6 +30,7 @@ import april.sim.*;
 import april.util.*;
 import april.vis.*;
 import april.vis.VisCameraManager.CameraPosition;
+import april.vis.VzMesh.Style;
 
 public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
 
@@ -48,7 +50,7 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
     SelectionAnimation animation = null;
     
     enum ViewType{
-    	POINT_CLOUD, SOAR, IMAGES
+    	POINT_CLOUD, SOAR, IMAGES, SIM_SHAPES
     };
     ViewType viewType;
     
@@ -147,6 +149,16 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
     	});
     	group.add(projView);
     	simMenu.add(projView);
+    	
+    	JRadioButtonMenuItem simView = new JRadioButtonMenuItem("Normal Sim View");
+    	simView.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				setView(ViewType.SIM_SHAPES);
+			}
+    	});
+    	group.add(simView);
+    	simMenu.add(simView);
     	
     	menuBar.add(simMenu); 
     }
@@ -294,7 +306,7 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
 	        			for(int i = 0; i < points.size(); i++){
 	        				double[] pt = points.get(i);
 	        				colors.add((int)pt[3]);
-	        				points.set(i, new double[]{pt[0], pt[1], pt[2]});
+	        				points.set(i, Bolt.getCamera().getWorldCoords(pt));
 	        			}
 	        			VzPoints visPts = new VzPoints(new VisVertexData(points), new VzPoints.Style(colors, 2));
 	        			objectBuffer.addBack(visPts);
@@ -311,6 +323,17 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
             		VzImage img = new VzImage(obj.getInfo().getImage());
             		Rectangle bbox = obj.getInfo().getProjectedBBox();
             		objectBuffer.addBack(new VisChain(LinAlg.translate(obj.getPose()[0], obj.getPose()[1], .01), LinAlg.scale(.01, .01, .01), img));
+        		}
+    			break;
+    		case SIM_SHAPES:
+    			for(BoltObject obj : objects.values()){
+    				if(obj.getInfo().createdFrom != null){
+    					ISimBoltObject simObj = obj.getInfo().createdFrom;
+    					ArrayList<VisObject> visObjs = ShapeToVisObject.getVisObjects(simObj.getAboltShape(), new VzMesh.Style(simObj.getColor()));
+    					for(VisObject visObj : visObjs){
+        					objectBuffer.addBack(new VisChain(simObj.getPose(), visObj));
+    					}
+    				}
         		}
     			break;
     		}
