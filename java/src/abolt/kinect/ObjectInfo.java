@@ -8,6 +8,7 @@ import abolt.bolt.Bolt;
 import abolt.classify.Features;
 import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.*;
+import abolt.objects.ISimBoltObject;
 import lcm.lcm.*;
 
 import java.io.*;
@@ -33,6 +34,7 @@ public class ObjectInfo{
     public  BufferedImage image = null;
     public boolean matched;
     public Rectangle projBBox = null;
+    public ISimBoltObject createdFrom = null;
 
     public ArrayList<double[]> points;
     private HashMap<FeatureCategory, ArrayList<Double> > features;

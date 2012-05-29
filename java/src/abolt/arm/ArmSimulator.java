@@ -87,11 +87,11 @@ public class ArmSimulator implements LCMSubscriber{
 			synchronized(objManager.objects){
 				obj = objManager.objects.get(grabbedID);
 			}
-			if(obj != null){
+			if(obj != null && obj.getInfo().createdFrom != null){
 				double[] objPos = obj.getPose();
 				objPos[0] = pos[0];
 				objPos[1] = pos[1];
-				obj.setPos(objPos);
+				obj.getInfo().createdFrom.setPose(LinAlg.xyzrpyToMatrix(objPos));
 			}
 		}
 		

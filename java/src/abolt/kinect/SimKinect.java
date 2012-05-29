@@ -1,5 +1,6 @@
 package abolt.kinect;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,9 +59,7 @@ public class SimKinect implements IBoltCamera{
 		updateTimer.schedule(new RefreshTask(), 1000, 1000/UPDATE_RATE);
 	}
 	
-	private void update(){
-		long time = new Date().getTime();
-		
+	private void update(){		
 		updatePosition(Bolt.getBoltGUI().getLayer().cameraManager.getCameraTarget());
 		HashMap<Integer, ObjectInfo> info = new HashMap<Integer, ObjectInfo>();
 		if(!(Bolt.getBoltGUI() instanceof BoltSimulator)){
@@ -80,8 +79,6 @@ public class SimKinect implements IBoltCamera{
 			}
 		}
 		Bolt.getObjectManager().updateObjects(info);
-		long dif = new Date().getTime() - time;
-		System.out.println(dif);
 	}
 	
 	private void updatePosition(CameraPosition camPos){
@@ -106,7 +103,7 @@ public class SimKinect implements IBoltCamera{
 			return null;
 		}
 		Shape shape = ((ISimBoltObject)obj).getAboltShape();
-		int color = ((ISimBoltObject)obj).getColor().getRGB();
+		Color color = ((ISimBoltObject)obj).getColor();
 		double[][] T = obj.getPose();
 		double[] pose = LinAlg.matrixToXyzrpy(T);
 		
@@ -121,8 +118,9 @@ public class SimKinect implements IBoltCamera{
 			return null;
 		}
 		
-		ObjectInfo info = new ObjectInfo(color, obj.getID(), points.get(0));
+		ObjectInfo info = new ObjectInfo(color.getRGB(), obj.getID(), points.get(0));
 		info.repID = obj.getID();
+		info.createdFrom = obj;
 		
 		int START_SIZE = 20;
 		int left = pixel[0] - START_SIZE/2;
@@ -170,7 +168,7 @@ public class SimKinect implements IBoltCamera{
 		}
 		
 		for(double[] pt : points){
-			pt[3] = color;
+			pt[3] = new Color(color.getBlue(), color.getGreen(), color.getRed()).getRGB();
 			info.update(pt);
 		}
 		
