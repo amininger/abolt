@@ -57,13 +57,9 @@ public class SimKinect implements IBoltCamera{
 	}
 	
 	private void update(){		
-		updatePosition(Bolt.getBoltGUI().getLayer().cameraManager.getCameraTarget());
+		updatePosition(Bolt.getSimulator().getLayer().cameraManager.getCameraTarget());
 		HashMap<Integer, ObjectInfo> info = new HashMap<Integer, ObjectInfo>();
-		if(!(Bolt.getBoltGUI() instanceof BoltSimulator)){
-			System.err.println("SimKinect update: Expecting BoltSimulator as the GUI");
-			return;
-		}
-		BoltSimulator sim = (BoltSimulator)Bolt.getBoltGUI();
+		BoltSimulator sim = Bolt.getSimulator();
 		synchronized(sim.getWorld().objects){
 			for(SimObject obj : sim.getWorld().objects){
 				if(!(obj instanceof ISimBoltObject)){
