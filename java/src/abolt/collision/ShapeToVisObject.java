@@ -52,6 +52,7 @@ public class ShapeToVisObject {
 				for(VisObject visObj : visObjs){
 					objs.add(new VisChain(xform, visObj));
 				}
+				xform = LinAlg.copy(xform);
 			} else {
 				System.out.println(op);
 				assert(false);

@@ -65,7 +65,7 @@
 {
 	# XYZRPY 
 	vec 6
-	-.25 -.25 .05  0 1.6 0
+	-.25 -.25 .05  0 0 0
 	red
 	triangle
 	medium
