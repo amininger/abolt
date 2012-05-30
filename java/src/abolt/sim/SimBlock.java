@@ -18,59 +18,97 @@ import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.categorized_data_t;
 import abolt.lcmtypes.category_t;
 import abolt.objects.BoltObject;
-import abolt.objects.SimBoltObject;
+import abolt.objects.ISimBoltObject;
 import abolt.util.*;
 
-public class SimBlock extends SimBoltObject implements SimGrabbable
+public class SimBlock implements SimGrabbable, ISimBoltObject
 {
     private String sizeStr;
     private String shapeStr;
     private String colorStr;
+    private Color color;
+    protected double[][] pose;
+    protected int id;
+    protected Shape shape;
+    protected VisObject model;
+    
+    private abolt.collision.Shape aboltShape;
 
     public SimBlock(SimWorld sw)
     {
-    	super(sw);
+    	id = SimUtil.nextID();
     }
     
+	@Override
+	public int getID() {
+		return id;
+	}
+
+    
+    @Override
+    public Color getColor(){
+    	return color;
+    }
+    
+    @Override
+	public boolean inActionRange(double[] xyt) {
+		return true;
+	}
+
+	@Override
+	public Shape getShape() {
+		return shape;
+	}
+
+	@Override
+	public VisObject getVisObject() {
+		return null;
+	}
+
+	@Override
+	public double[][] getPose() {
+		return pose;
+	}
+
+	@Override
+	public void setPose(double[][] pose) {
+		this.pose = pose;
+	}
+	
+	@Override
+	public void setPos(double[] xyzrpy) {
+		this.pose = LinAlg.xyzrpyToMatrix(xyzrpy);
+	}
+
+	@Override
+	public void setRunning(boolean arg0) {
+	}
+    
+    @Override
+    public abolt.collision.Shape getAboltShape(){
+    	return aboltShape;
+    }
 
     public void read(StructureReader ins) throws IOException
     {
-    	pos = ins.readDoubles();
-
+    	pose = LinAlg.xyzrpyToMatrix(ins.readDoubles());
         colorStr = ins.readString();
         shapeStr = ins.readString();
-        sizeStr = ins.readString();
-        
-        features.put(FeatureCategory.COLOR, SimFeatures.getColorFeatures(colorStr));
-        features.put(FeatureCategory.SHAPE, SimFeatures.getShapeFeatures(shapeStr));
-        features.put(FeatureCategory.SIZE, SimFeatures.getSizeFeatures(sizeStr));
-        
-        ClassifierManager cm = Bolt.getClassifierManager();
-        for(FeatureCategory cat : FeatureCategory.values()){
-        	if(features.get(cat) != null){
-        		labels.updateLabel(cat, cm.classify(cat, this));
-        	}
-        }
-        
-        Color color = SimFeatures.getColorValue(colorStr);
+        sizeStr = ins.readString();       
+        color = SimFeatures.getColorValue(colorStr);
         double sizeScale = .05 * SimFeatures.getSizeValue(sizeStr);
-        model = SimFeatures.constructVisObject(shapeStr, color, sizeScale);
+        aboltShape = SimFeatures.getShape(shapeStr, sizeScale);
         shape = new SphereShape(sizeScale);
-        
-    	bbox = new double[][]{new double[]{-sizeScale, -sizeScale, -sizeScale}, new double[]{sizeScale, sizeScale, sizeScale}};
-        
-    	if(Bolt.getObjectManager() != null){
-            Bolt.getObjectManager().addObject(this);
-    	}
     }
 
     public void write(StructureWriter outs) throws IOException
     {
     	outs.writeComment("XYZRPY Truth");
-        outs.writeDoubles(LinAlg.matrixToXyzrpy(getPose()));
+        outs.writeDoubles(LinAlg.matrixToXyzrpy(pose));
         outs.writeString(colorStr);
         outs.writeString(shapeStr);
         outs.writeString(sizeStr);
     }
+
 }
 
