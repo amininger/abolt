@@ -10,6 +10,7 @@ import abolt.classify.ClassifierManager;
 import abolt.classify.SimFeatures;
 import abolt.classify.Features.FeatureCategory;
 import abolt.objects.BoltObject;
+import abolt.util.SimUtil;
 import april.jmat.LinAlg;
 import april.sim.BoxShape;
 import april.sim.Shape;
@@ -39,6 +40,7 @@ public class SimLocation implements SimSensable, SimObject {
 
     public SimLocation(SimWorld sw)
     {
+    	id = SimUtil.nextID();
     }
     
     public Shape getShape()
