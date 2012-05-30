@@ -32,7 +32,7 @@ import april.vis.*;
 import april.vis.VisCameraManager.CameraPosition;
 import april.vis.VzMesh.Style;
 
-public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
+public class BoltSimulator implements VisConsole.Listener{
 
 	// Sim stuff
     SimWorld world;
@@ -81,17 +81,14 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
     	return world;
     }
     
-    @Override
     public VisCanvas getCanvas(){
     	return vc;
     }
     
-    @Override
     public VisLayer getLayer(){
     	return vl;
     }
     
-    @Override
     public BoltObject getSelectedObject(){
     	return selectedObject;
     }
@@ -147,8 +144,8 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
 				setView(ViewType.IMAGES);
 			}
     	});
-    	group.add(projView);
-    	simMenu.add(projView);
+    	//group.add(projView);
+    	//simMenu.add(projView);
     	
     	JRadioButtonMenuItem simView = new JRadioButtonMenuItem("Normal Sim View");
     	simView.addActionListener(new ActionListener(){
@@ -293,7 +290,6 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
         }
     }
     
-    @Override
 	public void drawObjects(HashMap<Integer, BoltObject> objects) {
     	synchronized(objects){
     		VisWorld.Buffer objectBuffer = vw.getBuffer("objects");
@@ -319,11 +315,16 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
         		}
     			break;
     		case IMAGES:
-    			for(BoltObject obj : objects.values()){
-            		VzImage img = new VzImage(obj.getInfo().getImage());
-            		Rectangle bbox = obj.getInfo().getProjectedBBox();
-            		objectBuffer.addBack(new VisChain(LinAlg.translate(obj.getPose()[0], obj.getPose()[1], .01), LinAlg.scale(.01, .01, .01), img));
-        		}
+    			CameraPosition camPos = Bolt.getSimulator().getLayer().cameraManager.getCameraTarget();
+    			if(camPos != null){
+    				double[][] view = camPos.getModelViewMatrix();
+    				double[][] proj = camPos.getProjectionMatrix();
+        			for(BoltObject obj : objects.values()){
+                		VzImage img = new VzImage(obj.getInfo().getImage());
+                		Rectangle bbox = obj.getInfo().getProjectedBBox();
+                		//objectBuffer.addBack(new VisChain(LinAlg.translate(obj.getPose()[0], obj.getPose()[1], .01), invView, LinAlg.scale(.01, .01, .01), img));
+            		}
+    			}
     			break;
     		case SIM_SHAPES:
     			for(BoltObject obj : objects.values()){
@@ -343,7 +344,6 @@ public class BoltSimulator implements VisConsole.Listener, IBoltGUI{
 	}
     
     
-    @Override
     public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
     	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
     	for(VisObject obj : objects){

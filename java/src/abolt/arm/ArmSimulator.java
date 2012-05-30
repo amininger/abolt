@@ -11,7 +11,6 @@ import java.util.TimerTask;
 
 import abolt.arm.BoltArmController.ActionMode;
 import abolt.bolt.Bolt;
-import abolt.bolt.IBoltGUI;
 import abolt.lcmtypes.bolt_arm_command_t;
 import abolt.lcmtypes.observations_t;
 import abolt.lcmtypes.robot_action_t;
@@ -100,13 +99,12 @@ public class ArmSimulator implements LCMSubscriber{
 	}
 	
 	private void drawArm(){
-		IBoltGUI gui = Bolt.getBoltGUI();
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
 			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
-		gui.drawVisObjects("arm", visObjs);
+		Bolt.getSimulator().drawVisObjects("arm", visObjs);
 	}
 	
 	private void executeCommand(robot_command_t command){

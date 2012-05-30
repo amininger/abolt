@@ -50,11 +50,11 @@ public class Bolt extends JFrame implements LCMSubscriber
 		}
 		return boltInstance.classifierManager;
 	}
-	public static IBoltGUI getBoltGUI(){
+	public static BoltSimulator getSimulator(){
 		if(boltInstance == null){
 			return null;
 		}
-		return boltInstance.gui;
+		return boltInstance.simulator;
 	}
 	public static IBoltCamera getCamera(){
 		if(boltInstance == null){
@@ -75,7 +75,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     private IBoltCamera camera;
     
     // objects for visualization
-    private IBoltGUI gui;
+    private BoltSimulator simulator;
     private JMenuBar menuBar;
     private JMenuItem clearData, reloadData;
     private ArmSimulator armSimulator;
@@ -117,14 +117,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         classifierManager = new ClassifierManager(config);
         sensableManager = new SensableManager();
     	objectManager = new BoltObjectManager();
-
-        
-        if(opts.getBoolean("seg")){
-        	// Show the segmentation and the camera view
-            gui = new CameraGUI();
-    	} else {
-        	gui = new BoltSimulator(opts, menuBar);
-    	}
+        simulator = new BoltSimulator(opts, menuBar);
         
         if(opts.getBoolean("kinect")){
         	camera = new KinectCamera();        		
@@ -135,7 +128,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         	armSimulator = new ArmSimulator();
         }
         
-    	this.add(gui.getCanvas());
+    	this.add(simulator.getCanvas());
     	this.setJMenuBar(menuBar);
 
         // Subscribe to LCM
@@ -225,7 +218,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     {
         observations_t obs = new observations_t();
         obs.utime = TimeUtil.utime();
-        BoltObject selectedObj = gui.getSelectedObject();
+        BoltObject selectedObj = simulator.getSelectedObject();
         if(selectedObj != null){
         	obs.click_id = selectedObj.getID();
         } else {
