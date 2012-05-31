@@ -34,7 +34,7 @@ class KinectCalibrator // implements LCMSubscriber
 
     float[] depthLookUp = KUtils.createDepthMap();
 
-
+    LCM myLCM;
     VisWorld visWorld;
     VisLayer imageLayer;
 
@@ -107,7 +107,7 @@ class KinectCalibrator // implements LCMSubscriber
         frame.setVisible(true);
 
 
-        LCM myLCM = LCM.getSingleton();
+        myLCM = LCM.getSingleton();
         myLCM.subscribe("KINECT_STATUS", this);
     }
 

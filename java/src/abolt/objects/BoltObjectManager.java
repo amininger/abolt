@@ -42,7 +42,7 @@ public class BoltObjectManager {
 	            objects.remove(id);
 	        }
 		}
-		Bolt.getSimulator().drawObjects(objects);
+		Bolt.getSimulator().drawObjects();
 	}
 	
 	public object_data_t[] getObjectData() {

@@ -16,6 +16,7 @@ import abolt.classify.ConfidenceLabel;
 import abolt.classify.Features.FeatureCategory;
 import abolt.collision.ShapeToVisObject;
 import abolt.kinect.KUtils;
+import abolt.kinect.KinectCamera;
 import abolt.kinect.SimKinect;
 import abolt.objects.BoltObject;
 import abolt.objects.BoltObjectManager;
@@ -49,8 +50,11 @@ public class BoltSimulator implements VisConsole.Listener{
     BoltObject selectedObject = null;
     SelectionAnimation animation = null;
     
+    private final static int K_HEIGHT = 480;
+    private final static int K_WIDTH = 640;
+    
     enum ViewType{
-    	POINT_CLOUD, SOAR, IMAGES, SIM_SHAPES
+    	POINT_CLOUD, SOAR, IMAGES, SIM_SHAPES, KINECT
     };
     ViewType viewType;
     
@@ -156,6 +160,18 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	group.add(simView);
     	simMenu.add(simView);
+    	
+    	if(Bolt.getCamera() instanceof KinectCamera){
+    		JRadioButtonMenuItem kinectView = new JRadioButtonMenuItem("Kinect View");
+    		kinectView.addActionListener(new ActionListener(){
+    			@Override
+    			public void actionPerformed(ActionEvent arg0) {
+    				setView(ViewType.KINECT);
+    			}
+        	});
+        	group.add(kinectView);
+        	simMenu.add(kinectView);
+    	}
     	
     	menuBar.add(simMenu); 
     }
@@ -290,60 +306,101 @@ public class BoltSimulator implements VisConsole.Listener{
         }
     }
     
-	public void drawObjects(HashMap<Integer, BoltObject> objects) {
-    	synchronized(objects){
-    		VisWorld.Buffer objectBuffer = vw.getBuffer("objects");
-    		switch(viewType){
-    		case POINT_CLOUD:
-    			for(BoltObject obj : objects.values()){
-    				ArrayList<double[]> points = obj.getInfo().points;
-	    			if(points != null && points.size() > 0){
-	        			VisColorData colors = new VisColorData();
-	        			for(int i = 0; i < points.size(); i++){
-	        				double[] pt = points.get(i);
-	        				colors.add((int)pt[3]);
-	        				points.set(i, Bolt.getCamera().getWorldCoords(pt));
-	        			}
-	        			VzPoints visPts = new VzPoints(new VisVertexData(points), new VzPoints.Style(colors, 2));
-	        			objectBuffer.addBack(visPts);
+	public void drawObjects() {
+		VisWorld.Buffer objectBuffer = vw.getBuffer("objects");
+		switch(viewType){
+		case POINT_CLOUD:
+			drawPointCloud(objectBuffer);
+			break;
+		case SOAR:
+			drawSoarView(objectBuffer);
+			break;
+		case IMAGES:
+			drawProjectionView(objectBuffer);
+			break;
+		case SIM_SHAPES:
+			drawSimView(objectBuffer);
+			break;
+		case KINECT:
+			drawKinectView(objectBuffer);
+			break;
+		}
+		
+		objectBuffer.swap();			
+	}
+	
+	private void drawPointCloud(VisWorld.Buffer buffer){
+		BoltObjectManager objManager = Bolt.getObjectManager();
+    	synchronized(objManager.objects){
+			for(BoltObject obj : objManager.objects.values()){
+				ArrayList<double[]> points = obj.getInfo().points;
+				if(points != null && points.size() > 0){
+	    			VisColorData colors = new VisColorData();
+	    			for(int i = 0; i < points.size(); i++){
+	    				double[] pt = points.get(i);
+	    				colors.add((int)pt[3]);
+	    				points.set(i, Bolt.getCamera().getWorldCoords(pt));
 	    			}
+	    			VzPoints visPts = new VzPoints(new VisVertexData(points), new VzPoints.Style(colors, 2));
+	    			buffer.addBack(visPts);
+				}
+			}
+    	}
+	}
+
+	private void drawSoarView(VisWorld.Buffer buffer){
+		BoltObjectManager objManager = Bolt.getObjectManager();
+    	synchronized(objManager.objects){
+			for(BoltObject obj : objManager.objects.values()){
+    			buffer.addBack(obj.getVisObject());
+			}
+    	}
+	}
+	
+	private void drawProjectionView(VisWorld.Buffer buffer){
+		BoltObjectManager objManager = Bolt.getObjectManager();
+    	synchronized(objManager.objects){
+    		CameraPosition camPos = Bolt.getSimulator().getLayer().cameraManager.getCameraTarget();
+			if(camPos != null){
+				double[][] view = camPos.getModelViewMatrix();
+				double[][] proj = camPos.getProjectionMatrix();
+    			for(BoltObject obj : objManager.objects.values()){
+            		VzImage img = new VzImage(obj.getInfo().getImage());
+            		Rectangle bbox = obj.getInfo().getProjectedBBox();
+            		//objectBuffer.addBack(new VisChain(LinAlg.translate(obj.getPose()[0], obj.getPose()[1], .01), invView, LinAlg.scale(.01, .01, .01), img));
         		}
-    			break;
-    		case SOAR:
-    			for(BoltObject obj : objects.values()){
-    				objectBuffer.addBack(obj.getVisObject());
-        		}
-    			break;
-    		case IMAGES:
-    			CameraPosition camPos = Bolt.getSimulator().getLayer().cameraManager.getCameraTarget();
-    			if(camPos != null){
-    				double[][] view = camPos.getModelViewMatrix();
-    				double[][] proj = camPos.getProjectionMatrix();
-        			for(BoltObject obj : objects.values()){
-                		VzImage img = new VzImage(obj.getInfo().getImage());
-                		Rectangle bbox = obj.getInfo().getProjectedBBox();
-                		//objectBuffer.addBack(new VisChain(LinAlg.translate(obj.getPose()[0], obj.getPose()[1], .01), invView, LinAlg.scale(.01, .01, .01), img));
-            		}
-    			}
-    			break;
-    		case SIM_SHAPES:
-    			for(BoltObject obj : objects.values()){
-    				if(obj.getInfo().createdFrom != null){
-    					ISimBoltObject simObj = obj.getInfo().createdFrom;
-    					ArrayList<VisObject> visObjs = ShapeToVisObject.getVisObjects(simObj.getAboltShape(), new VzMesh.Style(simObj.getColor()));
-    					for(VisObject visObj : visObjs){
-        					objectBuffer.addBack(new VisChain(simObj.getPose(), visObj));
-    					}
-    				}
-        		}
-    			break;
-    		}
-    		
-    		objectBuffer.swap();	
-    	}			
+			}
+    	}
 	}
     
-    
+
+	private void drawSimView(VisWorld.Buffer buffer){
+		BoltObjectManager objManager = Bolt.getObjectManager();
+    	synchronized(objManager.objects){
+    		for(BoltObject obj : objManager.objects.values()){
+				if(obj.getInfo().createdFrom != null){
+					ISimBoltObject simObj = obj.getInfo().createdFrom;
+					ArrayList<VisObject> visObjs = ShapeToVisObject.getVisObjects(simObj.getAboltShape(), new VzMesh.Style(simObj.getColor()));
+					for(VisObject visObj : visObjs){
+    					buffer.addBack(new VisChain(simObj.getPose(), visObj));
+					}
+				}
+    		}
+    	}
+	}
+	
+	private void drawKinectView(VisWorld.Buffer buffer){
+		if(!(Bolt.getCamera() instanceof KinectCamera)){
+			return;
+		}
+		double[][] viewXform = LinAlg.matrixAB(LinAlg.translate(new double[]{-.5, -.4, .01}), LinAlg.scale(1.0/K_WIDTH, 1.0/K_WIDTH, 1) 
+				);
+		KinectCamera cam = (KinectCamera)Bolt.getCamera();
+		cam.drawKinectData(viewXform, buffer);
+		
+		drawPointCloud(buffer);
+	}
+	
     public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
     	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
     	for(VisObject obj : objects){

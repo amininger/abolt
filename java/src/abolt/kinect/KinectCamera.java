@@ -1,5 +1,8 @@
 package abolt.kinect;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +13,9 @@ import lcm.lcm.LCMSubscriber;
 import abolt.bolt.Bolt;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.lcmtypes.kinect_status_t;
+import april.vis.VisChain;
+import april.vis.VisWorld;
+import april.vis.VzImage;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
@@ -55,6 +61,45 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 	    }
 	    return currentPoints;
 	}
+	
+	public BufferedImage getKinectImage(kinect_status_t kinectData){
+    	if(kinectData == null){
+    		return new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);
+    	}
+    	BufferedImage image = new BufferedImage(kinect_status_t.WIDTH, kinect_status_t.HEIGHT, BufferedImage.TYPE_3BYTE_BGR);
+        byte[] buf = ((DataBufferByte)(image.getRaster().getDataBuffer())).getData();
+        for (int i = 0; i < buf.length; i+=3) {
+            int x = (i/3)%kinect_status_t.WIDTH;
+            int y = (i/3)/kinect_status_t.WIDTH;
+            if(KUtils.viewRegion.contains(x, y)){
+                buf[i] = kinectData.rgb[i+2];   // B
+                buf[i+1] = kinectData.rgb[i+1]; // G
+                buf[i+2] = kinectData.rgb[i];   // R
+            }
+        }
+        return image;
+    }
+	
+	public void drawKinectData(double[][] viewXform, VisWorld.Buffer buffer){
+    	BufferedImage background = getKinectImage(kinectData);
+		double[] pt = new double[2];
+		for(int y = (int)KUtils.viewRegion.getMinY(); y < KUtils.viewRegion.getMaxY(); y++){
+			for(int x = (int)KUtils.viewRegion.getMinX(); x < KUtils.viewRegion.getMaxX(); x++){
+	            int i = y*kinect_status_t.WIDTH + x;
+	            int d = ((kinectData.depth[2*i+1]&0xff) << 8) |
+	                    (kinectData.depth[2*i+0]&0xff);
+
+                double[] pKinect = KUtils.getRegisteredXYZRGB(x,y, kinectData);
+	            // double[] pKinect = KUtils.getXYZRGB(x, y, KUtils.depthLookup[d], kinectData);
+	            double[] pixel = KUtils.getPixel(pKinect);
+                Color c =  new Color((int)pKinect[3]);
+                Color rc = new Color(c.getBlue(), c.getGreen(), c.getRed());
+                background.setRGB((int)pixel[0], (int)pixel[1], rc.getRGB());
+	        }
+	    }
+		buffer.addBack(new VisChain(viewXform, new VzImage(background, VzImage.FLIP)));
+        buffer.setDrawOrder(-10);
+    }
 	
 	@Override
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)

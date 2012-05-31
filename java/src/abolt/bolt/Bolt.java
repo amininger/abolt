@@ -117,7 +117,6 @@ public class Bolt extends JFrame implements LCMSubscriber
         classifierManager = new ClassifierManager(config);
         sensableManager = new SensableManager();
     	objectManager = new BoltObjectManager();
-        simulator = new BoltSimulator(opts, menuBar);
         
         if(opts.getBoolean("kinect")){
         	camera = new KinectCamera();        		
@@ -127,7 +126,8 @@ public class Bolt extends JFrame implements LCMSubscriber
         	camera = new SimKinect(800, 600);
         	armSimulator = new ArmSimulator();
         }
-        
+
+        simulator = new BoltSimulator(opts, menuBar);
     	this.add(simulator.getCanvas());
     	this.setJMenuBar(menuBar);
 

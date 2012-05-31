@@ -45,7 +45,7 @@ public class KUtils
 
     public static float[] depthLookup;          //holds depth conversions so we only have to calculate them once
 
-    public final static int[] viewBorders = new int[] {180, 180, 560, 380 };
+    public final static int[] viewBorders = new int[] {180, 180, 500, 380 };
     public final static Rectangle viewRegion 
     	= new Rectangle(viewBorders[0], viewBorders[1],
                         viewBorders[2] - viewBorders[0], viewBorders[3] - viewBorders[1]);
