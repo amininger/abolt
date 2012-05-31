@@ -16,7 +16,6 @@ import abolt.classify.ConfidenceLabel;
 import abolt.classify.Features.FeatureCategory;
 import abolt.collision.ShapeToVisObject;
 import abolt.kinect.KUtils;
-import abolt.kinect.SimKinect;
 import abolt.objects.BoltObject;
 import abolt.objects.BoltObjectManager;
 import abolt.objects.ISimBoltObject;
@@ -48,21 +47,21 @@ public class BoltSimulator implements VisConsole.Listener{
     Object selectionLock = new Object();
     BoltObject selectedObject = null;
     SelectionAnimation animation = null;
-    
+
     enum ViewType{
     	POINT_CLOUD, SOAR, IMAGES, SIM_SHAPES
     };
     ViewType viewType;
-    
-    public BoltSimulator(GetOpt opts, JMenuBar menuBar) {    	
+
+    public BoltSimulator(GetOpt opts) {
 		vw = new VisWorld();
 		vl = new VisLayer(vw);
 	    vc = new VisCanvas(vl);
 	    vc.setTargetFPS(opts.getInt("fps"));
-	    
+
 	    console = new VisConsole(vw, vl, vc);
 	    console.addListener(this);
-	        
+
 	    // Customized event handling
 	    vl.addEventHandler(new BoltEventHandler());
 
@@ -73,26 +72,26 @@ public class BoltSimulator implements VisConsole.Listener{
         loadWorld(opts);
         sim = new Simulator(vw, vl, console, world);
         viewType = ViewType.SOAR;
-        
-        setupMenu(menuBar);
+
+        setupMenu(Bolt.getmenuBar);
 	}
-    
+
     public SimWorld getWorld(){
     	return world;
     }
-    
+
     public VisCanvas getCanvas(){
     	return vc;
     }
-    
+
     public VisLayer getLayer(){
     	return vl;
     }
-    
+
     public BoltObject getSelectedObject(){
     	return selectedObject;
     }
-    
+
     private void loadWorld(GetOpt opts){
     	try {
             Config config = new Config();
@@ -112,11 +111,11 @@ public class BoltSimulator implements VisConsole.Listener{
         }
     	world.setRunning(true);
     }
-    
+
     private void setupMenu(JMenuBar menuBar){
     	JMenu simMenu = new JMenu("Simulator");
     	ButtonGroup group = new ButtonGroup();
-    	
+
     	JRadioButtonMenuItem pointView = new JRadioButtonMenuItem("Point Cloud View");
     	pointView.addActionListener(new ActionListener(){
 			@Override
@@ -126,7 +125,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	group.add(pointView);
     	simMenu.add(pointView);
-    	
+
     	JRadioButtonMenuItem soarView = new JRadioButtonMenuItem("Soar View");
     	soarView.addActionListener(new ActionListener(){
 			@Override
@@ -146,7 +145,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	//group.add(projView);
     	//simMenu.add(projView);
-    	
+
     	JRadioButtonMenuItem simView = new JRadioButtonMenuItem("Normal Sim View");
     	simView.addActionListener(new ActionListener(){
 			@Override
@@ -156,10 +155,10 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	group.add(simView);
     	simMenu.add(simView);
-    	
-    	menuBar.add(simMenu); 
+
+    	menuBar.add(simMenu);
     }
-    
+
     private void setView(ViewType view){
     	this.viewType = view;
     }
@@ -187,7 +186,7 @@ public class BoltSimulator implements VisConsole.Listener{
             double bestd = Double.MAX_VALUE;
 
             synchronized(world) {
-            	BoltObjectManager objManager = Bolt.getObjectManager();
+            	BoltObjectManager objManager = BoltObjectManager.getSingleton();
                 synchronized(objManager.objects){
                 	for (BoltObject obj : objManager.objects.values()) {
                         double d = Collisions.collisionDistance(ray.getSource(), ray.getDir(), obj.getShape(), obj.getPoseMatrix());
@@ -199,7 +198,7 @@ public class BoltSimulator implements VisConsole.Listener{
                         }
                     }
                 }
-                
+
                 if(bestd == Double.MAX_VALUE){
                 	HashMap<Integer, SimSensable> sensables = Bolt.getSensableManager().getSensables();
 	                synchronized(sensables){
@@ -209,7 +208,7 @@ public class BoltSimulator implements VisConsole.Listener{
 	                		}
 	                		BoltObject obj = (BoltObject)sens;
 	                        double d = Collisions.collisionDistance(ray.getSource(), ray.getDir(), obj.getShape(), obj.getPoseMatrix());
-	
+
 	                        if (d < bestd) {
 	                            synchronized (selectionLock) {
 	                                selectedObject = (BoltObject)obj;
@@ -219,7 +218,7 @@ public class BoltSimulator implements VisConsole.Listener{
 	                    }
 	                }
                 }
-                
+
                 if(selectedObject != null){
                 	System.out.println("CLICKED: " + selectedObject.getID());
                 }
@@ -266,8 +265,8 @@ public class BoltSimulator implements VisConsole.Listener{
                 double[][] rot = LinAlg.rotateZ(theta + Math.PI/2); // rotate flat to face the camera horizontally
                 double[][] faceCamera = LinAlg.matrixAB(rot, tilt);
                 VisWorld.Buffer textBuffer = vw.getBuffer("textbuffer");
-                
-                BoltObjectManager objManager = Bolt.getObjectManager();
+
+                BoltObjectManager objManager = BoltObjectManager.getSingleton();
                 synchronized(objManager.objects){
                     for(BoltObject obj : objManager.objects.values()){
                     	String labelString = "";
@@ -284,12 +283,12 @@ public class BoltSimulator implements VisConsole.Listener{
                     }
                 }
                 textBuffer.swap();
-                
+
                 TimeUtil.sleep(1000/fps);
             }
         }
     }
-    
+
 	public void drawObjects(HashMap<Integer, BoltObject> objects) {
     	synchronized(objects){
     		VisWorld.Buffer objectBuffer = vw.getBuffer("objects");
@@ -338,17 +337,17 @@ public class BoltSimulator implements VisConsole.Listener{
         		}
     			break;
     		}
-    		
-    		objectBuffer.swap();	
-    	}			
+
+    		objectBuffer.swap();
+    	}
 	}
-    
-    
+
+
     public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
     	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
     	for(VisObject obj : objects){
     		buffer.addBack(obj);
-    	}	
+    	}
     	buffer.swap();
     }
 }

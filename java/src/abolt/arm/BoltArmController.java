@@ -10,17 +10,14 @@ import april.util.*;
 
 import abolt.lcmtypes.*;
 
-/** Received messages from SOAR side and uses them to position the arm,
- *  grab objects, and generally interact with the environment. Converts
- *  incoming robot_command_t messages into appropriate dynamixel messages
- *  for positioning the arm.
+/** Receives as input commands from user interface. These
+ *  high level commands are converted into scripted arm
+ *  movements and sent to the ArmDriver for execution.
  */
 public class BoltArmController implements LCMSubscriber
 {
     // LCM
     LCM lcm = LCM.getSingleton();
-    ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
-    //ExpiringMessageCache<bolt_arm_command_t> cmds = new ExpiringMessageCache<bolt_arm_command_t>(20.0, true);
     Queue<bolt_arm_command_t> cmds = new LinkedList<bolt_arm_command_t>();
 
     // Update rate
@@ -37,6 +34,8 @@ public class BoltArmController implements LCMSubscriber
     private int grabbedObject = 0;
     private int toGrab = 0;
 
+    // XXX We shouldn't need to do this. Just enact a delay for movement to
+    // occur and make sure none of the servos are active
     class PositionTracker
     {
         LinkedList<Pair<double[], Long> > positions = new LinkedList<Pair<double[], Long> >();
@@ -712,6 +711,8 @@ public class BoltArmController implements LCMSubscriber
     // ==================================================
     static public void main(String[] args)
     {
+        // Set things up to launch our own arm driver, too?
+
         BoltArmController bac = new BoltArmController();
     }
 }

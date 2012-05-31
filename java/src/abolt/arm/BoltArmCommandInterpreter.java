@@ -30,9 +30,6 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     LCM lcm = LCM.getSingleton();
     static private byte messageID = 0;
 
-    // Don't hold on to old messages
-    //ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(20.0, true);
-
     // Queue up messages as we receive them, assuming we'll get
     // only one of each
     Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();

@@ -23,10 +23,10 @@ public class SimKinect implements IBoltCamera{
 	private static final double PIXEL_SIZE = .001;
 	private static final double DIST_TO_SCREEN = .2;
 	private static final double[] up = new double[]{0, 1, 0};
-	
+
 	private int width;
 	private int height;
-	
+
 	private double[] origin;
 	// Using a left handed coordinate system
 	// From the camera's perspective, X is to the right, Y is up
@@ -34,19 +34,28 @@ public class SimKinect implements IBoltCamera{
 	private double[] xAxis;
 	private double[] yAxis;
 	private double[] zAxis;
-	
+
 	private double[] screenOrigin;
-	
+
     private Timer updateTimer;
     private static final int UPDATE_RATE = 2; // # updates per second
-	
-	public SimKinect(int width, int height){
+
+    // The world we are generating simulated data on!
+    BoltSimulator sim;
+
+    // XXX Added requirement that you tell it the world it will be simulating
+    // at runtime. This makes it the responsibility of the object creating the
+    // virtual kinect (in our case, this will almost assuredly be Bolt) to
+    // tell it what world it should visualize. Removes need to static access
+    // to BoltSimulator from Bolt.
+	public SimKinect(int width, int height, BoltSimulator sim){
 		this.width = width;
 		this.height = height;
-		
+        this.sim = sim;
+
 		origin = new double[]{0, 0, 0};
 		zAxis = new double[]{0, 0, -1};
-		
+
 		class RefreshTask extends TimerTask{
 			public void run() {
 				update();
@@ -55,11 +64,12 @@ public class SimKinect implements IBoltCamera{
 		updateTimer = new Timer();
 		updateTimer.schedule(new RefreshTask(), 1000, 1000/UPDATE_RATE);
 	}
-	
-	private void update(){		
+
+	private void update(){
 		updatePosition(Bolt.getSimulator().getLayer().cameraManager.getCameraTarget());
 		HashMap<Integer, ObjectInfo> info = new HashMap<Integer, ObjectInfo>();
-		BoltSimulator sim = Bolt.getSimulator();
+
+        // XXX This is the offending bit of code. Fakes data on objects from sim world.
 		synchronized(sim.getWorld().objects){
 			for(SimObject obj : sim.getWorld().objects){
 				if(!(obj instanceof ISimBoltObject)){
@@ -73,24 +83,24 @@ public class SimKinect implements IBoltCamera{
 		}
 		Bolt.getObjectManager().updateObjects(info);
 	}
-	
+
 	private void updatePosition(CameraPosition camPos){
 		origin = camPos.eye.clone();
 		zAxis = LinAlg.subtract(camPos.lookat, camPos.eye);
 		LinAlg.normalizeEquals(zAxis);
-		
+
 		calcCoordinateSystem();
 	}
-	
+
 	private void calcCoordinateSystem(){
 		xAxis = LinAlg.crossProduct(zAxis, up);
 		yAxis = LinAlg.crossProduct(xAxis, zAxis);
 		LinAlg.normalizeEquals(xAxis);
 		LinAlg.normalizeEquals(yAxis);
-		
+
 		screenOrigin = LinAlg.add(origin, LinAlg.scale(zAxis, DIST_TO_SCREEN));
 	}
-	
+
 	private ObjectInfo constructObjectInfo(ISimBoltObject obj){
 		if(!(obj instanceof ISimBoltObject)){
 			return null;
@@ -99,7 +109,7 @@ public class SimKinect implements IBoltCamera{
 		Color color = ((ISimBoltObject)obj).getColor();
 		double[][] T = obj.getPose();
 		double[] pose = LinAlg.matrixToXyzrpy(T);
-		
+
 		int[] pixel = getPixel(pose);
 		if(pixel == null){
 			return null;
@@ -110,11 +120,11 @@ public class SimKinect implements IBoltCamera{
 			// For some reason there was no collision with the center of the shape, something is odd
 			return null;
 		}
-		
+
 		ObjectInfo info = new ObjectInfo(color.getRGB(), obj.getID(), points.get(0));
 		info.repID = obj.getID();
 		info.createdFrom = obj;
-		
+
 		int START_SIZE = 20;
 		int left = pixel[0] - START_SIZE/2;
 		if(left < -width/2){
@@ -132,13 +142,13 @@ public class SimKinect implements IBoltCamera{
 		if(bot < -height/2){
 			bot = -height/2;
 		}
-		
+
 		for(int x = left; x <= right; x++){
 			for(int y = top; y >= bot; y--){
 				collideShape(points, x, y, shape, T);
 			}
 		}
-		
+
 		// Keep expanding the borders until out of the view region or don't hit any more points
 		boolean contL = true, contR = true, contT = true, contB = true;	//continue left, right, top, bot
 		while(contL || contR || contT || contB){
@@ -157,17 +167,17 @@ public class SimKinect implements IBoltCamera{
 			if(contB){
 				bot--;
 				contB = scanHorizontal(points, bot, left, right, shape, T);
-			}		
+			}
 		}
-		
+
 		for(double[] pt : points){
 			pt[3] = new Color(color.getBlue(), color.getGreen(), color.getRed()).getRGB();
 			info.update(pt);
 		}
-		
+
 		return info;
 	}
-	
+
 	// Scan a horizontal row of pixels from left to right inclusive and add collisions to the points array
 	// Returns true if any collisions occurred (returns false if y is out of bounds automatically)
 	private boolean scanHorizontal(ArrayList<double[]> points, int y, int left, int right, Shape shape, double[][] T){
@@ -180,7 +190,7 @@ public class SimKinect implements IBoltCamera{
 		}
 		return hitPoint;
 	}
-	
+
 	// Scan a vertical row of pixels from top to bottom inclusive and add collisions to the points array
 	// Returns true if any collisions occurred (returns false if x is out of bounds automatically)
 	private boolean scanVertical(ArrayList<double[]> points, int x, int top, int bot, Shape shape, double[][] T){
@@ -193,7 +203,7 @@ public class SimKinect implements IBoltCamera{
 		}
 		return hitPoint;
 	}
-	
+
 	// Calculates a collision for the shape from the camera's origin through the given pixel
 	// If one occurs, it adds the point to the points array and returns true
 	private boolean collideShape(ArrayList<double[]> points, int x, int y, Shape shape, double[][] T){
@@ -202,7 +212,7 @@ public class SimKinect implements IBoltCamera{
 		double[] dir = LinAlg.subtract(pixel, origin);
 		LinAlg.normalizeEquals(dir);
 		double d = shape.collisionRay(origin, dir, T);
-		
+
 		if(d == Double.MAX_VALUE){
 			return false;
 		}
@@ -218,12 +228,12 @@ public class SimKinect implements IBoltCamera{
 		double zproj = LinAlg.dotProduct(pt, zAxis);
 		double xproj = LinAlg.dotProduct(pt, xAxis);
 		double yproj = LinAlg.dotProduct(pt, yAxis);
-		
+
 		if(zproj <= 0){
 			// The shape is behind the camera's view, don't consider it
 			return null;
 		}
-		
+
 		// Compute the projection of the relative position of the shape onto the screen
 		double xPixel = xproj * DIST_TO_SCREEN / zproj / PIXEL_SIZE;
 		double yPixel = yproj * DIST_TO_SCREEN / zproj / PIXEL_SIZE;
