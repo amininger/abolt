@@ -8,6 +8,7 @@ import april.sim.SphereShape;
 import april.util.*;
 import lcm.lcm.*;
 
+import abolt.arm.*;
 import abolt.lcmtypes.*;
 import abolt.objects.BoltObject;
 import abolt.objects.BoltObjectManager;
@@ -224,9 +225,10 @@ public class Bolt extends JFrame implements LCMSubscriber
         opts.addString('c', "config", null, "Specify the configuration file for Bolt");
         opts.addBoolean('d', "debug", false, "Toggle debugging mode");
         opts.addBoolean('k', "kinect", false, "Use kinect data to create objects");
+        opts.addBoolean('a', "arm", false, "Run with the actual arm");
         opts.addBoolean('\0', "seg", false, "Show the segmentation instead of the simulator");
-        opts.addString('w', "world", "", "World file");
-        opts.addString('s', "sim-config", "", "Configuration file for the Simulator");
+        opts.addString('w', "world", null, "World file");
+        opts.addString('s', "sim-config", null, "Configuration file for the Simulator");
         opts.addInt('\0', "fps", 10, "Maximum frame rate");
 
         if (!opts.parse(args) || opts.getBoolean("help") || opts.getExtraArgs().size() > 0) {
@@ -241,7 +243,15 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
 
         KUtils.createDepthMap();
-        new Bolt(opts);
+        Bolt bolt = new Bolt(opts);
+        if (opts.getBoolean("arm")) {
+            //ArmDriver armDriver = new ArmDriver();  // XXX This needs to launch from the command line, currently, for setup
+            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
+            BoltArmController controller = new BoltArmController();
+            if (opts.getBoolean("debug")) {
+                BoltArmDemo demo = new BoltArmDemo(null); // XXX This won't quite make sense
+            }
+        }
     }
 }
 

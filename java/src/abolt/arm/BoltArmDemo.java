@@ -43,7 +43,7 @@ public class BoltArmDemo implements LCMSubscriber
 
         // If we're simulating, we spoof our own ARM_STATUS messages. Otherwise,
         // we just run normally.
-        if (opts.getBoolean("sim")) {
+        if (opts != null && opts.getBoolean("sim")) {
             st = new SimulationThread();
             st.start();
         }

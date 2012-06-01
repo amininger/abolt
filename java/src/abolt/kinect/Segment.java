@@ -9,10 +9,11 @@ import java.util.*;
 
 public class Segment
 {
-    static Segment singleton = null;
+    private static Segment singleton = null;
     public static Segment getSingleton()
     {
         if (singleton == null) {
+            System.err.println("Create singleton");
             singleton = new Segment();
         }
         return singleton;
