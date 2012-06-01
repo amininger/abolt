@@ -66,7 +66,7 @@ public class SimKinect implements IBoltCamera{
 	}
 
 	private void update(){
-		updatePosition(Bolt.getSimulator().getLayer().cameraManager.getCameraTarget());
+		updatePosition(sim.getLayer().cameraManager.getCameraTarget());
 		HashMap<Integer, ObjectInfo> info = new HashMap<Integer, ObjectInfo>();
 
         // XXX This is the offending bit of code. Fakes data on objects from sim world.
@@ -81,7 +81,8 @@ public class SimKinect implements IBoltCamera{
 				}
 			}
 		}
-		Bolt.getObjectManager().updateObjects(info);
+		//Bolt.getObjectManager().updateObjects(info);
+        BoltObjectManager.getSingleton().updateObjects(info);
 	}
 
 	private void updatePosition(CameraPosition camPos){

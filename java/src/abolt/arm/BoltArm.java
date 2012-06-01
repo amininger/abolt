@@ -1,11 +1,16 @@
 package abolt.arm;
 
 import java.util.*;
+import java.io.*;
+import java.awt.*;
 
 import lcm.lcm.*;
 
 import april.util.*;
 import april.jmat.*;
+import april.vis.*;
+
+import abolt.lcmtypes.*;
 
 /** Global inteface to the physical bolt arm. Contains the joints
  *  for the arm as well as the current status. Objects interested
@@ -14,7 +19,6 @@ import april.jmat.*;
  */
 public class BoltArm implements LCMSubscriber
 {
-    private static BoltArm singleton = null;
     private LCM lcm = LCM.getSingleton();
 
     final static double baseHeight = 0.075;
@@ -29,6 +33,7 @@ public class BoltArm implements LCMSubscriber
         lcm.subscribe("ARM_STATUS", this);
     }
 
+    private static BoltArm singleton = null;
     synchronized public static BoltArm getSingleton()
     {
         if (singleton == null) {
@@ -39,8 +44,9 @@ public class BoltArm implements LCMSubscriber
     }
 
     /** Create a model of the arm. Change segment
-     *  dimensions and constraints on movement here */
-    private void ArrayList<Joint> initArm()
+     *  dimensions and constraints on movement here
+     */
+    private void initArm()
     {
         joints = new ArrayList<Joint>();
         Joint j0, j1, j2, j3, j4, j5;
@@ -89,8 +95,6 @@ public class BoltArm implements LCMSubscriber
         joints.add(j3);
         joints.add(j4);
         joints.add(j5);
-
-        return joints;
     }
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
@@ -103,7 +107,7 @@ public class BoltArm implements LCMSubscriber
         }
     }
 
-    public void messageReceivedEx(LCM lcm, String channel, LCMDataInputStream ins)
+    public void messageReceivedEx(LCM lcm, String channel, LCMDataInputStream ins) throws IOException
     {
         if (channel.equals("ARM_STATUS")) {
             // Handle arm status. Updates the joint internal state
@@ -165,6 +169,13 @@ public class BoltArm implements LCMSubscriber
         return joints.get(idx).getLength();
     }
 
+    public dynamixel_command_t getCommand(int idx)
+    {
+        if (idx >= joints.size())
+            return null;
+        return joints.get(idx).getArmCommand();
+    }
+
     /** Set the position of servo idx to pos */
     public void setPos(int idx, double pos)
     {
@@ -192,7 +203,7 @@ public class BoltArm implements LCMSubscriber
             LinAlg.timesEquals(xform, j.getRotation());
             vb.addBack(new VisChain(LinAlg.copy(xform),
                                     j.getVis()));
-            LinAlg.timesEquals(xform. j.getTranslation());
+            LinAlg.timesEquals(xform, j.getTranslation());
         }
         vb.swap();
     }

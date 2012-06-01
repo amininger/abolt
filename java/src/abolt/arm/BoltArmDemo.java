@@ -63,7 +63,9 @@ public class BoltArmDemo implements LCMSubscriber
         }
     }
 
+    // XXX Highlight if/for etc stuff
     public void messageReceivedEx(LCM lcm, String channel, LCMDataInputStream ins) throws IOException
+    {
         if (channel.equals("OBSERVATIONS")) {
             // Place observations on the map
             observations_t obs = new observations_t(ins);
@@ -127,7 +129,7 @@ public class BoltArmDemo implements LCMSubscriber
         {
             while (true) {
                 // Render Arm
-                arm.render();
+                arm.render(vw);
 
                 // Draw current goal
                 {
@@ -303,12 +305,12 @@ public class BoltArmDemo implements LCMSubscriber
 
                 long utime = TimeUtil.utime();
                 dynamixel_status_list_t dsl = new dynamixel_status_list_t();
-                dsl.len = arm.joints.size();
+                dsl.len = arm.getJoints().size();   // XXX
                 dsl.statuses = new dynamixel_status_t[dsl.len];
                 for (int i = 0; i < dsl.len; i++) {
                     dynamixel_status_t status = new dynamixel_status_t();
                     status.utime = utime;
-                    status.position_radians = arm.getDesiredPosition(idx);
+                    status.position_radians = arm.getDesiredPos(i);
                     // XXX Ignore the rest of the values we could set
                     // for now. Could later get clever and actually set
                     // these in a way that simulates movement

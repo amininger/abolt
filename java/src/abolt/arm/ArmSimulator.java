@@ -25,9 +25,9 @@ import april.vis.VisObject;
 import april.vis.VzCircle;
 import april.vis.VzMesh;
 
-import lcm.lcm.LCM;
-import lcm.lcm.LCMDataInputStream;
-import lcm.lcm.LCMSubscriber;
+import lcm.lcm.*;
+
+import abolt.bolt.*;
 
 public class ArmSimulator implements LCMSubscriber{
 	private ActionMode curState = ActionMode.WAIT;
@@ -49,8 +49,13 @@ public class ArmSimulator implements LCMSubscriber{
 	int stepsLeft = 0;
 
 
-	public ArmSimulator(){
+    // BoltSimulator arm interacts in
+    BoltSimulator boltSim;  // XXX Revisit this
+
+	public ArmSimulator(BoltSimulator boltSim){
         lcm.subscribe("ROBOT_COMMAND", this);
+
+        this.boltSim = boltSim;
 
         pos = new double[]{0, 0, 0.001};
         goal = new double[]{0, 0};
@@ -104,7 +109,7 @@ public class ArmSimulator implements LCMSubscriber{
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
 			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
-		Bolt.getSimulator().drawVisObjects("arm", visObjs);
+		boltSim.drawVisObjects("arm", visObjs);
 	}
 
 	private void executeCommand(robot_command_t command){

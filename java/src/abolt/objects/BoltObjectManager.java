@@ -2,9 +2,10 @@ package abolt.objects;
 
 import java.util.*;
 
-import abolt.bolt.Bolt;
+import abolt.bolt.*;
 import abolt.kinect.*;
 import abolt.lcmtypes.object_data_t;
+import abolt.classify.*;
 
 /** Maintains state about the objects in the world */
 public class BoltObjectManager {
@@ -13,7 +14,7 @@ public class BoltObjectManager {
     public static BoltObjectManager getSingleton()
     {
         if (singleton == null) {
-            singleton = BoltObjectManager();
+            singleton = new BoltObjectManager();
         }
         return singleton;
     }
@@ -52,7 +53,7 @@ public class BoltObjectManager {
 	            objects.remove(id);
 	        }
 		}
-		Bolt.getSimulator().drawObjects(objects);
+		//Bolt.getSimulator().drawObjects(objects);
 	}
 
 	public object_data_t[] getObjectData() {

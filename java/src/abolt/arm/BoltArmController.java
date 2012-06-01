@@ -24,7 +24,8 @@ public class BoltArmController implements LCMSubscriber
     int Hz = 25;
 
     // Arm parameters and restrictions
-    ArrayList<Joint> joints;
+    BoltArm arm = BoltArm.getSingleton();
+    //ArrayList<Joint> joints;
     double[] l;
     double baseHeight   = BoltArm.baseHeight;
 
@@ -102,7 +103,6 @@ public class BoltArmController implements LCMSubscriber
 
         // previous command/status state
         dynamixel_command_list_t last_cmds;
-        dynamixel_status_list_t last_status;
 
         // General planning
         double minR         = 0.10;     // Minimum distance away from arm center at which we plan
@@ -129,22 +129,17 @@ public class BoltArmController implements LCMSubscriber
             while (true) {
                 TimeUtil.sleep(1000/Hz);
 
+                // XXX We want to remove this anyway. Oh well
                 // Compute arm end-effector position over time from status messages
-                dynamixel_status_list_t dsl = statuses.get();
-                if (dsl != null) {
-                    double[][] xform = LinAlg.translate(0,0,BoltArm.baseHeight);
-                    for (int i = 0; i < dsl.len; i++) {
-                        if (i == 0) {
-                            LinAlg.timesEquals(xform, LinAlg.rotateZ(dsl.statuses[i].position_radians));
-                        } else if (i+2 < dsl.len) {
-                            LinAlg.timesEquals(xform, LinAlg.rotateY(dsl.statuses[i].position_radians));
-                        }
-                        LinAlg.timesEquals(xform, joints.get(i).getTranslation());
-                    }
-                    double[] currXYZ = LinAlg.resize(LinAlg.matrixToXyzrpy(xform), 3);
-                    //System.out.printf("[%f %f %f]\n", currXYZ[0], currXYZ[1], currXYZ[2]);
-                    ptracker.add(currXYZ, TimeUtil.utime());
+                double[][] xform = LinAlg.translate(0,0,BoltArm.baseHeight);
+                ArrayList<Joint> joints = arm.getJoints();
+                for (int i = 0; i < joints.size(); i++) {
+                    LinAlg.timesEquals(xform, joints.get(i).getRotation());
+                    LinAlg.timesEquals(xform, joints.get(i).getTranslation());
                 }
+                double[] currXYZ = LinAlg.resize(LinAlg.matrixToXyzrpy(xform), 3);
+                //System.out.printf("[%f %f %f]\n", currXYZ[0], currXYZ[1], currXYZ[2]);
+                ptracker.add(currXYZ, TimeUtil.utime());
 
                 // Action handler - get the most recent command
                 bolt_arm_command_t cmd = cmds.peek();
@@ -175,13 +170,11 @@ public class BoltArmController implements LCMSubscriber
                         resetArm();
                     }
                 }
-                last_status = dsl;
 
                 // If we are no longer acting, remove that command
                 if (curAction == ActionMode.WAIT) {
                     cmds.poll();
                 }
-
 
                 dynamixel_command_list_t desired_cmds = getArmCommandList();
                 lcm.publish("ARM_COMMAND", desired_cmds);
@@ -199,14 +192,16 @@ public class BoltArmController implements LCMSubscriber
             ptracker.clear();
         }
 
+        // XXX Gross arm interface stuff
         private dynamixel_command_list_t getArmCommandList()
         {
+            ArrayList<Joint> joints = arm.getJoints();
             dynamixel_command_list_t acmds = new dynamixel_command_list_t();
             acmds.len = joints.size();
             acmds.commands = new dynamixel_command_t[acmds.len];
             long utime = TimeUtil.utime();
             for (int i = 0; i < joints.size(); i++) {
-                dynamixel_command_t cmd = joints.get(i).getArmCommand();
+                dynamixel_command_t cmd = arm.getCommand(i);
                 cmd.utime = utime;
                 acmds.commands[i] = cmd;
             }
@@ -305,8 +300,7 @@ public class BoltArmController implements LCMSubscriber
             } else if (state == 1) {
                 moveTo(goal, transHeight);
 
-                RevoluteJoint j = (RevoluteJoint)joints.get(0);
-                j.set(newAngle);
+                arm.setPos(0, newAngle);
 
                 if (error < stableError) {
                     setState(state+1);
@@ -314,8 +308,7 @@ public class BoltArmController implements LCMSubscriber
             } else if (state == 2) {
                 moveTo(goal, sweepHeight, sweepHeight*1.9);
 
-                RevoluteJoint j = (RevoluteJoint)joints.get(0);
-                j.set(newAngle);
+                arm.setPos(0, newAngle);
 
                 if (error < stableError) {
                     setState(state+1);
@@ -369,7 +362,7 @@ public class BoltArmController implements LCMSubscriber
             //      7: Switch action state back to waiting
             if (state == 0) {
                 // Open hand
-                joints.get(5).set(defGrip);
+                arm.setPos(5, defGrip); // XXX Set to default grip
                 curAction = ActionMode.GRAB;
 
                 if (prev == null) {
@@ -401,45 +394,39 @@ public class BoltArmController implements LCMSubscriber
                     setState(state+1);
                 }
             } else if (state == 4) {
-                HandJoint j = (HandJoint)(joints.get(5));
-                dynamixel_status_list_t dsl = statuses.get();
-                if (dsl == null) {
-                    j.set(defGrip);
+                dynamixel_status_t ds = arm.getStatus(5);
+                if (ds == null) {
+                    arm.setPos(5, defGrip);
                     return;
                 }
-                dynamixel_status_t gripper_status = dsl.statuses[5];
 
                 // Start the hand closing
-                j.set(112.0);
-                if (gripper_status.speed > minSpeed) {
+                arm.setPos(5, 112.0);
+                if (ds.speed > minSpeed) {
                     setState(state+1);
                 }
             } else if (state == 5) {
                 // Check for hand contact with semi-rigid object (we'll stop moving)
-                HandJoint j = (HandJoint)(joints.get(5));
-                dynamixel_status_list_t dsl = statuses.get();
-                if (dsl == null) {
-                    j.set(defGrip);
+                dynamixel_status_t ds = arm.getStatus(5);
+                if (ds == null) {
+                    arm.setPos(5, defGrip);
                     return;
                 }
 
-                dynamixel_status_t gripper_status = dsl.statuses[5];
-                double speed = Math.abs(gripper_status.speed);
+                double speed = Math.abs(ds.speed);
 
                 if (speed < minSpeed) {
-                    j.set(gripper_status.position_radians);
+                    arm.setPos(5, ds.position_radians);
                     setState(state+1);
                 }
             } else if (state == 6) {
                 // Tweak grip strength so we don't break the hand
-                HandJoint j = (HandJoint)(joints.get(5));
-                dynamixel_status_list_t dsl = statuses.get();
-                if (dsl == null) {
-                    j.set(defGrip);
+                dynamixel_status_t gripper_status = arm.getStatus(5);
+                if (gripper_status == null) {
+                    arm.setPos(5, defGrip);
                     return;
                 }
 
-                dynamixel_status_t gripper_status = dsl.statuses[5];
                 double maxLoad = 0.35;
                 double minLoad = 0.20;
                 double gripIncr = Math.toRadians(3.0);
@@ -448,17 +435,18 @@ public class BoltArmController implements LCMSubscriber
 
                 if (gripper_status.load <= 0.0 && load < minLoad) {
                     //System.out.println("Grip moar");
-                    j.set(gripper_status.position_radians + gripIncr);
+                    arm.setPos(5, gripper_status.position_radians + gripIncr);
                 } else if (gripper_status.load <= 0.0 && load > maxLoad) {
                     //System.out.println("Grip less");
-                    j.set(gripper_status.position_radians - gripIncr);
-                }else{
+                    arm.setPos(5, gripper_status.position_radians - gripIncr);
+                } else {
                     setState(state+1);
                 }
             } else if (state == 7) {
-                dynamixel_status_list_t dsl = statuses.get();
-                if (dsl != null) {
-                    if (Math.abs(dsl.statuses[5].position_radians - defGrip) < Math.toRadians(5.0)) {
+                // XXX Gross magic number
+                dynamixel_status_t gripper_status = arm.getStatus(5);
+                if (gripper_status != null) {
+                    if (Math.abs(gripper_status.position_radians - defGrip) < Math.toRadians(5.0)) {
                         grabbedObject = 0;
                     } else {
                         grabbedObject = toGrab;
@@ -490,11 +478,11 @@ public class BoltArmController implements LCMSubscriber
                 pointStateMachine();
                 curAction = ActionMode.DROP;
             } else if (state == 3) {
-                HandJoint j = (HandJoint)(joints.get(5));
-                j.set(defGrip);
-                dynamixel_status_list_t dsl = statuses.get();
-                if(dsl != null){
-                    if(Math.abs(dsl.statuses[5].position_radians - defGrip) < Math.toRadians(5.0))
+                // XXX Again, ew with the constants of magic
+                arm.setPos(5, defGrip);
+                dynamixel_status_t gripper_status = arm.getStatus(5);
+                if (gripper_status != null) {
+                    if (Math.abs(gripper_status.position_radians - defGrip) < Math.toRadians(5.0))
                         setState(state+1);
                 }
             } else if (state == 4) {
@@ -507,10 +495,11 @@ public class BoltArmController implements LCMSubscriber
 
         private void resetArm()
         {
-            for (Joint j: joints) {
-                j.set(0.0);
+            // XXX Need better thing than direct joint access
+            for (int i = 0; i < arm.getJoints().size(); i++) {
+                arm.setPos(i, 0);
             }
-            joints.get(5).set(defGrip);
+            arm.setPos(5, defGrip);
         }
 
         private void moveTo(double[] goal, double height)
@@ -584,9 +573,9 @@ public class BoltArmController implements LCMSubscriber
             //t[5] = Math.toRadians(112.0); XXX
 
             for (int i = 0; i < 4; i++) {
-                joints.get(i).set(t[i]);
+                arm.setPos(i, t[i]);
             }
-            joints.get(4).set(last_cmd.wrist);  //
+            arm.setPos(4, last_cmd.wrist);  // XXX Persistent wrist command?
         }
 
         // Plans with wrist able to take different orientations
@@ -614,9 +603,9 @@ public class BoltArmController implements LCMSubscriber
             //t[5] = Math.toRadians(112.0); XXX
 
             for (int i = 0; i < 4; i++) {
-                joints.get(i).set(t[i]);
+                arm.setPos(i, t[i]);
             }
-            joints.get(4).set(last_cmd.wrist);
+            arm.setPos(4, last_cmd.wrist);  // XXX Persistent wrist command?
         }
 
         // Just point the arm towards the goal...Points a little low. XXX Controller?
@@ -637,9 +626,9 @@ public class BoltArmController implements LCMSubscriber
             //t[5] = Math.toRadians(112.0); XXX
 
             for (int i = 0; i < 4; i++) {
-                joints.get(i).set(t[i]);
+                arm.setPos(i, t[i]);
             }
-            joints.get(4).set(last_cmd.wrist);
+            arm.setPos(4, last_cmd.wrist);  // XXX Persistent wrist command?
         }
     }
 
@@ -651,7 +640,6 @@ public class BoltArmController implements LCMSubscriber
         ControlThread ct = new ControlThread();
         ct.start();
 
-        lcm.subscribe("ARM_STATUS", this);
         lcm.subscribe("BOLT_ARM_COMMAND", this);
     }
 
@@ -661,15 +649,10 @@ public class BoltArmController implements LCMSubscriber
      */
     private void initArm()
     {
-        joints = BoltArm.initArm();
-        l = new double[6];
-        int i = 0;
-        for (Joint j: joints) {
-            if (j instanceof RevoluteJoint) {
-                l[i++] = ((RevoluteJoint)j).getLength();
-            } else if (j instanceof HandJoint) {
-                l[i++] = ((HandJoint)j).getLength();
-            }
+        // XXX We shouldn't have to do this! All of this lives in the arm, now
+        l = new double[arm.getJoints().size()];
+        for (int i = 0; i < l.length; i++) {
+            l[i] = arm.getLength(i);
         }
     }
 
@@ -686,14 +669,7 @@ public class BoltArmController implements LCMSubscriber
     /** Responds to messages such as arm statuses and robot commands. */
     public void messageReceivedEx(LCM lcm, String channel, LCMDataInputStream ins) throws IOException
     {
-        if (channel.equals("ARM_STATUS")) {
-            dynamixel_status_list_t dsl = new dynamixel_status_list_t(ins);
-            long utime = Long.MAX_VALUE;
-            for (dynamixel_status_t s: dsl.statuses) {
-                utime = Math.min(utime, s.utime);
-            }
-            statuses.put(dsl, utime);
-        } else if (channel.equals("BOLT_ARM_COMMAND")) {
+        if (channel.equals("BOLT_ARM_COMMAND")) {
             //robot_command_t cmd = new robot_command_t(ins);
             bolt_arm_command_t cmd = new bolt_arm_command_t(ins);
             //cmds.put(cmd, cmd.utime);
@@ -701,12 +677,6 @@ public class BoltArmController implements LCMSubscriber
         }
     }
 
-    // ==================================================
-    // === Get rendering information ===
-    public ArrayList<Joint> getJoints()
-    {
-        return joints;
-    }
 
     // ==================================================
     static public void main(String[] args)

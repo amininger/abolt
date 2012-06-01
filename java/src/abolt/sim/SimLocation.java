@@ -5,11 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import abolt.bolt.Bolt;
-import abolt.classify.SimFeatures;
-import abolt.classify.Features.FeatureCategory;
-import abolt.objects.BoltObject;
-import abolt.util.SimUtil;
 import april.jmat.LinAlg;
 import april.sim.BoxShape;
 import april.sim.Shape;
@@ -23,6 +18,12 @@ import april.vis.VisObject;
 import april.vis.VzLines;
 import april.vis.VzRectangle;
 import april.vis.VzText;
+
+import abolt.bolt.Bolt;
+import abolt.classify.SimFeatures;
+import abolt.classify.Features.FeatureCategory;
+import abolt.objects.*;
+import abolt.util.SimUtil;
 
 public class SimLocation implements SimSensable, SimObject {
     protected VisObject model;

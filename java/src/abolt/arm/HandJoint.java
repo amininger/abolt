@@ -71,7 +71,7 @@ public class HandJoint implements Joint
     public dynamixel_command_t getArmCommand()
     {
         dynamixel_command_t cmd = new dynamixel_command_t();
-        cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.aAngle, params.rMin, params.rMax));
+        cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.dAngle, params.rMin, params.rMax));
 
         cmd.speed = HAND_SPEED;
         cmd.max_torque = 0.5;

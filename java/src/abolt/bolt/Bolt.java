@@ -39,12 +39,6 @@ public class Bolt extends JFrame implements LCMSubscriber
 		}
 		return boltInstance.camera;
 	}
-	public static Segment getSegment(){
-		if(boltInstance == null || !(boltInstance.camera instanceof KinectCamera)){
-			return null;
-		}
-		return ((KinectCamera)boltInstance.camera).getSegment();
-	}
 
     private BoltObjectManager objectManager;
     private SensableManager sensableManager;
@@ -86,9 +80,6 @@ public class Bolt extends JFrame implements LCMSubscriber
             ioex.printStackTrace();
         }
 
-
-        setupMenuBar();
-
         // Initialize classifier manager
         classifierManager = ClassifierManager.getSingleton();
         classifierManager.addClassifiers(config);
@@ -100,6 +91,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     	objectManager = BoltObjectManager.getSingleton();
 
         // Initialize simulator
+        // XXX I Guess we're still requesting a sim from bolt?
         simulator = new BoltSimulator(opts);
 
         // If we specify that we would like to use an actual kinect,
@@ -109,14 +101,14 @@ public class Bolt extends JFrame implements LCMSubscriber
         if(opts.getBoolean("kinect")){
         	camera = new KinectCamera();
             // XXX We'd like to remove this middleman to the arm
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
+            //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
         	camera = new SimKinect(800, 600, simulator);
-        	armSimulator = new ArmSimulator();
+        	armSimulator = new ArmSimulator(simulator);
         }
 
     	this.add(simulator.getCanvas());
-    	this.setJMenuBar(getMenuBar());
+    	this.setJMenuBar(createMenuBar());
 
         // Subscribe to LCM
         lcm.subscribe("TRAINING_DATA", this);
@@ -136,7 +128,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     }
 
 
-    private static JMenuBar getMenuBar(){
+    public static JMenuBar createMenuBar(){
     	JMenuBar menuBar = new JMenuBar();
         JMenu controlMenu = new JMenu("Control");
         JMenuItem clearData, reloadData;

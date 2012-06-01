@@ -166,12 +166,12 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
     }
 
-    public BoltArmCommandInterpreter(Segment seg_)
+    public BoltArmCommandInterpreter()
     {
-        this(seg_, false);
+        this(false);
     }
 
-    public BoltArmCommandInterpreter(Segment seg_, boolean debug_)
+    public BoltArmCommandInterpreter(boolean debug_)
     {
         debug = debug_;
         if (debug) {
@@ -181,7 +181,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
         // We'll reference this, or some equivalent, later when
         // recovering point cloud data
-        seg = seg_;
+        seg = Segment.getSingleton();
 
         // Soar sends us robot commands through this channel, ordering
         // us to "POINT", "GRAB", and "DROP" objects.
@@ -647,6 +647,6 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
     static public void main(String[] args)
     {
-        BoltArmCommandInterpreter baci = new BoltArmCommandInterpreter(null);
+        BoltArmCommandInterpreter baci = new BoltArmCommandInterpreter(true);
     }
 }

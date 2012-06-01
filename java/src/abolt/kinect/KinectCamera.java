@@ -7,9 +7,11 @@ import java.util.HashMap;
 import lcm.lcm.LCM;
 import lcm.lcm.LCMDataInputStream;
 import lcm.lcm.LCMSubscriber;
+
 import abolt.bolt.Bolt;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.lcmtypes.kinect_status_t;
+import abolt.objects.*;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
@@ -25,13 +27,10 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     private ArrayList<double[]> pointCloudData = null;
 
     public KinectCamera(){
-    	segment = new Segment((int)(KUtils.viewRegion.width),
-                (int)(KUtils.viewRegion.height));
+    	//segment = new Segment((int)(KUtils.viewRegion.width),
+        //        (int)(KUtils.viewRegion.height));
+        segment = Segment.getSingleton();
     	lcm.subscribe("KINECT_STATUS", this);
-    }
-
-    public Segment getSegment(){
-    	return segment;
     }
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
@@ -68,7 +67,9 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
             }
             pointCloudData = extractPointCloudData(kinectData);
             if(pointCloudData.size() > 0){
-                segment.segmentFrame(pointCloudData);
+                segment.segmentFrame(pointCloudData,
+                                     KUtils.viewRegion.width,
+                                     KUtils.viewRegion.height);
                 synchronized(segment.objects){
                 	HashMap<Integer, ObjectInfo> objInfoList = new HashMap<Integer, ObjectInfo>();
                 	for(ObjectInfo info : segment.objects.values()){
@@ -78,7 +79,8 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         	        		objInfoList.put(info.repID, info);
         	        	}
                     }
-                	Bolt.getObjectManager().updateObjects(objInfoList);
+                	//Bolt.getObjectManager().updateObjects(objInfoList);
+                    BoltObjectManager.getSingleton().updateObjects(objInfoList);
                 }
             }
         }
