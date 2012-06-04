@@ -7,3 +7,15 @@ training {
     shape_data = "/home/aaron/bolt/abolt/java/dat/shape_features.dat";
     size_data = "/home/aaron/bolt/abolt/java/dat/size_features.dat";
 }
+
+arm {
+    device = "/dev/ttyUSB0";    // Default device location
+
+    // Specify PID controllers for servo ids
+    // format: pid# = [IDNUM, p, i, d]
+    pids {
+        pid# = [0, 16, 2, 1];
+        pid# = [1, 24, 4, 1];
+        pid# = [2, 24, 4, 1];
+    }
+}

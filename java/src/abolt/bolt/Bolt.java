@@ -236,17 +236,27 @@ public class Bolt extends JFrame implements LCMSubscriber
             return;
         }
 
+        Config config;
         if (opts.getString("config") == null) {
             System.out.println("Usage: Must specify a configuration file");
             opts.doHelp();
             return;
+        } else {
+            try {
+                config = new ConfigFile(opts.getString("config"));
+            } catch (IOException ioex) {
+                System.err.println("ERR: "+ioex);
+                ioex.printStackTrace();
+                return;
+            }
         }
 
         KUtils.createDepthMap();
         Bolt bolt = new Bolt(opts);
         if (opts.getBoolean("arm")) {
-            //ArmDriver armDriver = new ArmDriver();  // XXX This needs to launch from the command line, currently, for setup
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
+            ArmDriver armDriver = new ArmDriver(config);
+            (new Thread(armDriver)).start();
+            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(false);//opts.getBoolean("debug"));
             BoltArmController controller = new BoltArmController();
             if (opts.getBoolean("debug")) {
                 BoltArmDemo demo = new BoltArmDemo(null); // XXX This won't quite make sense
