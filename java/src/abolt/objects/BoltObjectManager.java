@@ -2,18 +2,29 @@ package abolt.objects;
 
 import java.util.*;
 
-import abolt.bolt.Bolt;
+import abolt.bolt.*;
 import abolt.kinect.*;
 import abolt.lcmtypes.object_data_t;
+import abolt.classify.*;
 
+/** Maintains state about the objects in the world */
 public class BoltObjectManager {
 
+    static BoltObjectManager singleton = null;
+    public static BoltObjectManager getSingleton()
+    {
+        if (singleton == null) {
+            singleton = new BoltObjectManager();
+        }
+        return singleton;
+    }
+
     public HashMap<Integer, BoltObject> objects;
-    
-    public BoltObjectManager(){
+
+    private BoltObjectManager(){
     	objects = new HashMap<Integer, BoltObject>();
     }
-    
+
 	public void updateObjects(HashMap<Integer, ObjectInfo> objectInfo) {
 		synchronized(objects){
 	        Set<Integer> objsToRemove = new HashSet<Integer>();
@@ -21,7 +32,7 @@ public class BoltObjectManager {
 	        	// Start out assuming we will remove all the objects
 	            objsToRemove.add(id);
 	        }
-	        
+
 	        for (ObjectInfo info : objectInfo.values()) {
 	        	int id = info.repID;
 	        	BoltObject obj;
@@ -35,16 +46,15 @@ public class BoltObjectManager {
 	                objects.put(id, obj);
 	            }
 	            obj.updateObject(info);
-	            Bolt.getClassifierManager().updateObject(obj);
+	            ClassifierManager.getSingleton().updateObject(obj);
 	        }
-	
+
 	        for (Integer id : objsToRemove) {
 	            objects.remove(id);
 	        }
 		}
-		Bolt.getSimulator().drawObjects();
 	}
-	
+
 	public object_data_t[] getObjectData() {
 		ArrayList<object_data_t> objData = new ArrayList<object_data_t>();
 		synchronized(objects){

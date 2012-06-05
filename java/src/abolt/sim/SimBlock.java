@@ -12,7 +12,6 @@ import april.vis.*;
 import april.util.*;
 
 import abolt.bolt.Bolt;
-import abolt.classify.ClassifierManager;
 import abolt.classify.SimFeatures;
 import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.categorized_data_t;
@@ -31,25 +30,25 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
     protected int id;
     protected Shape shape;
     protected VisObject model;
-    
+
     private abolt.collision.Shape aboltShape;
 
     public SimBlock(SimWorld sw)
     {
     	id = SimUtil.nextID();
     }
-    
+
 	@Override
 	public int getID() {
 		return id;
 	}
 
-    
+
     @Override
     public Color getColor(){
     	return color;
     }
-    
+
     @Override
 	public boolean inActionRange(double[] xyt) {
 		return true;
@@ -74,7 +73,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
 	public void setPose(double[][] pose) {
 		this.pose = pose;
 	}
-	
+
 	@Override
 	public void setPos(double[] xyzrpy) {
 		this.pose = LinAlg.xyzrpyToMatrix(xyzrpy);
@@ -83,7 +82,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
 	@Override
 	public void setRunning(boolean arg0) {
 	}
-    
+
     @Override
     public abolt.collision.Shape getAboltShape(){
     	return aboltShape;
@@ -94,7 +93,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
     	pose = LinAlg.xyzrpyToMatrix(ins.readDoubles());
         colorStr = ins.readString();
         shapeStr = ins.readString();
-        sizeStr = ins.readString();       
+        sizeStr = ins.readString();
         color = SimFeatures.getColorValue(colorStr);
         double sizeScale = .05 * SimFeatures.getSizeValue(sizeStr);
         aboltShape = SimFeatures.getShape(shapeStr, sizeScale);

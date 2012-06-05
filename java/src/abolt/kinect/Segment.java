@@ -9,6 +9,17 @@ import java.util.*;
 
 public class Segment
 {
+    private static Segment singleton = null;
+    public static Segment getSingleton()
+    {
+        if (singleton == null) {
+            System.err.println("Create singleton");
+            singleton = new Segment();
+        }
+        return singleton;
+    }
+
+
     final static int COLOR_THRESH = 13;
     final static double UNION_THRESH = 0.5;
     final static double RANSAC_THRESH = .015;
@@ -38,10 +49,8 @@ public class Segment
                                     0xff0099CC, 0xffD1FF47, 0xffC2FF0A, 0xffCC9900,
                                     0xff00CC99, 0xff00CC33, 0xff33CC00, 0xff99CC00};
 
-    public Segment(int w, int h)
+    public Segment()
     {
-        width = w;
-        height = h;
         floorPlane = new double[4];
         floorFound = false;
         objects = new HashMap<Integer, ObjectInfo>();
@@ -54,8 +63,10 @@ public class Segment
 
     /** First segment the frame into objects and then get the features
      ** for each object. **/
-    public void segmentFrame(ArrayList<double[]> currentPoints)
+    public void segmentFrame(ArrayList<double[]> currentPoints, int w, int h)
     {
+        width = w;
+        height = h;
         points = currentPoints;
         coloredPoints.clear();
         unionFind();
