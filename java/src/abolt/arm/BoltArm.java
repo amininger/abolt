@@ -169,6 +169,20 @@ public class BoltArm implements LCMSubscriber
         return joints.get(idx).getLength();
     }
 
+    public double getMinValue(int idx)
+    {
+        if (idx >= joints.size())
+            return Double.MAX_VALUE;
+        return joints.get(idx).getMinValue();
+    }
+
+    public double getMaxValue(int idx)
+    {
+        if (idx >= joints.size())
+            return Double.MAX_VALUE;
+        return joints.get(idx).getMaxValue();
+    }
+
     public dynamixel_command_t getCommand(int idx)
     {
         if (idx >= joints.size())
