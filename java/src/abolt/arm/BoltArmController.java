@@ -29,77 +29,41 @@ public class BoltArmController implements LCMSubscriber
     double[] l;
     double baseHeight   = BoltArm.baseHeight;
 
+    // State Tracking
+    enum ActionState
+    {
+        POINT_UP_CURR, POINT_UP_OVER, POINT_AT, POINT_WAITING,
+        GRAB_UP_CURR, GRAB_UP_BEHIND, GRAB_APPROACH,
+            GRAB_AT, GRAB_START_GRIP, GRAB_GRIPPING,
+            GRAB_ADJUST_GRIP, GRAB_HOME, GRAB_WAITING,
+        DROP_UP_CURR, DROP_UP_OVER, DROP_AT, DROP_RELEASE,
+            DROP_HOME, DROP_WAITING,
+        HOME_WAITING,
+    }
+    private ActionState state = ActionState.HOME_WAITING;
+
     // Track the current mode for LCM messages
-    enum ActionMode{WAIT, GRAB, POINT, DROP}
+    enum ActionMode
+    {
+        WAIT, GRAB, POINT, DROP, FAILURE
+    }
     private ActionMode curAction = ActionMode.WAIT;
     private int grabbedObject = 0;
     private int toGrab = 0;
-
-    // XXX We shouldn't need to do this. Just enact a delay for movement to
-    // occur and make sure none of the servos are active
-    class PositionTracker
-    {
-        LinkedList<Pair<double[], Long> > positions = new LinkedList<Pair<double[], Long> >();
-        long holdTime = 500000; // Time to hold position [micro s] until transitioning to next state
-        int minHistory = (int)(Hz*(holdTime/1000000.0));
-
-        public void clear()
-        {
-            positions.clear();
-        }
-
-        public void add(double[] xyz, long utime) {
-            positions.add(new Pair<double[], Long>(xyz, utime));
-        }
-
-        public double error()
-        {
-            long utime = TimeUtil.utime();
-
-            while (positions.size() > minHistory) {
-                Pair<double[], Long> front = positions.getFirst();
-                if ((utime - front.getSecond()) > holdTime) {
-                    positions.pop();
-                } else {
-                    break;
-                }
-            }
-
-            if (positions.size() < minHistory) {
-                return Double.MAX_VALUE;
-            }
-
-            double[] avgXYZ = new double[3];
-            for (Pair<double[], Long> p: positions) {
-                avgXYZ = LinAlg.add(avgXYZ, p.getFirst());
-            }
-            for (int i = 0; i < avgXYZ.length; i++) {
-                avgXYZ[i] /= positions.size();
-            }
-
-            double err = 0;
-            for (Pair<double[], Long> p: positions) {
-                err += LinAlg.magnitude(LinAlg.subtract(avgXYZ, p.getFirst()));
-            }
-
-            //System.out.println(err/positions.size());
-            return err/positions.size();
-        }
-
-    }
 
     // A simple elbow-up controller
     class ControlThread extends Thread
     {
         // Current target position
-        int state = 0;
+        boolean newAction = false;
         bolt_arm_command_t last_cmd = null;
         double[] prev = null;
         double[] goal = null;
-        PositionTracker ptracker;
 
         // Controller stability stuff
         double stableError = 0.0005;              // If position is always within this much for our window, "stable"
+        long actionStartTime = 0;           // Time the last action was started in [uSec]
+        long actionCompleteTime = 250000;   // Time to complete action in [uSec]
 
         // previous command/status state
         dynamixel_command_list_t last_cmds;
@@ -121,25 +85,12 @@ public class BoltArmController implements LCMSubscriber
 
         public ControlThread()
         {
-            ptracker = new PositionTracker();
         }
 
         public void run()
         {
             while (true) {
                 TimeUtil.sleep(1000/Hz);
-
-                // XXX We want to remove this anyway. Oh well
-                // Compute arm end-effector position over time from status messages
-                double[][] xform = LinAlg.translate(0,0,BoltArm.baseHeight);
-                ArrayList<Joint> joints = arm.getJoints();
-                for (int i = 0; i < joints.size(); i++) {
-                    LinAlg.timesEquals(xform, joints.get(i).getRotation());
-                    LinAlg.timesEquals(xform, joints.get(i).getTranslation());
-                }
-                double[] currXYZ = LinAlg.resize(LinAlg.matrixToXyzrpy(xform), 3);
-                //System.out.printf("[%f %f %f]\n", currXYZ[0], currXYZ[1], currXYZ[2]);
-                ptracker.add(currXYZ, TimeUtil.utime());
 
                 // Action handler - get the most recent command
                 bolt_arm_command_t cmd = cmds.peek();
@@ -151,7 +102,8 @@ public class BoltArmController implements LCMSubscriber
                     last_cmd = cmd;
                     prev = goal;
                     goal = LinAlg.resize(cmd.xyz, 2);
-                    setState(0);
+                    //setState(0);
+                    newAction = true;
                     if(cmd.action.contains("GRAB")){
                         toGrab = cmd.obj_id;
                     }
@@ -164,12 +116,16 @@ public class BoltArmController implements LCMSubscriber
                         grabStateMachine();
                     } else if (last_cmd.action.contains("DROP")) {
                         dropStateMachine();
-                    } else if (last_cmd.action.contains("SWEEP")) {
-                        sweepStateMachine();
-                    } else if (last_cmd.action.contains("RESET")) {
-                        resetArm();
+                    //} else if (last_cmd.action.contains("SWEEP")) {
+                    //    sweepStateMachine();
+                    } else if (last_cmd.action.contains("RESET") ||
+                               last_cmd.action.contains("HOME"))
+                    {
+                        homeArm();
+                        curAction = ActionMode.WAIT;
                     }
                 }
+                newAction = false;
 
                 // If we are no longer acting, remove that command
                 if (curAction == ActionMode.WAIT) {
@@ -180,16 +136,39 @@ public class BoltArmController implements LCMSubscriber
                 lcm.publish("ARM_COMMAND", desired_cmds);
                 robot_action_t current_action = getCurrentAction();
                 lcm.publish("ROBOT_ACTION", current_action);
-
             }
         }
 
-        void setState(int s)
+        /** Set the state and reset the internal clock counter */
+        void setState(ActionState s)
         {
             assert (last_cmd != null);
-            System.out.printf("%s: [%d]\n", last_cmd.action, s);
+            System.out.printf("%s: [%s]\n", last_cmd.action, s.toString());
             state = s;
-            ptracker.clear();
+
+            actionStartTime = TimeUtil.utime();
+        }
+
+        /** Returns true when the arm completes its current action. */
+        private boolean actionComplete()
+        {
+            long timePast = TimeUtil.utime() - actionStartTime;
+
+            // Must wait at least as long as our action timer specifies
+            if (timePast < actionCompleteTime) {
+                return false;
+            }
+
+            // XXX Need a num joints thing or something
+            // Iterate through the joints and see if they're all moving or not
+            for (int i = 0; i < arm.getJoints().size(); i++) {
+                dynamixel_status_t stat = arm.getStatus(i);
+                if (!MathUtil.doubleEquals(0, stat.speed)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // XXX Gross arm interface stuff
@@ -213,53 +192,69 @@ public class BoltArmController implements LCMSubscriber
             robot_action_t action = new robot_action_t();
             action.utime = TimeUtil.utime();
             action.obj_id = grabbedObject;
-            if(curAction == ActionMode.WAIT) action.action = "WAIT";
-            else if(curAction == ActionMode.POINT) action.action = "POINT";
-            else if(curAction == ActionMode.DROP) action.action = "DROP";
-            else if(curAction == ActionMode.GRAB) action.action = "GRAB";
-           return action;
+            action.action = curAction.toString();
+            return action;
         }
 
         /** Move the arm to point at the currently specified goal */
         private void pointStateMachine()
         {
-            //System.out.print("Pointing "+state);
+            // One time start up cost to set up the action
+            if (newAction) {
+                switch (state) {
+                    case HOME_WAITING:
+                    case GRAB_WAITING:
+                    case DROP_WAITING:
+                        setState(ActionState.POINT_UP_OVER);
+                        break;
+                    case POINT_WAITING:
+                        setState(ActionState.POINT_UP_CURR);
+                        break;
+                }
+            }
+
             // States:
             //      0: New command, transition to UP in current pos
             //      1: Reached UP successfully, transition to UP in new pos
             //      2: Reached UP_NEW successfully, transition to DOWN in new pos
             //      3: Change state back to waiting
             double r = LinAlg.magnitude(goal);
-            double error = ptracker.error();
-            if (state == 0) {
-                if (prev == null) {
-                    setState(state+1);
-                    return;
-                }
-                curAction = ActionMode.POINT;
-                moveTo(prev, transHeight);
 
-                // Check to see if it's time to transition
-                if (error < stableError) {
-                    setState(state+1);
-                }
+            // XXX TODO: Better pointing grip
 
-            } else if (state == 1) {
-                moveTo(goal, transHeight);
+            switch (state) {
+                case POINT_UP_CURR:
+                    curAction = ActionMode.POINT;
+                    if (prev == null) {
+                        setState(ActionState.POINT_UP_OVER);
+                    }
+                    moveTo(prev, transHeight);
 
-                // Check to see if it's time to transition
-                if (error < stableError) {
-                    setState(state+1);
-                }
-            } else if (state == 2) {
-                moveTo(goal, goalHeight);
+                    if (actionComplete()) {
+                        setState(ActionState.POINT_UP_OVER);
+                    }
+                    break;
+                case POINT_UP_OVER:
+                    moveTo(goal, transHeight);
 
-                if (error < stableError) {
-                    setState(state+1);
-                }
-            } else if (state == 3) {
-                curAction = ActionMode.WAIT;
-                //System.out.print(" CHANGED TO WAIT! ");
+                    if (actionComplete()) {
+                        setState(ActionState.POINT_AT);
+                    }
+                    break;
+                case POINT_AT:
+                    moveTo(goal, goalHeight);
+
+                    if (actionComplete()) {
+                        setState(ActionState.POINT_WAITING);
+                    }
+                    break;
+                case POINT_WAITING:
+                    curAction = ActionMode.WAIT;
+                    break;
+                default:
+                    // XXX DEBUG
+                    System.err.println("ERR: Point state "+state.toString()+" does not exist");
+                    break;
             }
         }
 
@@ -267,7 +262,8 @@ public class BoltArmController implements LCMSubscriber
          *  For now, just try to swing the arm through it to change the
          *  view point
          */
-        private void sweepStateMachine()
+        // XXX Horribly out of date. Not used. Not supported at the moment.
+        /*private void sweepStateMachine()
         {
             double r = LinAlg.magnitude(goal);
             double error = ptracker.error();
@@ -322,20 +318,30 @@ public class BoltArmController implements LCMSubscriber
             } else if (state == 3) {
                 moveTo(goal, sweepHeight);
             }
-        }
+        }*/
 
         /** Actual grab state machine. Moves to location, centering arm with gripper to
-         *  the side of goal slightly. XXX For now, assumes that block is properly aligned
-         *  for gripping. Moves above, then down, then slowly closes on object until we
+         *  the side of goal slightly. Moves above, then down, then slowly closes on object until we
          *  are confident that we are gripping to object OR we have fully closed the hand.
          *  Then we await further orders.
          */
         private void grabStateMachine()
         {
-            //System.out.print("Grabbing "+state);
+            // One time cost to start up action
+            if (newAction) {
+                switch (state) {
+                    case GRAB_WAITING:
+                    case DROP_WAITING:
+                    case HOME_WAITING:
+                        setState(ActionState.GRAB_UP_BEHIND);
+                        break;
+                    case POINT_WAITING:
+                        setState(ActionState.GRAB_UP_CURR);
+                        break;
+                }
+            }
 
             double r = LinAlg.magnitude(goal);
-            double error = ptracker.error();
 
             double angle = Math.atan2(goal[1], goal[0]);
             double minSpeed = HandJoint.HAND_SPEED/2.0;
@@ -345,8 +351,6 @@ public class BoltArmController implements LCMSubscriber
             wrVec = LinAlg.transform(LinAlg.rotateZ(angle), wrVec); // Base rotation
             wrVec = LinAlg.transform(LinAlg.rotateZ(-last_cmd.wrist), wrVec);
             wrVec = LinAlg.normalize(wrVec);
-            //System.out.printf("[%f %f]\n", wrVec[0], wrVec[1]);
-            //double[] behind = LinAlg.scale(goal, 0.80);
             double offset = 0.03;   // meters
             double[] behind = new double[] {goal[0] + (offset*wrVec[0]),
                                             goal[1] + (offset*wrVec[1])};
@@ -360,111 +364,158 @@ public class BoltArmController implements LCMSubscriber
             //      5: Check for contact with an object/hand stopping
             //      6: Adjust grip so we grab tightly, but don't break hand
             //      7: Switch action state back to waiting
-            if (state == 0) {
-                // Open hand
-                arm.setPos(5, defGrip); // XXX Set to default grip
-                curAction = ActionMode.GRAB;
-
-                if (prev == null) {
-                    setState(state+1);
-                    return;
-                }
-
-                moveTo(prev, transHeight);
-
-                if (error < stableError) {
-                    setState(state+1);
-                }
-            } else if (state == 1) {
-                moveTo(behind, transHeight);
-
-                if (error < stableError) {
-                    setState(state+1);
-                }
-            } else if (state == 2) {
-                moveTo(behind, preGrabHeight);
-
-                if (error < stableError) {
-                    setState(state+1);
-                }
-            } else if (state == 3) {
-                moveTo(goal, grabHeight, grabHeight*1.8);
-
-                if (error < stableError) {
-                    setState(state+1);
-                }
-            } else if (state == 4) {
-                dynamixel_status_t ds = arm.getStatus(5);
-                if (ds == null) {
+            dynamixel_status_t gripper_status;
+            double maxLoad = 0.35;
+            double minLoad = 0.20;
+            double gripIncr = Math.toRadians(3.0);
+            switch (state) {
+                case GRAB_UP_CURR:
+                    // Open hand
                     arm.setPos(5, defGrip);
-                    return;
-                }
+                    curAction = ActionMode.GRAB;
 
-                // Start the hand closing
-                arm.setPos(5, 112.0);
-                if (ds.speed > minSpeed) {
-                    setState(state+1);
-                }
-            } else if (state == 5) {
-                // Check for hand contact with semi-rigid object (we'll stop moving)
-                dynamixel_status_t ds = arm.getStatus(5);
-                if (ds == null) {
-                    arm.setPos(5, defGrip);
-                    return;
-                }
-
-                double speed = Math.abs(ds.speed);
-
-                if (speed < minSpeed) {
-                    arm.setPos(5, ds.position_radians);
-                    setState(state+1);
-                }
-            } else if (state == 6) {
-                // Tweak grip strength so we don't break the hand
-                dynamixel_status_t gripper_status = arm.getStatus(5);
-                if (gripper_status == null) {
-                    arm.setPos(5, defGrip);
-                    return;
-                }
-
-                double maxLoad = 0.35;
-                double minLoad = 0.20;
-                double gripIncr = Math.toRadians(3.0);
-                double load = Math.abs(gripper_status.load);
-                //System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
-
-                if (gripper_status.load <= 0.0 && load < minLoad) {
-                    //System.out.println("Grip moar");
-                    arm.setPos(5, gripper_status.position_radians + gripIncr);
-                } else if (gripper_status.load <= 0.0 && load > maxLoad) {
-                    //System.out.println("Grip less");
-                    arm.setPos(5, gripper_status.position_radians - gripIncr);
-                } else {
-                    setState(state+1);
-                }
-            } else if (state == 7) {
-                // XXX Gross magic number
-                dynamixel_status_t gripper_status = arm.getStatus(5);
-                if (gripper_status != null) {
-                    if (Math.abs(gripper_status.position_radians - defGrip) < Math.toRadians(5.0)) {
-                        grabbedObject = 0;
-                    } else {
-                        grabbedObject = toGrab;
+                    if (prev == null) {
+                        setState(ActionState.GRAB_UP_BEHIND);
+                        break;
                     }
-                }
-                toGrab = 0;
-                curAction = ActionMode.WAIT;
-                setState(state+1);
+
+                    moveTo(prev, transHeight);
+
+                    if (actionComplete()) {
+                        setState(ActionState.GRAB_UP_BEHIND);
+                    }
+                    break;
+                case GRAB_UP_BEHIND:
+                    moveTo(behind, transHeight);
+
+                    if (actionComplete()) {
+                        setState(ActionState.GRAB_APPROACH);
+                    }
+                    break;
+                case GRAB_APPROACH:
+                    moveTo(behind, preGrabHeight);
+
+                    if (actionComplete()) {
+                        setState(ActionState.GRAB_AT);
+                    }
+                    break;
+                case GRAB_AT:
+                    moveTo(goal, grabHeight, grabHeight*1.8);   // Try to compensate for sagging arm
+
+                    if (actionComplete()) {
+                        setState(ActionState.GRAB_START_GRIP);
+                    }
+                    break;
+                case GRAB_START_GRIP:
+                    gripper_status = arm.getStatus(5);
+                    if (gripper_status == null) {
+                        arm.setPos(5, defGrip);
+                        break;
+                    }
+
+                    // Start the hand closing
+                    arm.setPos(5, 112.0);
+                    // Change states when the gripper starts moving
+                    if (gripper_status.speed > minSpeed) {
+                        setState(ActionState.GRAB_GRIPPING);
+                    }
+                    break;
+                case GRAB_GRIPPING:
+                    // Check for hand contact with semi-rigid object (we'll stop moving)
+                    // Stop the gripping process at this point and start adjusting the
+                    // strength of the grip
+                    gripper_status = arm.getStatus(5);
+                    if (gripper_status == null) {
+                        arm.setPos(5, defGrip);
+                        return;
+                    }
+
+                    double speed = Math.abs(gripper_status.speed);
+                    if (speed < minSpeed) {
+                        arm.setPos(5, gripper_status.position_radians);
+                        setState(ActionState.GRAB_ADJUST_GRIP);
+                    }
+                    break;
+                case GRAB_ADJUST_GRIP:
+                    // Tweak the grip strength so we don't break the hand XXX
+                    gripper_status = arm.getStatus(5);
+                    if (gripper_status == null) {
+                        arm.setPos(5, defGrip);
+                        return;
+                    }
+
+                    double load = Math.abs(gripper_status.load);
+                    //System.out.printf("[%f] <= [%f (%f)] < [%f]\n", minLoad, load, gripper_status.load, maxLoad);
+
+                    // If we're closed all the way, failed grip
+                    if (gripper_status.position_radians > 112.0) {
+                        setState(ActionState.GRAB_HOME);
+                    } else if (gripper_status.load <= 0.0 && load < minLoad) {
+                        //System.out.println("Grip moar");
+                        arm.setPos(5, gripper_status.position_radians + gripIncr);
+                    } else if (gripper_status.load <= 0.0 && load > maxLoad) {
+                        //System.out.println("Grip less");
+                        arm.setPos(5, gripper_status.position_radians - gripIncr);
+                    } else {
+                        // At this point, we should have a solid grip.
+                        // Go to the home position
+                        setState(ActionState.GRAB_HOME);
+                    }
+
+                    break;
+                case GRAB_HOME:
+                    homeArm();
+
+                    if (actionComplete()) {
+                        setState(ActionState.GRAB_WAITING);
+                    }
+                    break;
+                case GRAB_WAITING:
+                    if (toGrab == 0)
+                        break;
+
+                    gripper_status = arm.getStatus(5);
+                    if (gripper_status != null) {
+                        if (Math.abs(gripper_status.load) > minLoad) {
+                            grabbedObject = toGrab;
+                            curAction = ActionMode.WAIT;
+                        } else {
+                            grabbedObject = 0;
+                            curAction = ActionMode.FAILURE;
+                        }
+                    } else {
+                        System.err.println("ERR: No grab status from arm");
+                        curAction = ActionMode.FAILURE;
+                        grabbedObject = 0;
+                    }
+
+                    toGrab = 0;
+                    break;
+                default:
+                    // XXX DEBUG
+                    System.err.println("ERR: Grab state "+state.toString()+" does not exist");
+                    break;
             }
         }
 
         /** Drop the object we are currently holding at the goal*/
         private void dropStateMachine()
         {
-            //System.out.print("Dropping "+state);
+            // One time check to see how to transition into the machine
+            if (newAction) {
+                switch (state) {
+                    case GRAB_WAITING:
+                    case DROP_WAITING:
+                    case HOME_WAITING:
+                        setState(ActionState.DROP_UP_OVER);
+                        break;
+                    case POINT_WAITING:
+                        setState(ActionState.DROP_UP_CURR);
+                        break;
+                }
+            }
 
             double r = LinAlg.magnitude(goal);
-            double error = ptracker.error();
 
             // States
             //      0: Up to transition height
@@ -472,34 +523,68 @@ public class BoltArmController implements LCMSubscriber
             //      2: Down to drop height
             //      3: Release
             //      4: Change state back to waiting
+            switch (state) {
+                case DROP_UP_CURR:
+                    curAction = ActionMode.DROP;
+                    if (prev == null) {
+                        setState(ActionState.DROP_UP_OVER);
+                    }
+                    moveTo(prev, transHeight);
 
-            if (state < 3) {
-                // Reuse pointing to drop
-                pointStateMachine();
-                curAction = ActionMode.DROP;
-            } else if (state == 3) {
-                // XXX Again, ew with the constants of magic
-                arm.setPos(5, defGrip);
-                dynamixel_status_t gripper_status = arm.getStatus(5);
-                if (gripper_status != null) {
-                    if (Math.abs(gripper_status.position_radians - defGrip) < Math.toRadians(5.0))
-                        setState(state+1);
-                }
-            } else if (state == 4) {
-                grabbedObject = 0;
-                curAction = ActionMode.WAIT;
+                    if (actionComplete()) {
+                        setState(ActionState.DROP_UP_OVER);
+                    }
+                    break;
+                case DROP_UP_OVER:
+                    moveTo(goal, transHeight);
+
+                    if (actionComplete()) {
+                        setState(ActionState.DROP_AT);
+                    }
+                    break;
+                case DROP_AT:
+                    moveTo(goal, goalHeight);
+
+                    if (actionComplete()) {
+                        setState(ActionState.DROP_RELEASE);
+                    }
+                    break;
+                case DROP_RELEASE:
+                    // Open the gripper
+                    arm.setPos(5, defGrip);
+
+                    // Transition the state once the gripper is definitively open
+                    if (actionComplete()) {
+                        setState(ActionState.DROP_HOME);
+                    }
+                    break;
+                case DROP_HOME:
+                    homeArm();
+
+                    if (actionComplete()) {
+                        setState(ActionState.DROP_WAITING);
+                    }
+                    break;
+                case DROP_WAITING:
+                    grabbedObject = 0;
+                    curAction = ActionMode.WAIT;
+                    break;
+                default:
+                    // XXX DEBUG
+                    System.err.println("ERR: Drop state "+state.toString()+" does not exist");
             }
         }
 
         // ======================================================
 
-        private void resetArm()
+        private void homeArm()
         {
             // XXX Need better thing than direct joint access
-            for (int i = 0; i < arm.getJoints().size(); i++) {
+            for (int i = 0; i < arm.getJoints().size()-1; i++) {
                 arm.setPos(i, 0);
             }
-            arm.setPos(5, defGrip);
+            //arm.setPos(5, defGrip);
+            // XXX Retain previous gripping position
         }
 
         private void moveTo(double[] goal, double height)
@@ -655,6 +740,7 @@ public class BoltArmController implements LCMSubscriber
             l[i] = arm.getLength(i);
         }
     }
+
 
     /** Handle incoming LCM messages */
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
