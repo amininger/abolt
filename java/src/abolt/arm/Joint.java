@@ -31,6 +31,12 @@ interface Joint
     /** Get the desired position of the associated joint */
     public double getDesiredValue();
 
+    /** Get min range of motion */
+    public double getMinValue();
+
+    /** Get max range of motion */
+    public double getMaxValue();
+
     /** Get an arm command back */
     public dynamixel_command_t getArmCommand();
 

@@ -132,4 +132,14 @@ class RevoluteJoint implements Joint
         return params.dAngle;
     }
 
+    public double getMinValue()
+    {
+        return params.rMin;
+    }
+
+    public double getMaxValue()
+    {
+        return params.rMax;
+    }
+
 }

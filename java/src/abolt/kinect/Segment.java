@@ -13,7 +13,6 @@ public class Segment
     public static Segment getSingleton()
     {
         if (singleton == null) {
-            System.err.println("Create singleton");
             singleton = new Segment();
         }
         return singleton;
