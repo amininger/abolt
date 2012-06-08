@@ -108,7 +108,7 @@ public class SimDishwasher implements SimObject, SimSensable, SimActionable
     {
         return id;
     }
-
+    
     public String getName()
     {
         return name;

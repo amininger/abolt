@@ -73,4 +73,10 @@ public class BoltObjectManager {
 			objects.put(obj.getID(), obj);
 		}
 	}
+	
+	public void removeObject(int id){
+		synchronized(objects){
+			objects.remove(id);
+		}
+	}
 }
