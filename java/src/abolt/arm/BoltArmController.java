@@ -50,7 +50,7 @@ public class BoltArmController implements LCMSubscriber
     }
     private ActionMode curAction = ActionMode.WAIT;
     private int grabbedObject = 0;
-    private int toGrab = 0;
+    private int toGrab = -1;
 
     // A simple elbow-up controller
     class ControlThread extends Thread
@@ -421,7 +421,7 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case GRAB_WAITING:
-                    if (toGrab == 0)
+                    if (toGrab < 0)
                         break;
 
                     gripper_status = arm.getStatus(5);
@@ -430,16 +430,16 @@ public class BoltArmController implements LCMSubscriber
                             grabbedObject = toGrab;
                             curAction = ActionMode.WAIT;
                         } else {
-                            grabbedObject = 0;
+                            grabbedObject = -1;
                             curAction = ActionMode.FAILURE;
                         }
                     } else {
                         System.err.println("ERR: No grab status from arm");
                         curAction = ActionMode.FAILURE;
-                        grabbedObject = 0;
+                        grabbedObject = -1;
                     }
 
-                    toGrab = 0;
+                    toGrab = -1;
                     break;
                 default:
                     // XXX DEBUG
