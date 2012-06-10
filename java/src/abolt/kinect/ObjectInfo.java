@@ -32,10 +32,11 @@ public class ObjectInfo{
     public double rightmost;
     public double uppermost;
     public double lowermost;
-    public  BufferedImage image = null;
+    public BufferedImage image = null;
     public boolean matched;
     public Rectangle projBBox = null;
     public ISimBoltObject createdFrom = null;
+
 
     public ArrayList<double[]> points;
     private HashMap<FeatureCategory, ArrayList<Double> > features;
@@ -47,8 +48,7 @@ public class ObjectInfo{
     /** Create a new object with info about it. Objects begin with a single point.**/
     public ObjectInfo(int color, int id, double[] point)
     {
-        Random r = new Random();
-        this.repID = SimUtil.nextID();
+//        Random r = new Random();
         this.numPoints = 1;
         this.color = color;
         this.ufsID = id;
@@ -66,6 +66,11 @@ public class ObjectInfo{
         this.points = new ArrayList<double[]>();
         this.points.add(point);
     	features = new HashMap<FeatureCategory, ArrayList<Double> >();
+    }
+
+    public void getID()
+    {
+        this.repID = SimUtil.nextID();
     }
 
     /** Add a new point to this object. **/
@@ -110,6 +115,14 @@ public class ObjectInfo{
         }
 
         return center;
+    }
+
+
+    public void resetCenter(double[] newCenter)
+    {
+        for(int i=0; i<sumPoints.length; i++){
+            sumPoints[i] = newCenter[i]*numPoints;
+        }
     }
 
     /** Get the average color of the object as an array [r, g, b]. **/
