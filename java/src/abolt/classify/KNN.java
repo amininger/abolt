@@ -19,12 +19,12 @@ import abolt.objects.BoltObject;
 class KNNPoint {
     List<Double> coords;
     String label;
-    
+
     public KNNPoint(String featureString){
     	this.coords = FEUtil.getFeaturesFromString(featureString);
     	this.label = FEUtil.getLabelFromString(featureString);
     }
-    
+
     public KNNPoint(double[] coords, String label) {
     	this.label = label;
 		this.coords = new ArrayList<Double>(coords.length);
@@ -42,7 +42,7 @@ class KNNPoint {
     public KNNPoint(KNNPoint p) {
         this(p.getCoords(), p.getLabel());
     }
-    
+
     public String getLabel(){
     	return label;
     }
@@ -81,7 +81,7 @@ public class KNN implements IClassifier{
         this.maxDistance = maxDistance;
         data = new ArrayList<KNNPoint>();
     }
-    
+
     @Override
     public void add(ArrayList<Double> features, String label){
 		KNNPoint pt = new KNNPoint(features, label);
@@ -98,7 +98,7 @@ public class KNN implements IClassifier{
     	}
         data.add(pt);
     }
-    
+
 	@Override
 	public ConfidenceLabel classify(ArrayList<Double> features) {
 		KNNPoint test = new KNNPoint(features, null);
@@ -228,10 +228,10 @@ public class KNN implements IClassifier{
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }
-        
-   
+
+
     }
-    
+
     public void printAverage(){
     	// Prints out the average features for each label
 		HashMap<String, Integer> tallies = new HashMap<String, Integer>();
