@@ -76,6 +76,9 @@
 	.25 .25
 	stove
 	red
+	2
+	door=closed,open
+	heat=off,on
 }
 "abolt.sim.SimLocation"
 {
@@ -83,6 +86,8 @@
 	-.25 .25
 	pantry
 	purple
+	1
+	door=open,closed
 }
 "abolt.sim.SimLocation"
 {
@@ -90,6 +95,7 @@
 	.25 -.25
 	table
 	orange
+	0
 }
 "abolt.sim.SimLocation"
 {
@@ -97,5 +103,6 @@
 	-.25 -.25
 	garbage
 	green
+	0
 }
 

@@ -1,5 +1,14 @@
 package abolt.kinect;
 
+import java.io.*;
+import java.nio.*;
+import javax.swing.*;
+import java.awt.*;
+import java.util.*;
+import java.awt.image.*;
+
+import lcm.lcm.*;
+
 import april.vis.*;
 import april.jmat.*;
 import april.util.UnionFindSimple;
@@ -9,15 +18,7 @@ import abolt.classify.Features;
 import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.*;
 import abolt.objects.ISimBoltObject;
-import lcm.lcm.*;
-
-import java.io.*;
-import java.nio.*;
-import javax.swing.*;
-import java.awt.*;
-import java.util.*;
-import java.awt.image.*;
-
+import abolt.util.*;
 
 public class ObjectInfo{
 
@@ -47,7 +48,7 @@ public class ObjectInfo{
     public ObjectInfo(int color, int id, double[] point)
     {
         Random r = new Random();
-        this.repID = r.nextInt();
+        this.repID = SimUtil.nextID();
         this.numPoints = 1;
         this.color = color;
         this.ufsID = id;
@@ -89,7 +90,7 @@ public class ObjectInfo{
 
         this.points.add(point);
     }
-    
+
     public ArrayList<Double> getFeatures(FeatureCategory cat){
     	if(features.containsKey(cat)){
     		return features.get(cat);

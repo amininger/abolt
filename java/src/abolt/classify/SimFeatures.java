@@ -16,12 +16,12 @@ public class SimFeatures {
 	private static HashMap<String, Color> colorValues;
 	static{
 		colorValues = new HashMap<String, Color>();
-		colorValues.put("red",    new Color(255, 40, 20));
-		colorValues.put("orange", new Color(255, 128, 20));
-		colorValues.put("yellow", new Color(255, 255, 50));
-		colorValues.put("green",  new Color(40, 255, 40));
-		colorValues.put("blue",   new Color(40, 40, 255));
-		colorValues.put("purple", new Color(255, 0, 255));
+		colorValues.put("red",    new Color(225, 50, 100));
+		colorValues.put("orange", new Color(215, 115, 85));
+		colorValues.put("yellow", new Color(240, 240, 150));
+		colorValues.put("green",  new Color(150, 200, 100));
+		colorValues.put("blue",   new Color(100, 125, 225));
+		colorValues.put("purple", new Color(175, 125, 225));
 	}
 	public static Color getColorValue(String color){
 		return colorValues.get(color.toLowerCase());

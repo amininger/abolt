@@ -30,15 +30,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     LCM lcm = LCM.getSingleton();
     static private byte messageID = 0;
 
-    // Don't hold on to old messages
-    //ExpiringMessageCache<robot_command_t> cmds = new ExpiringMessageCache<robot_command_t>(20.0, true);
-
     // Queue up messages as we receive them, assuming we'll get
     // only one of each
     Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();
-
-    // Needs some form of access to point cloud data + IDs
-    Segment seg;
 
     // Debugging
     boolean debug;
@@ -169,22 +163,18 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
     }
 
-    public BoltArmCommandInterpreter(Segment seg_)
+    public BoltArmCommandInterpreter()
     {
-        this(seg_, false);
+        this(false);
     }
 
-    public BoltArmCommandInterpreter(Segment seg_, boolean debug_)
+    public BoltArmCommandInterpreter(boolean debug_)
     {
         debug = debug_;
         if (debug) {
             dthread = new DebugThread();
             dthread.start();
         }
-
-        // We'll reference this, or some equivalent, later when
-        // recovering point cloud data
-        seg = seg_;
 
         // Soar sends us robot commands through this channel, ordering
         // us to "POINT", "GRAB", and "DROP" objects.
@@ -248,6 +238,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
             ObjectInfo info = getObject(objID);
             if (info == null) {
+                System.out.println("NULL OBJECT");
                 bcmd.xyz = LinAlg.resize(cmd.dest, 3);
             } else {
                 if (debug) {
@@ -282,6 +273,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             bcmd.obj_id = objID;
             ObjectInfo info = getObject(objID);
             if (info == null) {
+                System.out.println("NULL OBJECT");
                 return null;    // There is no safe way to grab nothing
             } else {
                 if (debug) {
@@ -636,8 +628,10 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     /** Return the ObjectInfo for a relevant ID */
     private ObjectInfo getObject(int id)
     {
-        for (Integer key: seg.objects.keySet()) {
-            ObjectInfo info = seg.objects.get(key);
+        // XXX Threading could be fun
+        for (Integer key: Segment.getSingleton().objects.keySet()) {
+            System.out.println(key);
+            ObjectInfo info = Segment.getSingleton().objects.get(key);
             if (info.repID == id)
                 return info;
         }
@@ -650,6 +644,6 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
     static public void main(String[] args)
     {
-        BoltArmCommandInterpreter baci = new BoltArmCommandInterpreter(null);
+        BoltArmCommandInterpreter baci = new BoltArmCommandInterpreter(true);
     }
 }

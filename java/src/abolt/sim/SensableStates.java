@@ -5,32 +5,51 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SensableStates {
-	private HashMap<String, ArrayList<String>> possibleStates;
+	private HashMap<String, String[]> possibleStates;
 	private HashMap<String, String> currentState;
 	
 	public SensableStates(){
-		possibleStates = new HashMap<String, ArrayList<String>>();
+		possibleStates = new HashMap<String, String[]>();
 		currentState = new HashMap<String, String>();
 	}
 	
-	public void addStateSet(String stateName, ArrayList<String> allowedStates){
-		if(allowedStates.size() == 0){
+	public SensableStates(String[] props){
+		possibleStates = new HashMap<String, String[]>();
+		currentState = new HashMap<String, String>();
+		for(String prop : props){
+			String[] nameVals = prop.split("=");
+			if(nameVals.length >= 2){
+				addStateSet(nameVals[0], nameVals[1].split(","));
+			}
+		}
+	}
+	
+	public void addStateSet(String stateName, String[] allowedStates){
+		if(allowedStates.length == 0){
 			return;
 		}
-		possibleStates.put(stateName, allowedStates);
-		currentState.put(stateName, allowedStates.get(0));
+		for(int i = 0; i < allowedStates.length; i++){
+			allowedStates[i] = allowedStates[i].toLowerCase();
+		}
+		possibleStates.put(stateName.toLowerCase(), allowedStates);
+		currentState.put(stateName.toLowerCase(), allowedStates[0]);
 	}
 	
 	public String getState(String stateName){
-		return currentState.get(stateName);
+		return currentState.get(stateName.toLowerCase());
 	}
 	
 	public void setState(String stateName, String newState){
-		if(!possibleStates.containsKey(stateName)){
+		String[] states = possibleStates.get(stateName.toLowerCase());
+		if(states == null){
 			return;
 		}
-		if(possibleStates.get(stateName).contains(newState)){
-			currentState.put(stateName, newState);
+		newState = newState.toLowerCase();
+		for(int i = 0; i < states.length; i++){
+			if(states[i].equals(newState)){
+				currentState.put(stateName.toLowerCase(), newState);
+				break;
+			}
 		}
 	}
 	
@@ -43,6 +62,9 @@ public class SensableStates {
 	}
 	
 	public String getProperties(){
+		if(currentState.size() == 0){
+			return "";
+		}
 		StringBuilder properties = new StringBuilder();
 		for(Map.Entry<String, String> state : currentState.entrySet()){
 			properties.append(String.format("%s=%s,", state.getKey(), state.getValue()));
@@ -50,7 +72,7 @@ public class SensableStates {
 		return properties.substring(0, properties.length() - 1);
 	}
 	
-	public ArrayList<String> getAllowedStates(String stateName){
-		return possibleStates.get(stateName);
+	public String[] getAllowedStates(String stateName){
+		return possibleStates.get(stateName.toLowerCase());
 	}
 }

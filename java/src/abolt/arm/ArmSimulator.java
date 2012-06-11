@@ -25,36 +25,41 @@ import april.vis.VisObject;
 import april.vis.VzCircle;
 import april.vis.VzMesh;
 
-import lcm.lcm.LCM;
-import lcm.lcm.LCMDataInputStream;
-import lcm.lcm.LCMSubscriber;
+import lcm.lcm.*;
+
+import abolt.bolt.*;
 
 public class ArmSimulator implements LCMSubscriber{
 	private ActionMode curState = ActionMode.WAIT;
 
 	private static LCM lcm = LCM.getSingleton();
-	
+
 	private static final int UPDATE_RATE = 10;	// # updates per second
 	private static final int GRABBING_TIME = UPDATE_RATE*3;
 	private static final int POINTING_TIME = UPDATE_RATE*2;
 	private static final int DROPPING_TIME = UPDATE_RATE;
 	private Timer updateTimer;
-	
+
     Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();
-	
-	
+
+
 	double[] pos;
 	double[] goal;
 	private int grabbedID = -1;
 	int stepsLeft = 0;
-	
-	
-	public ArmSimulator(){
+
+
+    // BoltSimulator arm interacts in
+    BoltSimulator boltSim;  // XXX Revisit this
+
+	public ArmSimulator(BoltSimulator boltSim){
         lcm.subscribe("ROBOT_COMMAND", this);
-        
+
+        this.boltSim = boltSim;
+
         pos = new double[]{0, 0, 0.001};
         goal = new double[]{0, 0};
-        
+
 		class UpdateTask extends TimerTask{
 			public void run() {
 				update();
@@ -63,7 +68,7 @@ public class ArmSimulator implements LCMSubscriber{
 		updateTimer = new Timer();
 		updateTimer.schedule(new UpdateTask(), 1000, 1000/UPDATE_RATE);
 	}
-	
+
 	public void update(){
 		if(curState == ActionMode.WAIT){
 			if(!cmds.isEmpty()){
@@ -81,7 +86,7 @@ public class ArmSimulator implements LCMSubscriber{
 			}
 		}
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
-			BoltObjectManager objManager = Bolt.getObjectManager();
+			BoltObjectManager objManager = BoltObjectManager.getSingleton();
 			BoltObject obj;
 			synchronized(objManager.objects){
 				obj = objManager.objects.get(grabbedID);
@@ -90,23 +95,24 @@ public class ArmSimulator implements LCMSubscriber{
 				double[] objPos = obj.getPose();
 				objPos[0] = pos[0];
 				objPos[1] = pos[1];
+				objPos[2] = LinAlg.matrixToXyzrpy(obj.getInfo().createdFrom.getPose())[2];
 				obj.getInfo().createdFrom.setPose(LinAlg.xyzrpyToMatrix(objPos));
 			}
 		}
-		
+
 		sendStatusUpdate();
 		drawArm();
 	}
-	
+
 	private void drawArm(){
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
 			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
-		Bolt.getSimulator().drawVisObjects("arm", visObjs);
+		boltSim.drawVisObjects("arm", visObjs);
 	}
-	
+
 	private void executeCommand(robot_command_t command){
 		String action = command.action;
 		if(action.contains("POINT")){
@@ -116,10 +122,10 @@ public class ArmSimulator implements LCMSubscriber{
 			stepsLeft = POINTING_TIME;
 		} else if(action.contains("GRAB")){
 			int id = Integer.parseInt(SimUtil.getTokenValue(action, "GRAB"));
-			BoltObjectManager objManager = Bolt.getObjectManager();
+			BoltObjectManager objManager = BoltObjectManager.getSingleton();
 			BoltObject obj;
 			synchronized(objManager.objects){
-				obj = objManager.objects.get(grabbedID);
+				obj = objManager.objects.get(id);
 			}
 			if(obj == null){
 				return;
@@ -128,7 +134,7 @@ public class ArmSimulator implements LCMSubscriber{
 			goal[0] = obj.getPose()[0];
 			goal[1] = obj.getPose()[1];
 			grabbedID = id;
-			stepsLeft = GRABBING_TIME;	
+			stepsLeft = GRABBING_TIME;
 		} else if(action.contains("DROP")){
 			curState = ActionMode.DROP;
 			goal[0] = command.dest[0];
@@ -142,7 +148,7 @@ public class ArmSimulator implements LCMSubscriber{
 			stepsLeft = POINTING_TIME;
 		}
 	}
-	
+
 	@Override
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins) {
 		if(channel.equals("ROBOT_COMMAND")){
@@ -155,7 +161,7 @@ public class ArmSimulator implements LCMSubscriber{
             }
 		}
 	}
-	
+
 	private void sendStatusUpdate(){
 		robot_action_t status = new robot_action_t();
 		status.utime = TimeUtil.utime();

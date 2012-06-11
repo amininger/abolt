@@ -11,5 +11,6 @@ public interface ISimBoltObject extends SimObject
 	Shape getAboltShape();
 	double[][] getPose();
 	int getID();
+	void setID(int id);
 }
 

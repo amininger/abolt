@@ -39,6 +39,8 @@ public class BoltObject{
 	protected Shape shape;
 	protected VisChain model;
 	protected VzBox vzBox;
+	
+	protected boolean visible = true;
 
     public BoltObject(SimWorld world)
     {
@@ -59,6 +61,13 @@ public class BoltObject{
 		this.info = null;
 		shape = new SphereShape(.01);
         model = null;
+    }
+    
+    public boolean isVisible(){
+    	return visible;
+    }
+    public void setVisible(boolean v){
+    	visible = v;
     }
     
     public int getID(){
@@ -94,6 +103,9 @@ public class BoltObject{
 	}
 	
 	public object_data_t getData(){
+		if(!visible){
+			return null;
+		}
 		object_data_t data = new object_data_t();
 		data.utime = TimeUtil.utime();
 		data.id = id;

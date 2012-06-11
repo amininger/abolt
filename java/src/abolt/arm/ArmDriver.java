@@ -13,26 +13,50 @@ import april.jmat.*;
 
 import abolt.lcmtypes.*;
 
-public class ArmDriver implements LCMSubscriber
+public class ArmDriver implements LCMSubscriber, Runnable
 {
     AbstractServo servos[] = new AbstractServo[6];
     LCM lcm = LCM.getSingleton();
 
     ExpiringMessageCache<dynamixel_command_list_t> cmdCache;
 
-    public ArmDriver(AbstractBus bus)
+    public ArmDriver(Config config)
     {
-        this(bus, null);
-    }
+        AbstractBus bus;
+        String device;
+        if (config != null) {
+            device = config.getString("arm.device");
+        } else {
+            device = "/dev/ttyUSB0";
+        }
 
-    public ArmDriver(AbstractBus bus, Config config)
-    {
+        if (device.equals("sim")) {
+            SimBus sbus = new SimBus(10);
+            sbus.addMX28(0);
+            sbus.addMX28(1);
+            sbus.addMX28(2);
+            sbus.addAX12(3);
+            sbus.addAX12(4);
+            sbus.addAX12(5);
+            bus = sbus;
+        } else {
+            JSerial js = null;
+            try {
+                js = new JSerial(device, 1000000);
+                js.setCTSRTS(true);
+            } catch (IOException ioex) {
+                System.err.println("ERR: "+ioex);
+                ioex.printStackTrace();
+            }
+            bus = new SerialBus(js);
+        }
+
         HashMap<Integer, byte[]> pids = new HashMap<Integer, byte[]>();
         if (config != null) {
-            for (int i = 0;; i++) {
-                int[] pid = config.getInts("arm_driver.pids.pid"+i,null);
+            for (int i = 0; i < 10; i++) {
+                int[] pid = config.getInts("arm.pids.pid"+i,null);
                 if (pid == null)
-                    break;
+                    continue;
                 pids.put(pid[0], new byte[]{(byte)pid[1],(byte)pid[2],(byte)pid[3]});
             }
         }
@@ -89,6 +113,7 @@ public class ArmDriver implements LCMSubscriber
 
     public void run()
     {
+        System.out.println("Starting ArmDriver thread");
         dynamixel_command_list_t cmdlist;
         dynamixel_command_list_t lastCmdList = new dynamixel_command_list_t();
         lastCmdList.len = 6;
@@ -130,6 +155,7 @@ public class ArmDriver implements LCMSubscriber
     {
         public void run()
         {
+            System.out.println("Starting ArmDriver StatusThread");
             dynamixel_status_list_t dslist = new dynamixel_status_list_t();
             dslist.len = 6;
             dslist.statuses = new dynamixel_status_t[dslist.len];
@@ -165,39 +191,19 @@ public class ArmDriver implements LCMSubscriber
     public static void main(String args[]) throws IOException
     {
         GetOpt gopt = new GetOpt();
-        gopt.addString('d', "device", "/dev/ttyUSB0", "USBDynamixel device path, or 'sim'");
         gopt.addString('c', "config", null, "Config file");
-
         gopt.addBoolean('h', "help", false, "Show this help");
 
         if (!gopt.parse(args) || gopt.getBoolean("help")) {
             gopt.doHelp();
             return;
         }
-        AbstractBus bus;
-        String device = gopt.getString("device");
-
-        if (device.equals("sim")) {
-
-            SimBus sbus = new SimBus(10);
-            sbus.addMX28(0);
-            sbus.addMX28(1);
-            sbus.addMX28(2);
-            sbus.addAX12(3);
-            sbus.addAX12(4);
-            sbus.addAX12(5);
-            bus = sbus;
-        } else {
-            JSerial js = new JSerial(device, 1000000);
-            js.setCTSRTS(true);
-
-            bus = new SerialBus(js);
-        }
         ConfigFile config = null;
         if (gopt.getString("config") != null) {
             config = new ConfigFile(gopt.getString("config"));
         }
 
-        new ArmDriver(bus, config).run();
+        //new ArmDriver(config).run();
+        ArmDriver ad = new ArmDriver(config);
     }
 }

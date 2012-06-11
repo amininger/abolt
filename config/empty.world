@@ -1,45 +1,12 @@
-"april.sim.SimBox"
-{
-	vec 6
-	-.5 0 .05 0 0 0
-	vec 3
-	.1 1.1 .1
-	vec 4
-	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
-}
-"april.sim.SimBox"
-{
-	vec 6
-	.5 0 .05 0 0 0
-	vec 3
-	.1 1.1 .1
-	vec 4
-	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
-}
-"april.sim.SimBox"
-{
-	vec 6
-	0 .5 .05 0 0 0
-	vec 3
-	.9 .1 .1
-	vec 4
-	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
-}
-"april.sim.SimBox"
-{
-	vec 6
-	0 -.5 .05 0 0 0
-	vec 3
-	.9 .1 .1
-	vec 4
-	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
-}
 "abolt.sim.SimLocation"
 {
 	vec 2
 	.25 .25
 	stove
 	red
+	2
+	door=closed,open
+	heat=off,on
 }
 "abolt.sim.SimLocation"
 {
@@ -47,6 +14,8 @@
 	-.25 .25
 	pantry
 	purple
+	1
+	door=open,closed
 }
 "abolt.sim.SimLocation"
 {
@@ -54,6 +23,7 @@
 	.25 -.25
 	table
 	orange
+	0
 }
 "abolt.sim.SimLocation"
 {
@@ -61,4 +31,5 @@
 	-.25 -.25
 	garbage
 	green
+	0
 }

@@ -21,11 +21,8 @@ import abolt.kinect.*;
 
 public class BoltArmDemo implements LCMSubscriber
 {
-    // LCM
     LCM lcm = LCM.getSingleton();
-
-    // Arm joints
-    ArrayList<Joint> joints;
+    BoltArm arm = BoltArm.getSingleton();
 
     // Rendering thread
     RenderThread rt;
@@ -34,8 +31,7 @@ public class BoltArmDemo implements LCMSubscriber
     // Simulation thread
     SimulationThread st;
 
-    ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
-    ExpiringMessageCache<dynamixel_command_list_t> cmds = new ExpiringMessageCache<dynamixel_command_list_t>(0.2, true);
+    // XXX Do we even use cmds anymore?
     ExpiringMessageCache<observations_t> observations = new ExpiringMessageCache<observations_t>(2.5, true);
 
     // Command line flags/options
@@ -44,24 +40,16 @@ public class BoltArmDemo implements LCMSubscriber
     public BoltArmDemo(GetOpt opts_)
     {
         opts = opts_;
-        /*if (opts.getString("kconfig") != null) {
-            try {
-                KUtils.loadCalibrationConfig(new ConfigFile(opts.getString("kconfig")));
-            } catch (IOException ioex) {
-                System.err.println("ERR: could not load config file");
-                ioex.printStackTrace();
-            }
-        }*/
-        joints = BoltArm.initArm();
 
-        // We're going to spoof these if simming, so don't send them
-        if (!opts.getBoolean("sim")) {
-            lcm.subscribe("ARM_STATUS", this);
-        } else {
+        // If we're simulating, we spoof our own ARM_STATUS messages. Otherwise,
+        // we just run normally.
+        if (opts != null && opts.getBoolean("sim")) {
+            BoltArmController controller = new BoltArmController();
+            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter();
             st = new SimulationThread();
             st.start();
         }
-        lcm.subscribe("ARM_COMMAND", this);
+
         lcm.subscribe("OBSERVATIONS", this);
 
         rt = new RenderThread();
@@ -77,25 +65,10 @@ public class BoltArmDemo implements LCMSubscriber
         }
     }
 
+    // XXX Highlight if/for etc stuff
     public void messageReceivedEx(LCM lcm, String channel, LCMDataInputStream ins) throws IOException
     {
-        if (channel.equals("ARM_STATUS")) {
-            // If non-simulated, render the arm position from THESE
-            dynamixel_status_list_t status = new dynamixel_status_list_t(ins);
-            long utime = Long.MAX_VALUE;
-            for (dynamixel_status_t s: status.statuses) {
-                utime = Math.min(utime, s.utime);
-            }
-            statuses.put(status, utime);
-        } else if (channel.equals("ARM_COMMAND")) {
-            // If simulated, use these to render the arm position
-            dynamixel_command_list_t cmdl = new dynamixel_command_list_t(ins);
-            long utime = Long.MAX_VALUE;
-            for (dynamixel_command_t c: cmdl.commands) {
-                utime = Math.min(utime, c.utime);
-            }
-            cmds.put(cmdl, utime);
-        } else if (channel.equals("OBSERVATIONS")) {
+        if (channel.equals("OBSERVATIONS")) {
             // Place observations on the map
             observations_t obs = new observations_t(ins);
             observations.put(obs, obs.utime);
@@ -109,7 +82,7 @@ public class BoltArmDemo implements LCMSubscriber
 
     class RenderThread extends Thread
     {
-        int fps = 2;
+        int fps = 5;
 
         VisWorld vw;
         VisLayer vl;
@@ -158,36 +131,7 @@ public class BoltArmDemo implements LCMSubscriber
         {
             while (true) {
                 // Render Arm
-                {
-                    dynamixel_status_list_t dsl = statuses.get();
-                    dynamixel_command_list_t dcl = cmds.get();
-                    if (opts.getBoolean("sim") && dcl != null) {
-                        for (int i = 0; i < dcl.len; i++) {
-                            joints.get(i).set(dcl.commands[i].position_radians);
-                        }
-                    } else if (dsl != null) {
-                        for (int i = 0; i < dsl.len; i++) {
-                            joints.get(i).set(dsl.statuses[i].position_radians);
-                        }
-                    }
-
-                    VisWorld.Buffer vb = vw.getBuffer("arm");
-                    vb.addBack(new VisChain(LinAlg.rotateZ(-Math.PI/2),
-                                            new VzTriangle(0.08, 0.08, 0.08,
-                                                           new VzMesh.Style(Color.green))));
-                    vb.addBack(new VisChain(LinAlg.translate(0,0,BoltArm.baseHeight/2),
-                                            new VzBox(0.04, 0.04, BoltArm.baseHeight,
-                                                      new VzMesh.Style(Color.black))));
-
-                    double[][] xform = LinAlg.translate(0,0,BoltArm.baseHeight);
-                    for (Joint j: joints) {
-                        LinAlg.timesEquals(xform, j.getRotation());
-                        vb.addBack(new VisChain(LinAlg.copy(xform),
-                                                j.getVis()));
-                        LinAlg.timesEquals(xform, j.getTranslation());
-                    }
-                    vb.swap();
-                }
+                arm.render(vw);
 
                 // Draw current goal
                 {
@@ -358,25 +302,21 @@ public class BoltArmDemo implements LCMSubscriber
 
         public void run()
         {
+            System.out.println("ATTN: Starting simulation thread");
             while (true) {
                 TimeUtil.sleep(1000/Hz);
 
                 long utime = TimeUtil.utime();
                 dynamixel_status_list_t dsl = new dynamixel_status_list_t();
-                dsl.len = joints.size();
-                dsl.statuses = new dynamixel_status_t[joints.size()];
-                for (int i = 0; i < joints.size(); i++) {
+                dsl.len = arm.getJoints().size();   // XXX
+                dsl.statuses = new dynamixel_status_t[dsl.len];
+                for (int i = 0; i < dsl.len; i++) {
                     dynamixel_status_t status = new dynamixel_status_t();
                     status.utime = utime;
-
-                    Joint j = joints.get(i);
-                    if (j instanceof RevoluteJoint) {
-                        RevoluteJoint rj = (RevoluteJoint)j;
-                        status.position_radians = rj.getAngle();
-                    } else if (j instanceof HandJoint) {
-                        HandJoint hj = (HandJoint)j;
-                        status.position_radians = hj.getAngle();
-                    }
+                    status.position_radians = arm.getDesiredPos(i);
+                    // XXX Ignore the rest of the values we could set
+                    // for now. Could later get clever and actually set
+                    // these in a way that simulates movement
 
                     dsl.statuses[i] = status;
                 }
