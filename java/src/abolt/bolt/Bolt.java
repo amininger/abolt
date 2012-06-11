@@ -123,7 +123,7 @@ public class Bolt extends JFrame implements LCMSubscriber
             BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
         	// All done in simulation
-        	camera = new SimKinect(800, 600);
+        	camera = new SimKinect(400, 300);
         	armSimulator = new ArmSimulator();
         }
 
