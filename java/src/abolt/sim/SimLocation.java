@@ -91,7 +91,7 @@ public class SimLocation implements SimSensable, SimObject {
     {
 		double[] xy = ins.readDoubles();
     	pose = new double[]{xy[0], xy[1], size/2, 0, 0, 0};
-    	bbox = new double[][]{new double[]{-size, -size, -.01}, new double[]{size, size, .01}};
+    	bbox = new double[][]{new double[]{-size, -size, -size/2}, new double[]{size, size, size/2}};
 
     	name = ins.readString();
         colorStr = ins.readString();
@@ -100,7 +100,7 @@ public class SimLocation implements SimSensable, SimObject {
         model =  new VisChain(new VisChain(LinAlg.translate(0,0,-size/2 + .001),
         						LinAlg.scale(size),
 				                new VzRectangle(new VzLines.Style(color,2))),
-				   new VisChain(LinAlg.translate(0,-.8*size/2,-size/2 + .001),
+				   new VisChain(LinAlg.rotateZ(Math.PI/2), LinAlg.translate(0,-.8*size/2,-size/2 + .001),
 				                LinAlg.scale(0.002),
 				                new VzText(VzText.ANCHOR.CENTER, String.format("<<%s>> %s", colorStr, name))));
         
