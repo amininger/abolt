@@ -2,6 +2,8 @@ package abolt.classify;
 
 import java.util.*;
 
+import april.jmat.*;
+
 /** K-nearest neighbor classifier using a guassian-like
  *  weighting function when considering the importance
  *  of the neighbors
@@ -21,12 +23,43 @@ public class GKNN implements IClassifier
         }
     }
 
+    class CPointComparator implements Comparator<CPoint>
+    {
+        double[] goal;
+
+        public CPointComparator(double[] goal_)
+        {
+            goal = LinAlg.copy(goal_);
+        }
+
+        public int compare(CPoint a, CPoint b)
+        {
+            double da = LinAlg.distance(a.coords, goal);
+            double db = LinAlg.distance(b.coords, goal);
+
+            if (da > db)
+                return 1;
+            else if (da < db)
+                return -1;
+            else
+                return 0;
+        }
+    }
+
     // Number of nearest neighbors
     int k;
 
-    public GKNN(int k_)
+    // Covariance parameter
+    double[][] P;
+
+    /** Initialize the KNN
+     *  @param k_       The max number of neighbors considered
+     *  @param P_       A covariance matrix parameter affecting weighting
+     */
+    public GKNN(int k_, double[][] P_)
     {
         k = k_;
+        P = P_;
     }
 
     /** Add a training example to the classifier */
@@ -56,6 +89,46 @@ public class GKNN implements IClassifier
         return null;    // XXX Not yet implemented
     }
 
+    /** Return a list of classifications ordered by the
+     *  probability (XXX) of each label being correct
+     *  based on our current set of observations
+     */
+    public Classifications classify(double[] features)
+    {
+        // Find the k nearest neighbors
+        // By sorting the list, we ensure that the first
+        // k entries of the list of points are also the
+        // nearest neighbors.
+        Collections.sort(points, new CPointComparator(features));
+
+        // Evaluate the neighbors based on the weights
+        MultiGaussian mg = new MultiGaussian(P, features);
+        HashMap<String, Double> labelWeights = new HashMap<String, Double>();
+        double totalWeight = 0;
+
+        for (int i = 0; i < Math.min(k, points.size()); i++) {
+            CPoint point = points.get(i);
+            double weight = mg.prob(point.coords);
+            totalWeight += weight;
+            double oldWeight = 0;
+            if (labelWeights.containsKey(point.label)) {
+               oldWeight = labelWeights.get(point.label);
+            }
+            labelWeights.put(point.label, oldWeight+weight);
+        }
+
+        // Compute the probability (XXX) of each label being
+        // correct. Currently, these "probabilities" are
+        // computed as fractions of the entire weight.
+        Classifications classifications = new Classifications();
+        for (String label: labelWeights.keySet()) {
+            classifications.add(label, labelWeights.get(label)/totalWeight);
+        }
+
+        // Return
+        return classifications;
+    }
+
     /** Clear the classifier information */
     void clearData()
     {
@@ -65,5 +138,10 @@ public class GKNN implements IClassifier
     /** Load in the classifier data */
     void loadData()
     {
+    }
+
+    public static void main(String[] args)
+    {
+        // Test code!
     }
 }
