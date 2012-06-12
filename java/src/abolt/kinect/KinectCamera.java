@@ -133,15 +133,12 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         }
         else if(channel.equals("ROBOT_COMMAND")){
             try{
-                System.out.println("RECEIVED ROBOT COMMAND");
                 robot_command_t command = new robot_command_t(ins);
                 String[] action = command.action.split("=");
                 if(action[0].equals("GRAB")){
-                    System.out.println("GRABBING AN OBJECT ("+action[1]+")");
                     segment.tracker.movingObject(Integer.parseInt(action[1]));
                 }
                 else if(action[0].equals("DROP")){
-                    System.out.println("DROPPING AN OBJECT");
                     double[] loc = command.dest;
                     segment.tracker.releasedObject(new double[]{loc[0], loc[1], 0});
                 }

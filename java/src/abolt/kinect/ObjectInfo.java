@@ -71,7 +71,6 @@ public class ObjectInfo{
     public void getID()
     {
         this.repID = SimUtil.nextID();
-        System.out.println("REP ID: "+repID);
     }
 
     /** Add a new point to this object. **/

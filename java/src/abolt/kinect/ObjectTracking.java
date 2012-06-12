@@ -44,7 +44,7 @@ public class ObjectTracking
 
         if(hashID == -1) return false;
 
-        System.out.println("MOVING "+id);
+        //System.out.println("MOVING "+id);
 
         holdingObject = true;
         heldObject = lastFrame.get(hashID);
@@ -56,10 +56,10 @@ public class ObjectTracking
     public boolean releasedObject(double[] finalLocation)
     {
         if(holdingObject){
-            System.out.print("Drop location of "+heldObject.repID+": ");
+            /*System.out.print("Drop location of "+heldObject.repID+": ");
             for(double d : finalLocation)
                 System.out.print(d+", ");
-            System.out.println();
+                System.out.println();*/
 
             heldObject.center = finalLocation; //resetCenter(finalLocation);
             double[] c = heldObject.getCenter();
@@ -126,12 +126,12 @@ public class ObjectTracking
         for(Object idNew : currentIDs){
             unusedNew.put((Integer)idNew, (Integer)idNew);
         }
-        System.out.print("Old IDs: ");
+        //System.out.print("Old IDs: ");
         for(Object idOld : oldIDs ){
-            System.out.print(lastFrame.get((Integer)idOld).repID+", ");
+            //System.out.print(lastFrame.get((Integer)idOld).repID+", ");
             unusedOld.put((Integer)idOld, (Integer) idOld);
         }
-        System.out.println();
+        //System.out.println();
 
         // Greedy search to match objects between current and last frame
         ObjectInfo objNew, objOld;
@@ -156,11 +156,6 @@ public class ObjectTracking
                     double score = color + dist;
                     double[] c = objNew.getCenter();
                     double[] c2 = objOld.getCenter();
-                    System.out.println("\tComparing "
-                                       +c[0]+" "+c[1]+" "+c[2]
-                                       +" \n\tto ("+pastID+") "
-                                       +c2[0]+" "+c2[1]+" "+c2[2]
-                                       +": "+dist);
 
                     if(dist < bestMatch && dist < MAX_TRAVEL_DIST){
                         newID = currentID;
@@ -179,7 +174,6 @@ public class ObjectTracking
                 obj.matched = true;
             }
         }
-        // System.out.println();
 
         // Add in held object, if there is one.
         // XXX -should check whether one of the unusedNew is in the expected        // final location.
@@ -251,25 +245,21 @@ public class ObjectTracking
         // Add lost objects to history
         if(unusedOld.size() > 0){
             Set old = unusedOld.keySet();
-            //System.out.print("Unused: ");
             for(Object id : old){
                 lostObjects.put((Integer) id, lastFrame.get((Integer)id));
                 lostTime.put((Integer)id, currentTime);
-                //System.out.print(lastFrame.get((Integer)id).repID+", ");
             }
-            //System.out.println();
         }
-        //System.out.println(lostObjects.size());
 
         // Set these objects as the previous objects
         lastFrame = currentFrame;
 
-        System.out.println("OBJECT LOCATIONS");
+        //System.out.println("OBJECT LOCATIONS");
         Set objects = currentFrame.keySet();
         for(Object obj : objects){
-            System.out.print(currentFrame.get((Integer)obj).repID+": ");
+            //System.out.print(currentFrame.get((Integer)obj).repID+": ");
             double[] loc = currentFrame.get((Integer) obj).getCenter();
-            System.out.print(loc[0]+", "+loc[1]+", "+loc[2]+"\n");
+            //System.out.print(loc[0]+", "+loc[1]+", "+loc[2]+"\n");
         }
 
         return currentFrame;
