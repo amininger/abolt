@@ -29,10 +29,7 @@ public class Segment
 
     // Originally in data aggregator
     public HashMap<Integer, ObjectInfo> objects;           //map of all objects found in current frame to their data
-//    public HashMap<Integer, ObjectInfo> prevObjects;       //map of all objects found in previous frame
     public HashMap<Integer, Integer> map;                  //map of object ID to color
-//    public HashMap<Integer, Integer> prevMap;              // "                    "   for previous frame
-//    public ArrayList<HashMap<Integer,ObjectInfo>> history;
     public ArrayList<double[]> coloredPoints;
     public ArrayList<double[]> points;
     public UnionFindSimple ufs;
@@ -54,10 +51,7 @@ public class Segment
         floorPlane = new double[4];
         floorFound = false;
         objects = new HashMap<Integer, ObjectInfo>();
-        //prevObjects = new HashMap<Integer, ObjectInfo>();
         map = new HashMap<Integer, Integer>();
-        //prevMap = new HashMap<Integer, Integer>();
-        //history = new ArrayList<HashMap<Integer,ObjectInfo>>();
         coloredPoints = new ArrayList<double[]>();
     }
 
@@ -71,7 +65,6 @@ public class Segment
         coloredPoints.clear();
         removeFloorPoints();
         unionFind();
-        //newFrame();
     }
 
     /** union find- for each pixel, compare with pixels around it and merge if
@@ -112,8 +105,6 @@ public class Segment
 
         //collect data on all the objects segmented by the union find algorithm in the previous step
         ObjectInfo info;
-        //prevObjects = objects;
-        //prevMap = map;
         objects = new HashMap<Integer, ObjectInfo>();
         map = new HashMap<Integer, Integer>();
 
@@ -136,35 +127,10 @@ public class Segment
                 }
                 Integer color = map.get(repID);
                 coloredPoints.add(point);
-              //coloredPoints.add(new double[]{point[0], point[1], point[2], color};
             }
         }
 
         objects = tracker.newObjects(objects);
-
-        // Pair up objects from this frame with last frame
-        /*if(prevObjects.size() > 0){
-            Collection cNew = objects.values();
-            for(Iterator itr = cNew.iterator(); itr.hasNext(); ){
-                ObjectInfo obj = (ObjectInfo)itr.next();
-                int mostSim = obj.mostSimilar(prevObjects, null);
-                if(mostSim != -1){
-                	double[] locOld = prevObjects.get(mostSim).getCenter();
-                	double[] locNew = obj.getCenter();
-                	double dist = LinAlg.distance(locOld, locNew);
-                	if(dist < .03){
-                		int newID = prevObjects.get(mostSim).repID;
-                		int newColor = prevObjects.get(mostSim).color;
-                		obj.equateObject(newID,newColor);
-                		obj.matched = true;
-                		prevObjects.remove(mostSim);
-                	}
-                }
-                for(double[] p : obj.points){
-                    coloredPoints.add(new double[]{p[0], p[1], p[2], p[3]});//obj.color});
-                }
-            }
-            }*/
     }
 
     private boolean almostBlack(int color)
@@ -271,66 +237,6 @@ public class Segment
         double diff = Math.sqrt(rDiff*rDiff + bDiff*bDiff + gDiff*gDiff);
         return diff;
     }
-
-
-
-    /*public void newFrame()
-    {
-        if(history.size() > 0 && objects.size() > prevObjects.size()){
-
-            boolean foundMatches = false;
-            int step = 2;
-
-            // Debugging simplification
-            ArrayList<Integer> noMatch = new ArrayList<Integer>();
-            HashMap<Integer, Integer> alreadyAssigned = new HashMap<Integer,Integer>();
-            Set<Integer> setN = objects.keySet();
-            for(Integer i : setN){
-                if (objects.get(i).matched == true)
-                    alreadyAssigned.put(i,i);
-                else noMatch.add(i);
-            }
-
-            while(!foundMatches && step < history.size()){
-                HashMap<Integer,ObjectInfo> old = history.get(history.size()-step);
-                boolean[] matched = new boolean[noMatch.size()];
-
-                // For each unmatched object, try to find a similar object
-                // from this scene
-                for(int i=0; i<noMatch.size(); i++){
-                    ObjectInfo oi = objects.get(noMatch.get(i));
-                    int mostSim = oi.mostSimilar(old, alreadyAssigned);
-
-                    // Give object ID and coloring of most similar object
-                    if (mostSim >= 0 && !alreadyAssigned.containsKey(i)){
-                        int newID = old.get(mostSim).repID;
-                        int newColor = old.get(mostSim).color;
-                        oi.equateObject(newID, newColor);
-                        oi.matched = true;
-                        alreadyAssigned.put(newID, newID);
-                        for(double[] p : oi.points){
-                            coloredPoints.add(new double[]{p[0], p[1], p[2], oi.color});
-                        }
-                        matched[i] = true;
-                    }
-                }
-                // Remove ones that were matched
-               for(int i=matched.length-1; i>-1; i--)
-                    if(matched[i]) noMatch.remove(i);
-                foundMatches = (noMatch.size() == 0);
-                step ++;
-            }
-        }
-
-        //HashMap<Integer, ObjectInfo> forHistory = new HashMap<Integer, ObjectInfo>();
-        //Set<Integer> set = objects.keySet();
-        //for(Integer i : set)
-        //    forHistory.put(i, objects.get(i));
-        //history.add(forHistory);
-        //if(history.size() > MAX_HISTORY){
-        //    history.remove(0);
-        //}
-   }*/
 
     /** Estimate the floor plane using RANSAC algorithm (assumes that the major
         plane in the image is the "floor").

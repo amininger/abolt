@@ -26,7 +26,7 @@ public class ObjectInfo{
     public int color;
     public int repID;
     public int ufsID;
-    public double[] sumPoints;
+    public double[] center;
     public int[] sumColor;
     public double leftmost;
     public double rightmost;
@@ -42,6 +42,7 @@ public class ObjectInfo{
     private HashMap<FeatureCategory, ArrayList<Double> > features;
 
     public ObjectInfo(){
+        center = null;
     	features = new HashMap<FeatureCategory, ArrayList<Double> >();
     }
 
@@ -59,7 +60,6 @@ public class ObjectInfo{
         this.uppermost = point[1];
         this.lowermost = point[1];
         this.matched = false;
-        sumPoints = new double[]{point[0], point[1], point[2]};
         Color c = new Color((int) point[3]);
         sumColor = new int[]{c.getRed(), c.getBlue(), c.getGreen()};
 
@@ -86,9 +86,6 @@ public class ObjectInfo{
             this.lowermost = point[1];
 
         this.numPoints ++;
-        for(int i=0; i<sumPoints.length; i++){
-            sumPoints[i] += point[i];
-        }
         Color c = new Color((int)point[3]);
         sumColor[0] += c.getRed();
         sumColor[1] += c.getBlue();
@@ -110,20 +107,31 @@ public class ObjectInfo{
     /** Get the center of the object (mean x, y,z). **/
     public double[] getCenter()
     {
-        double[] center = new double[sumPoints.length];
-        for(int i=0; i<sumPoints.length; i++){
-            center[i] = sumPoints[i]/numPoints;
+        if(center == null){
+            center = new double[3];
+            double[] min = new double[]{1000, 1000, 1000};
+            double[] max = new double[]{-1000, -1000, -1000};
+            for(double[] p : points){
+                for(int i=0; i<3; i++){
+                    if(p[i]<min[i])
+                        min[i] = p[i];
+                    if(p[i] > max[i])
+                        max[i] = p[i];
+                }
+            }
+            for(int i=0; i<3; i++){
+                center[i] = (min[i]+max[i])/2.0;
+            }
+            center = KUtils.getWorldCoordinates(center);
         }
-
         return center;
+//        return new double[]{center[1], center[0], center[2]};
     }
 
 
     public void resetCenter(double[] newCenter)
     {
-        for(int i=0; i<sumPoints.length; i++){
-            sumPoints[i] = newCenter[i]*numPoints;
-        }
+        center = newCenter;
     }
 
     /** Get the average color of the object as an array [r, g, b]. **/
