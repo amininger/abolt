@@ -426,7 +426,7 @@ public class BoltArmController implements LCMSubscriber
 
                     gripper_status = arm.getStatus(5);
                     if (gripper_status != null) {
-                        if (Math.abs(gripper_status.load) > minLoad) {
+                        if (!BoltMath.equals(gripper_status.load, 0, 0.01)) {
                             grabbedObject = toGrab;
                             curAction = ActionMode.WAIT;
                         } else {
@@ -492,8 +492,8 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case DROP_AT:
-                    //moveTo(goal, goalHeight);
-                    moveTo(goal, grabHeight,grabHeight*1.8);
+                    moveTo(goal, goalHeight);
+                    //moveTo(goal, grabHeight,grabHeight*1.8);
                     if (actionComplete()) {
                         setState(ActionState.DROP_RELEASE);
                     }
@@ -515,7 +515,7 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case DROP_WAITING:
-                    grabbedObject = 0;
+                    grabbedObject = -1;
                     curAction = ActionMode.WAIT;
                     break;
                 default:
