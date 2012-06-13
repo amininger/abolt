@@ -99,7 +99,7 @@ public class Bolt extends JFrame implements LCMSubscriber
 
     	// Initialize the simulator
         simulator = new BoltSimulator(opts);
-        
+
 
         if(opts.getBoolean("kinect")){
         	camera = new KinectCamera();
@@ -263,7 +263,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         if (opts.getBoolean("arm")) {
             ArmDriver armDriver = new ArmDriver(config);
             (new Thread(armDriver)).start();
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(false);//opts.getBoolean("debug"));
+            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
             BoltArmController controller = new BoltArmController();
             if (opts.getBoolean("debug")) {
                 BoltArmDemo demo = new BoltArmDemo(null); // XXX This won't quite make sense
