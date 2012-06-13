@@ -1,6 +1,6 @@
 package abolt.classify;
 
-import java.util.;
+import java.util.*;
 
 public class Classifications
 {
@@ -16,7 +16,7 @@ public class Classifications
         }
 
         // XXX Want an ascending sort
-        public boolean compare(Label l)
+        public int compareTo(Label l)
         {
             if (weight < l.weight)
                 return 1;
@@ -32,7 +32,7 @@ public class Classifications
 
     public Classifications()
     {
-        label = new ArrayList<Label>();
+        labels = new ArrayList<Label>();
     }
 
     public void add(String label, double weight)

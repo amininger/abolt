@@ -4,6 +4,8 @@ import java.util.*;
 
 import april.jmat.*;
 
+import abolt.util.*;
+
 /** K-nearest neighbor classifier using a guassian-like
  *  weighting function when considering the importance
  *  of the neighbors
@@ -67,7 +69,7 @@ public class GKNN implements IClassifier
     {
         if (label == null)
             return;
-        double[] dfeatures = ArrayList.toArray(new double[0]);
+        double[] dfeatures = BoltMath.toArray(features);
         add(dfeatures, label);
     }
 
@@ -75,11 +77,11 @@ public class GKNN implements IClassifier
     {
         if (label == null)
             return;
-        points.add(features, label);
+        points.add(new CPoint(features, label));
     }
 
     /** Return a confidence label given the features */
-    ConfidenceLabel classify(ArrayList<Double> features)
+    public ConfidenceLabel classify(ArrayList<Double> features)
     {
         // Find the k nearest neighbors
         //
@@ -130,13 +132,13 @@ public class GKNN implements IClassifier
     }
 
     /** Clear the classifier information */
-    void clearData()
+    public void clearData()
     {
         points.clear();
     }
 
     /** Load in the classifier data */
-    void loadData()
+    public void loadData()
     {
     }
 
