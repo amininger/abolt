@@ -19,7 +19,6 @@ Arguments that can be passed to Bolt:
 -w/--world      (file)   File used to initialize the simulator
 -s/--sim-config (file)   Config file used for the simulator
 -k/--kinect     (bool)   If true, Bolt creates objects using data from the kinect
-  /--seg        (bool)   If true, the display shows the camera feed and segmentation instead (only used if -k is true)
 -d/--debug      (bool)   If true, extra debugging information is shown
   /--fps        (int)    The desired fps for the simulator to run
 
@@ -31,6 +30,7 @@ Arguments that can be passed to Bolt:
 abolt.arm 		- Code for controlling the robotic arm
 abolt.bolt 		- Contains the main class (Bolt) and GUI's
 abolt.classify 	- Code for performing the classification and feature extraction
+abolt.collision - New code for intersections convex solids
 abolt.kinect 	- Code for the perceptual system, including segmentation, tracking, and calibration
 abolt.lcm 		- contains plugins for lcm-spy to use
 abolt.lcmtypes 	- java interfaces for the lcm types used in the system
@@ -49,7 +49,7 @@ Bolt also initializes the components for the arm, either the ArmSimulator or the
 Bolt automatically creates and sends observations_t over LCM
 
 Bolt Components:
-	IObjectManager - A collection of the BoltObjects in the current environment
+	BoltObjectManager - A collection of the BoltObjects in the current environment
 		Major tasks are updating the objects with new perceptual information and reclassifying
 		Also constructs the object_data_t[] array used in observations_t
 	SensableManager - A collection of the SimSensables in the current environment
@@ -57,8 +57,9 @@ Bolt Components:
 		Also constructs the string[] array used in observations_t
 	ClassifierManager - A collection of the various classifiers used for different visual features
 		This is where the settings for each classifier can be tweaked
-	IBoltGUI - The user interface being shown to the user
+	BoltSimulator - The user interface being shown to the user
 		Contains a VisWorld and handles various drawing functionality for that world
+	IBoltCamera - The camera extracting point cloud data for the objects 
 	Segment (optional) - The segmenter currently in use (only if using --kinect)
 
 Object vs Sensable

@@ -13,10 +13,29 @@ import abolt.objects.BoltObject;
  * Creates the classifiers used in the system and acts as a point of contact to them
  */
 public class ClassifierManager {
-	
+    private static ClassifierManager singleton = null;
+    public static ClassifierManager getSingleton()
+    {
+        if (singleton == null) {
+            singleton = new ClassifierManager();
+        }
+        return singleton;
+    }
+
 	private HashMap<FeatureCategory, IClassifier> classifiers;
-	
-	public ClassifierManager(Config config){
+
+    public ClassifierManager()
+    {
+    }
+
+	public ClassifierManager(Config config)
+    {
+        addClassifiers(config);
+        reloadData();
+	}
+
+    public void addClassifiers(Config config)
+    {
         String colorDataFile = "", shapeDataFile = "", sizeDataFile = "";
 		// Load .dat files
         try {
@@ -27,15 +46,13 @@ public class ClassifierManager {
             System.err.println("ERR: Could not load all .dat files");
             ex.printStackTrace();
         }
-        
+
 		classifiers = new HashMap<FeatureCategory, IClassifier>();
         classifiers.put(FeatureCategory.COLOR, new KNN(1, 6, colorDataFile, 0.2));
         classifiers.put(FeatureCategory.SHAPE, new ShapeKNN(10, 15, shapeDataFile, 1));
         classifiers.put(FeatureCategory.SIZE, new KNN(5, 2, sizeDataFile, 1));
-        
-        reloadData();
-	}
-	
+    }
+
 	public ConfidenceLabel classify(FeatureCategory cat, BoltObject obj){
 		IClassifier classifier = classifiers.get(cat);
 		ArrayList<Double> features = obj.getFeatures(cat);
@@ -48,14 +65,14 @@ public class ClassifierManager {
 		}
 		return label;
 	}
-	
+
 	public void addDataPoint(FeatureCategory cat, ArrayList<Double> features, String label){
 		IClassifier classifier = classifiers.get(cat);
 		synchronized(classifier){
 			classifier.add(features, label);
 		}
 	}
-	
+
 	public void clearData(){
 		for(IClassifier classifier : classifiers.values()){
 			synchronized(classifier){
@@ -63,7 +80,7 @@ public class ClassifierManager {
 			}
 		}
 	}
-	
+
 	public void reloadData(){
 		for(IClassifier classifier : classifiers.values()){
 			synchronized(classifier){
@@ -72,7 +89,9 @@ public class ClassifierManager {
 			}
 		}
 	}
-	
+
+    // XXX This feels like it will break given a situation with no
+    // classifiers yet initialized. Meh.
 	public void updateObject(BoltObject object){
 		for(FeatureCategory cat : FeatureCategory.values()){
 			ArrayList<Double> features = object.getFeatures(cat);

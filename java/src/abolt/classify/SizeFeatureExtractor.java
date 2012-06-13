@@ -2,6 +2,7 @@ package abolt.classify;
 
 import java.util.ArrayList;
 
+import abolt.bolt.Bolt;
 import abolt.kinect.KUtils;
 import abolt.kinect.ObjectInfo;
 import april.jmat.LinAlg;
@@ -73,7 +74,7 @@ public class SizeFeatureExtractor{
 		double[] max = new double[] { -1000, -1000, -1000 };
 		double[] min = new double[] { 1000, 1000, 1000 };
 		for (double[] p : points) {
-            p = KUtils.getWorldCoordinates(p);
+            p = Bolt.getCamera().getWorldCoords(p);
 			for (int i = 0; i < 3; i++) {
 				if (p[i] < min[i])
 					min[i] = p[i];

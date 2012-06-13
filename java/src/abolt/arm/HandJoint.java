@@ -25,7 +25,8 @@ public class HandJoint implements Joint
 
     static public class Parameters
     {
-        public double angle = 0.0;
+        public double dAngle = 0.0;
+        public double aAngle = 0.0;
         public double length = 0.111;
         public double rMin = Math.toRadians(-40.0);
         public double rMax = Math.toRadians(120.0);
@@ -38,20 +39,6 @@ public class HandJoint implements Joint
 
         rotation = LinAlg.identity(4);
         translation = LinAlg.translate(params.length,0,0);
-    }
-
-    public JPanel getParameterPanel(int n)
-    {
-        JPanel panel = new JPanel();
-        panel.setBorder(BorderFactory.createTitledBorder("Hand Joint "+n));
-        ParameterGUI pg = new ParameterGUI();
-        pg.addDoubleSlider("angle",
-                           "Angle [rad]",
-                           JointConstraints.R_MIN,
-                           JointConstraints.R_MAX,
-                           0);
-        panel.add(pg);
-        return panel;
     }
 
     public VisObject getVis()
@@ -69,16 +56,22 @@ public class HandJoint implements Joint
         return translation;
     }
 
-    public void set(double val)
+    public void setPos(double val)
     {
-        params.angle = MathUtil.clamp(val, params.rMin, params.rMax);
+        params.dAngle = MathUtil.clamp(val, params.rMin, params.rMax);
+    }
+
+    public void updatePos(double val)
+    {
+        params.aAngle = val;
+        // XXX Rotation update, if it was relevant
         updateVisObject();
     }
 
     public dynamixel_command_t getArmCommand()
     {
         dynamixel_command_t cmd = new dynamixel_command_t();
-        cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.angle, params.rMin, params.rMax));
+        cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.dAngle, params.rMin, params.rMax));
 
         cmd.speed = HAND_SPEED;
         cmd.max_torque = 0.5;
@@ -121,17 +114,17 @@ public class HandJoint implements Joint
                                         finger);
 
         // Mobile Fingers
-        VisChain mobile0 = new VisChain(LinAlg.rotateX(-params.angle),
+        VisChain mobile0 = new VisChain(LinAlg.rotateX(-params.aAngle),
                                         LinAlg.translate(0,-mfY/2,0),
                                         LinAlg.translate(-msep,-moY,-moZ),
                                         LinAlg.scale(height,mfY,width),
                                         finger);
-        VisChain mobile1 = new VisChain(LinAlg.rotateX(-params.angle),
+        VisChain mobile1 = new VisChain(LinAlg.rotateX(-params.aAngle),
                                         LinAlg.translate(0,-mfY/2,0),
                                         LinAlg.translate(0,-moY,-moZ),
                                         LinAlg.scale(height,mfY,width),
                                         finger);
-        VisChain mobile2 = new VisChain(LinAlg.rotateX(-params.angle),
+        VisChain mobile2 = new VisChain(LinAlg.rotateX(-params.aAngle),
                                         LinAlg.translate(0,-mfY/2,0),
                                         LinAlg.translate(msep,-moY,-moZ),
                                         LinAlg.scale(height,mfY,width),
@@ -139,7 +132,7 @@ public class HandJoint implements Joint
 
 
         // Joint
-        VisChain joint = new VisChain(LinAlg.rotateX(-params.angle),
+        VisChain joint = new VisChain(LinAlg.rotateX(-params.aAngle),
                                       LinAlg.rotateY(Math.PI/2),
                                       LinAlg.translate(0,-moY,0),
                                       cyl);
@@ -165,8 +158,23 @@ public class HandJoint implements Joint
         return params.length;
     }
 
-    public double getAngle()
+    public double getActualValue()
     {
-        return params.angle;
+        return params.aAngle;
+    }
+
+    public double getDesiredValue()
+    {
+        return params.dAngle;
+    }
+
+    public double getMinValue()
+    {
+        return params.rMin;
+    }
+
+    public double getMaxValue()
+    {
+        return params.rMax;
     }
 }

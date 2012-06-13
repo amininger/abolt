@@ -5,14 +5,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import abolt.bolt.Bolt;
-import abolt.classify.ClassifierManager;
-import abolt.classify.SimFeatures;
-import abolt.classify.Features.FeatureCategory;
-import abolt.objects.BoltObject;
 import april.jmat.LinAlg;
 import april.sim.BoxShape;
 import april.sim.Shape;
+import april.sim.SimObject;
 import april.sim.SimWorld;
 import april.sim.SphereShape;
 import april.util.StructureReader;
@@ -23,20 +19,30 @@ import april.vis.VzLines;
 import april.vis.VzRectangle;
 import april.vis.VzText;
 
-public class SimLocation extends BoltObject implements SimSensable {
+import abolt.bolt.Bolt;
+import abolt.classify.SimFeatures;
+import abolt.classify.Features.FeatureCategory;
+import abolt.objects.*;
+import abolt.util.SimUtil;
+
+public class SimLocation implements SimSensable, SimObject {
     protected VisObject model;
     protected Shape shape;
-    
-    private String name;
-    private String colorStr;
-    
-    protected double size = .2;
+
+    protected int id;
+    protected double[] pose;
+    protected double[][] bbox;
+
+    protected String name;
+    protected String colorStr;
+
+    protected double size = .12;
 
     public SimLocation(SimWorld sw)
     {
-    	super(sw);
+    	id = SimUtil.nextID();
     }
-    
+
     public Shape getShape()
     {
         return shape;
@@ -46,33 +52,48 @@ public class SimLocation extends BoltObject implements SimSensable {
     {
         return model;
     }
-    
-	@Override
-	public ArrayList<Double> getFeatures(FeatureCategory cat) {
-		return null;
-	}
-	
+
 	public String getName() {
 		return name;
 	}
 
+
+	@Override
+	public double[][] getPose() {
+		return LinAlg.xyzrpyToMatrix(pose);
+	}
+
+	@Override
+	public void setPose(double[][] poseMatrix) {
+		pose = LinAlg.matrixToXyzrpy(poseMatrix);
+	}
+
+	@Override
+	public void setRunning(boolean arg0) {
+	}
+
+	@Override
+	public int getID() {
+		return id;
+	}
+
 	public String getProperties() {
 		String props = String.format("ID=%d,NAME=%s,", id, name);
-		props += String.format("POSE=[%f %f %f %f %f %f],", pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]);
+		props += String.format("POSE=[%f %f %f %f %f %f],", pose[0], pose[1], pose[2], pose[3], pose[4], pose[5]);
 		props += String.format("BBOX=[%f %f %f %f %f %f]", bbox[0][0], bbox[0][1], bbox[0][2], bbox[1][0], bbox[1][1], bbox[1][2]);
 		return props;
 	}
-	
+
 	public void read(StructureReader ins) throws IOException
     {
 		double[] xy = ins.readDoubles();
-    	pos = new double[]{xy[0], xy[1], size/2, 0, 0, 0};
+    	pose = new double[]{xy[0], xy[1], size/2, 0, 0, 0};
     	bbox = new double[][]{new double[]{-size, -size, -size/2}, new double[]{size, size, size/2}};
 
     	name = ins.readString();
         colorStr = ins.readString();
         Color color = SimFeatures.getColorValue(colorStr);
-        
+
         model =  new VisChain(new VisChain(LinAlg.translate(0,0,-size/2 + .001),
         						LinAlg.scale(size),
 				                new VzRectangle(new VzLines.Style(color,2))),
@@ -81,17 +102,14 @@ public class SimLocation extends BoltObject implements SimSensable {
 				                new VzText(VzText.ANCHOR.CENTER, String.format("<<%s>> %s", colorStr, name))));
 
         shape = new BoxShape(new double[]{2*size, 2*size, 0});
-        
-        
-    	if(Bolt.getSensableManager() != null){
-            Bolt.getSensableManager().addSensable(this);
-    	}
+
+        SensableManager.getSingleton().addSensable(this);
     }
 
     public void write(StructureWriter outs) throws IOException
     {
     	outs.writeComment("XY");
-        outs.writeDoubles(new double[]{pos[0], pos[1]});
+        outs.writeDoubles(new double[]{pose[0], pose[1]});
         outs.writeString(colorStr);
     }
 
@@ -99,4 +117,5 @@ public class SimLocation extends BoltObject implements SimSensable {
 	public boolean inSenseRange(double[] xyt) {
 		return true;
 	}
+
 }

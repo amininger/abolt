@@ -7,23 +7,33 @@ import abolt.lcmtypes.object_data_t;
 import abolt.sim.SimActionable;
 import abolt.sim.SimSensable;
 
-public class SensableManager {
+public class SensableManager
+{
+    private static SensableManager singleton = null;
+    public static SensableManager getSingleton()
+    {
+        if (singleton == null) {
+            singleton = new SensableManager();
+        }
+        return singleton;
+    }
+
 	private HashMap<Integer, SimSensable> sensables;
-	
-	public SensableManager(){
+
+	private SensableManager(){
 		sensables = new HashMap<Integer, SimSensable>();
 	}
-	
+
 	public HashMap<Integer, SimSensable> getSensables(){
 		return sensables;
 	}
-	
+
 	public void addSensable(SimSensable sensable){
 		synchronized(sensables){
 			sensables.put(sensable.getID(), sensable);
 		}
 	}
-	
+
 	public String[] getSensableStrings(){
 		ArrayList<String> sensableStrings = new ArrayList<String>();
 		synchronized(sensables){
@@ -36,7 +46,7 @@ public class SensableManager {
 		}
 		return sensableStrings.toArray(new String[0]);
 	}
-	
+
 	public void performAction(String action){
 		// Expecting the form 'ID=234,DOOR=OPEN'
 		String[] args = action.toUpperCase().split(",");

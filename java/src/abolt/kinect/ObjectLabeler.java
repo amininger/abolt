@@ -175,7 +175,7 @@ class ObjectLabeler // implements LCMSubscriber
     public void updateParams()
     {
         // Segment the image and return list of segmented objects
-        segment.segmentFrame(da.currentPoints);
+        segment.segmentFrame(da.currentPoints, FRAME_WIDTH, FRAME_HEIGHT);
         objRefs = new int[da.objects.size()];
         Set<Integer> keys = da.objects.keySet();
         Integer[] keysArray = keys.toArray(new Integer[0]);
@@ -215,7 +215,7 @@ class ObjectLabeler // implements LCMSubscriber
             }
 
             // Segment the image and return list of segmented objects
-            segment.segmentFrame(da.currentPoints);
+            segment.segmentFrame(da.currentPoints, FRAME_WIDTH, FRAME_HEIGHT);
             objRefs = new int[da.objects.size()];
             Set<Integer> keys = da.objects.keySet();
             Integer[] keysArray = keys.toArray(new Integer[0]);
@@ -394,7 +394,8 @@ class ObjectLabeler // implements LCMSubscriber
         da.ransacThresh = initialRansacThresh;
         da.ransacPercent = initialRansacPercent;
         da.depthLookUp = KUtils.createDepthMap();
-        segment = new Segment(FRAME_WIDTH, FRAME_HEIGHT);
+        //segment = new Segment(FRAME_WIDTH, FRAME_HEIGHT);
+        segment = Segment.getSingleton();
 
         ObjectLabeler ol = new ObjectLabeler(opts);
     }
