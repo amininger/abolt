@@ -13,10 +13,8 @@ import lcm.lcm.LCMSubscriber;
 
 import abolt.bolt.Bolt;
 import abolt.classify.ColorFeatureExtractor;
-import abolt.lcmtypes.kinect_status_t;
-import april.vis.VisChain;
-import april.vis.VisWorld;
-import april.vis.VzImage;
+import abolt.lcmtypes.*;
+import april.vis.*;
 import abolt.objects.*;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
@@ -37,6 +35,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         //        (int)(KUtils.viewRegion.height));
         segment = Segment.getSingleton();
     	lcm.subscribe("KINECT_STATUS", this);
+    	lcm.subscribe("ROBOT_COMMAND", this);
     }
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
@@ -85,7 +84,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         }
         return image;
     }
-	
+
 	public void drawKinectData(double[][] viewXform, VisWorld.Buffer buffer){
     	BufferedImage background = getKinectImage(kinectData);
 		double[] pt = new double[2];
@@ -106,7 +105,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 		buffer.addBack(new VisChain(viewXform, new VzImage(background, VzImage.FLIP)));
         buffer.setDrawOrder(-10);
     }
-	
+
 	@Override
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
     {
@@ -134,6 +133,23 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 	//Bolt.getObjectManager().updateObjects(objInfoList);
                     BoltObjectManager.getSingleton().updateObjects(objInfoList);
                 }
+            }
+        }
+        else if(channel.equals("ROBOT_COMMAND")){
+            try{
+                robot_command_t command = new robot_command_t(ins);
+                String[] action = command.action.split("=");
+                if(action[0].equals("GRAB")){
+                    segment.tracker.movingObject(Integer.parseInt(action[1]));
+                }
+                else if(action[0].equals("DROP")){
+                    double[] loc = command.dest;
+                    segment.tracker.releasedObject(new double[]{loc[0], loc[1], 0});
+                }
+
+            }catch (IOException e) {
+                e.printStackTrace();
+                return;
             }
         }
     }

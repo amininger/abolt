@@ -178,7 +178,7 @@ public class BoltArmController implements LCMSubscriber
             // Iterate through the joints and see if they're all moving or not
             for (int i = 0; i < arm.getJoints().size(); i++) {
                 dynamixel_status_t stat = arm.getStatus(i);
-                if (stat == null || !BoltMath.equals(0, stat.speed, 0.01)) {
+                if (stat != null && !BoltMath.equals(0, stat.speed, 0.01)) {
                     return false;
                 }
             }
@@ -492,8 +492,8 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case DROP_AT:
-                    moveTo(goal, goalHeight);
-
+                    //moveTo(goal, goalHeight);
+                    moveTo(goal, grabHeight,grabHeight*1.8);
                     if (actionComplete()) {
                         setState(ActionState.DROP_RELEASE);
                     }
