@@ -317,7 +317,7 @@ public class BoltArmController implements LCMSubscriber
             //      6: Adjust grip so we grab tightly, but don't break hand
             //      7: Switch action state back to waiting
             dynamixel_status_t gripper_status;
-            double maxLoad = 0.35;
+            double maxLoad = 0.40;
             double minLoad = 0.20;
             double gripIncr = Math.toRadians(3.0);
             switch (state) {
