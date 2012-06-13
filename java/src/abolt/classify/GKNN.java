@@ -52,17 +52,18 @@ public class GKNN implements IClassifier
     int k;
 
     // Covariance parameter
-    double[][] P;
+    double p;
 
     /** Initialize the KNN
      *  @param k_       The max number of neighbors considered
-     *  @param P_       A covariance matrix parameter affecting weighting
+     *  @param p_       A covariance matrix parameter affecting weighting
      */
-    public GKNN(int k_, double[][] P_)
+    public GKNN(int k_, double p_)
     {
         k = k_;
-        P = P_;
+        p = p_;
     }
+
 
     /** Add a training example to the classifier */
     public void add(ArrayList<Double> features, String label)
@@ -104,8 +105,12 @@ public class GKNN implements IClassifier
         Collections.sort(points, new CPointComparator(features));
 
         // Evaluate the neighbors based on the weights
+        double[][] P = LinAlg.scale(LinAlg.identity(features.length), p);
         MultiGaussian mg = new MultiGaussian(P, features);
+        double maxValue = mg.prob(features);
+
         HashMap<String, Double> labelWeights = new HashMap<String, Double>();
+        HashMap<String, Integer> labelExamples = new HashMap<String, Integer>();
         double totalWeight = 0;
 
         for (int i = 0; i < Math.min(k, points.size()); i++) {
@@ -113,10 +118,13 @@ public class GKNN implements IClassifier
             double weight = mg.prob(point.coords);
             totalWeight += weight;
             double oldWeight = 0;
+            int numExamples = 0;
             if (labelWeights.containsKey(point.label)) {
                oldWeight = labelWeights.get(point.label);
+               numExamples = labelExamples.get(point.label);
             }
             labelWeights.put(point.label, oldWeight+weight);
+            labelExamples.put(point.label, numExamples+1);
         }
 
         // Compute the probability (XXX) of each label being
@@ -124,7 +132,12 @@ public class GKNN implements IClassifier
         // computed as fractions of the entire weight.
         Classifications classifications = new Classifications();
         for (String label: labelWeights.keySet()) {
-            classifications.add(label, labelWeights.get(label)/totalWeight);
+            double labelWeight = labelWeights.get(label);
+
+            // Weight normalization
+            labelWeight /= labelExamples.get(label);
+            labelWeight /= maxValue;
+            classifications.add(label, labelWeight);
         }
 
         // Return
@@ -145,5 +158,123 @@ public class GKNN implements IClassifier
     public static void main(String[] args)
     {
         // Test code!
+        GKNN knn = new GKNN(10, 0.1);
+
+        // Fake features to add
+        double[] red0 = new double[] {1.0, 0.1, 0.2};
+        double[] red1 = new double[] {0.75, 0.3, 0.3};
+        double[] red2 = new double[] {0.8, 0.3, 0.35};
+        double[] red3 = new double[] {0.9, 0.23, 0.3};
+        double[] red4 = new double[] {1.0, 0, 0};
+        double[] red5 = new double[] {0.94, 0.15, 0.18};
+        double[] red6 = new double[] {0.95, 0.75, 0.73};
+        double[] red7 = new double[] {0.49, 0.03, 0.04};
+        double[] red8 = new double[] {0.38, 0.1, 0.04};
+        double[] red9 = new double[] {0.61, 0.2, 0.32};
+
+        double[] green0 = new double[] {0.3, 0.8, 0.4};
+        double[] green1 = new double[] {0.1, 0.4, 0};
+        double[] green2 = new double[] {0.2, 0.98, 0.3};
+        double[] green3 = new double[] {0.13, 0.82, 0.1};
+        double[] green4 = new double[] {0.23, 0.79, 0.07};
+
+        double[] blue0 = new double[] {0.2, 0.1, 0.9};
+        double[] blue1 = new double[] {0.1, 0.3, 0.8};
+        double[] blue2 = new double[] {0.3, 0.21, 0.83};
+        double[] blue3 = new double[] {0.03, 0.05, 1.0};
+        double[] blue4 = new double[] {0.45, 0.5, 0.98};
+        double[] blue5 = new double[] {0.02, 0.03, 0.4};
+        double[] blue6 = new double[] {0.14, 0.12, 0.79};
+        double[] blue7 = new double[] {0.21, 0.24, 0.91};
+
+        double[] purple0 = new double[] {0.4, 0.1, 0.5};
+        double[] purple1 = new double[] {0.8, 0.3, 0.9};
+        double[] purple2 = new double[] {0.59, 0.2, 0.7};
+        double[] purple3 = new double[] {0.78, 0.5, 0.9};
+        double[] purple4 = new double[] {0.39, 0.04, 0.4};
+        double[] purple5 = new double[] {0.66, 0.21, 0.84};
+
+        int r = 0, g = 0, b = 0, p = 0;
+        r+=1;
+        printRGBP(r,g,b,p);
+        knn.add(red0, "red");
+        test(knn);
+
+        g+=1;
+        printRGBP(r,g,b,p);
+        knn.add(green0, "green");
+        test(knn);
+
+        b+=1;
+        printRGBP(r,g,b,p);
+        knn.add(blue0, "blue");
+        test(knn);
+
+        r+=1;
+        printRGBP(r,g,b,p);
+        knn.add(red1, "red");
+        test(knn);
+
+        r+=3;
+        printRGBP(r,g,b,p);
+        knn.add(red2, "red");
+        knn.add(red3, "red");
+        knn.add(red4, "red");
+        test(knn);
+
+        r+=5;
+        printRGBP(r,g,b,p);
+        knn.add(red5, "red");
+        knn.add(red6, "red");
+        knn.add(red7, "red");
+        knn.add(red8, "red");
+        knn.add(red9, "red");
+        test(knn);
+
+        g+=4;
+        printRGBP(r,g,b,p);
+        knn.add(green1, "green");
+        knn.add(green2, "green");
+        knn.add(green3, "green");
+        knn.add(green4, "green");
+        test(knn);
+
+        b+=6;
+        printRGBP(r,g,b,p);
+        knn.add(blue1, "blue");
+        knn.add(blue2, "blue");
+        knn.add(blue3, "blue");
+        knn.add(blue4, "blue");
+        knn.add(blue5, "blue");
+        knn.add(blue6, "blue");
+        test(knn);
+
+        p+=6;
+        printRGBP(r,g,b,p);
+        knn.add(purple0, "purple");
+        knn.add(purple1, "purple");
+        knn.add(purple2, "purple");
+        knn.add(purple3, "purple");
+        knn.add(purple4, "purple");
+        knn.add(purple5, "purple");
+        test(knn);
+    }
+
+    static private void printRGBP(int r, int g, int b, int p)
+    {
+        System.out.printf("\nr: [%d]\tg: [%d]\tb: [%d]\tp: [%d]\n========================\n", r,g,b,p);
+    }
+
+    static private void test(GKNN knn)
+    {
+        // Test colors
+        double[] red = new double[] {0.63, 0.32, 0.29};
+        double[] green = new double[] {0.2, 0.8, 0.3};
+        double[] blue = new double[] {0.4, 0.3, 0.89};
+        double[] purple = new double[] {0.7, 0.2, 0.9};
+        System.out.printf("Classify red: %s\n\n", knn.classify(red));
+        System.out.printf("Classify green: %s\n\n", knn.classify(green));
+        System.out.printf("Classify blue: %s\n\n", knn.classify(blue));
+        System.out.printf("Classify purple: %s\n\n", knn.classify(purple));
     }
 }

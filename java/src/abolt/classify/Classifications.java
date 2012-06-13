@@ -24,6 +24,13 @@ public class Classifications
                 return -1;
             return 0;
         }
+
+        public String toString()
+        {
+            Formatter f = new Formatter();
+            f.format("%s -- [%f]", label, weight);
+            return f.toString();
+        }
     }
 
     // All of the possible labels
@@ -33,6 +40,12 @@ public class Classifications
     public Classifications()
     {
         labels = new ArrayList<Label>();
+    }
+
+    private void sortLabels()
+    {
+        Collections.sort(labels);
+        sorted = true;
     }
 
     public void add(String label, double weight)
@@ -48,11 +61,24 @@ public class Classifications
         }
 
         if (!sorted) {
-            Collections.sort(labels);
-            sorted = true;
+            sortLabels();
         }
 
         return labels.get(0);
+    }
+
+    public String toString()
+    {
+        if (!sorted) {
+            sortLabels();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (Label label: labels) {
+            sb.append("\n"+label.toString());
+        }
+
+        return sb.toString();
     }
 
 }
