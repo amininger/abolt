@@ -250,6 +250,10 @@ class KinectCalibrator // implements LCMSubscriber
                                                  k2wTransform[i][2],
                                                  k2wTransform[i][3]));
     		}
+    		out.write("\tborders = ");
+    		out.write(String.format("[%d, %d, %d, %d];\n", (int)KUtils.viewRegion.getMinX(), 
+    				(int)KUtils.viewRegion.getMinY(), (int)KUtils.viewRegion.getMaxX(), 
+    				(int)KUtils.viewRegion.getMaxY()));
             out.write("}\n");
     		out.close();
     	} catch (IOException e){

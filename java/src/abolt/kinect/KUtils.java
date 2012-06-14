@@ -64,14 +64,19 @@ public class KUtils
     }*/
     public static void loadCalibFromConfig(Config config)
     {
-        double[] xform = config.getDoubles("calibration.xform");
-        assert (xform.length == 16);
-        kinectToWorldXForm = new double[4][4];
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                kinectToWorldXForm[i][j] = xform[4*i + j];
+        if(config.hasKey("calibration.xform")){
+            double[] xform = config.getDoubles("calibration.xform");
+        	assert (xform.length == 16);
+            kinectToWorldXForm = new double[4][4];
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    kinectToWorldXForm[i][j] = xform[4*i + j];
+                }
             }
+        } else {
+        	kinectToWorldXForm = LinAlg.identity(4);
         }
+        
         if(config.hasKey("calibration.borders")){
             int[] borders = config.getInts("calibration.borders");
             assert(borders.length == 4);
