@@ -134,6 +134,18 @@ public class BoltArm implements LCMSubscriber
         return joints;
     }
 
+    /** Get the position of the gripper */
+    public double[] getGripperXYZRPY()
+    {
+        double[][] xform = LinAlg.translate(0,0,baseHeight);
+        for (Joint j: joints) {
+            LinAlg.timesEquals(xform, j.getRotation());
+            LinAlg.timesEquals(xform, j.getTranslation());
+        }
+
+        return LinAlg.matrixToXyzrpy(xform);
+    }
+
     /** Returns the most recent status of the requested servo */
     public dynamixel_status_t getStatus(int idx)
     {
