@@ -10,6 +10,7 @@ import abolt.classify.ColorFeatureExtractor;
 public class ObjectTracking
 {
     final double MAX_TRAVEL_DIST = .1;
+    final double MAX_COLOR_CHANGE = 40;
     final int MAX_HISTORY = 20;
     private final static double darkThreshold = .4;
 
@@ -157,7 +158,9 @@ public class ObjectTracking
                     double[] c = objNew.getCenter();
                     double[] c2 = objOld.getCenter();
 
-                    if(dist < bestMatch && dist < MAX_TRAVEL_DIST){
+                    if(dist < bestMatch
+                       && dist < MAX_TRAVEL_DIST
+                       && color < MAX_COLOR_CHANGE){
                         newID = currentID;
                         oldID = pastID;
                         bestMatch = dist;
@@ -205,7 +208,9 @@ public class ObjectTracking
                         double color = LinAlg.distance(unusedObj.avgColor(),
                                                        lostObj.avgColor());
                         double score = color + dist;
-                        if(dist < bestMatch && dist < MAX_TRAVEL_DIST*2){
+                        if(dist < bestMatch
+                           && dist < MAX_TRAVEL_DIST*2
+                           && color < MAX_COLOR_CHANGE){
                             bestID = lostID;
                             bestMatch = dist;
                         }
