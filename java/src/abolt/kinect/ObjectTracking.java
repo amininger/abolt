@@ -58,7 +58,7 @@ public class ObjectTracking
     {
         if(holdingObject){
 
-            heldObject.center = finalLocation; //resetCenter(finalLocation);
+            heldObject.resetCenter(finalLocation); //resetCenter(finalLocation);
             double[] c = heldObject.getCenter();
             lastFrame.put(heldObject.repID, heldObject);
             lostObjects.remove(heldObject.ufsID);
@@ -248,7 +248,7 @@ public class ObjectTracking
             double[] gripperPosition = arm.getGripperXYZRPY();
 
             double[] c1 = heldObject.center;
-            heldObject.center = gripperPosition;
+            heldObject.resetCenter(gripperPosition);
             currentFrame.put(heldObject.ufsID, heldObject);
             double[] c2 = heldObject.center;
         }
