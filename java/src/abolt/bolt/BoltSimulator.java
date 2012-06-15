@@ -1,31 +1,23 @@
 package abolt.bolt;
 
-import java.awt.Color;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 import javax.swing.*;
 
-import abolt.classify.ConfidenceLabel;
+import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 import abolt.collision.ShapeToVisObject;
-import abolt.kinect.KUtils;
-import abolt.kinect.KinectCamera;
-import abolt.kinect.SimKinect;
-import abolt.objects.BoltObject;
-import abolt.objects.BoltObjectManager;
-import abolt.objects.ISimBoltObject;
+import abolt.kinect.*;
+import abolt.objects.*;
 import abolt.sim.SimSensable;
 import abolt.vis.SelectionAnimation;
 import april.config.*;
-import april.jmat.LinAlg;
-import april.jmat.geom.GRay3D;
+import april.jmat.*;
+import april.jmat.geom.*;;
 import april.sim.*;
 import april.util.*;
 import april.vis.*;
@@ -37,7 +29,7 @@ import abolt.objects.*;
 public class BoltSimulator implements VisConsole.Listener{
     private final static int K_HEIGHT = 480;
     private final static int K_WIDTH = 640;
-    
+
 	// Sim stuff
     SimWorld world;
     Simulator sim;
@@ -159,7 +151,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	group.add(simView);
     	simMenu.add(simView);
-    	
+
     	if(includeKinectView){
     		JRadioButtonMenuItem kinectView = new JRadioButtonMenuItem("Kinect View");
     		kinectView.addActionListener(new ActionListener(){
@@ -171,7 +163,7 @@ public class BoltSimulator implements VisConsole.Listener{
         	group.add(kinectView);
         	simMenu.add(kinectView);
     	}
-    	
+
     	menuBar.add(simMenu);
     }
 
@@ -284,6 +276,7 @@ public class BoltSimulator implements VisConsole.Listener{
                 VisWorld.Buffer textBuffer = vw.getBuffer("textbuffer");
 
                 BoltObjectManager objManager = BoltObjectManager.getSingleton();
+                ClassifierManager clManager = ClassifierManager.getSingleton();
                 synchronized(objManager.objects){
                     for(BoltObject obj : objManager.objects.values()){
                     	String labelString = "";
@@ -291,8 +284,8 @@ public class BoltSimulator implements VisConsole.Listener{
                 		String tf="<<monospaced,black,dropshadow=false>>";
                 		labelString += String.format("%s%d\n", tf, obj.getID());
                 		for(FeatureCategory cat : FeatureCategory.values()){
-                			ConfidenceLabel label = obj.getLabels().getBestLabel(cat);
-                    		labelString += String.format("%s%s:%.2f\n", tf, label.getLabel(), label.getConfidence());
+                            Classifications cs = clManager.classify(cat, obj);
+                    		labelString += String.format("%s%s:%.2f\n", tf, cs.getBestLabel().label, cs.getBestLabel().weight);
                 		}
                 		VzText text = new VzText(labelString);
                 		double[] textLoc = new double[]{obj.getPose()[0], obj.getPose()[1], obj.getPose()[2] + .1};
@@ -308,7 +301,7 @@ public class BoltSimulator implements VisConsole.Listener{
             }
         }
     }
-    
+
 	public void drawObjects() {
 		VisWorld.Buffer objectBuffer = vw.getBuffer("objects");
 		switch(viewType){
@@ -328,10 +321,10 @@ public class BoltSimulator implements VisConsole.Listener{
 			drawKinectView(objectBuffer);
 			break;
 		}
-		
-		objectBuffer.swap();			
+
+		objectBuffer.swap();
 	}
-	
+
 	private void drawPointCloud(VisWorld.Buffer buffer){
 		BoltObjectManager objManager = BoltObjectManager.getSingleton();
     	synchronized(objManager.objects){
@@ -360,7 +353,7 @@ public class BoltSimulator implements VisConsole.Listener{
 			}
     	}
 	}
-	
+
 	private void drawProjectionView(VisWorld.Buffer buffer){
 		BoltObjectManager objManager = BoltObjectManager.getSingleton();
     	synchronized(objManager.objects){
@@ -376,7 +369,7 @@ public class BoltSimulator implements VisConsole.Listener{
 			}
     	}
 	}
-    
+
 
 	private void drawSimView(VisWorld.Buffer buffer){
 		BoltObjectManager objManager = BoltObjectManager.getSingleton();
@@ -392,7 +385,7 @@ public class BoltSimulator implements VisConsole.Listener{
     		}
     	}
 	}
-	
+
 	private void drawKinectView(VisWorld.Buffer buffer){
 		if(!(Bolt.getCamera() instanceof KinectCamera)){
 			return;
@@ -420,7 +413,7 @@ public class BoltSimulator implements VisConsole.Listener{
     		}
     	}
 	}
-	
+
     public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
     	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
     	for(VisObject obj : objects){

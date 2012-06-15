@@ -214,7 +214,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
         obs.sensables = sensableManager.getSensableStrings();
         obs.nsens = obs.sensables.length;
-        obs.observations = objectManager.getObjectData();
+        obs.observations = classifierManager.getObjectData();
         obs.nobs = obs.observations.length;
 
         lcm.publish("OBSERVATIONS",obs);

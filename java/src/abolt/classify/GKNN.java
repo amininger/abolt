@@ -1,6 +1,7 @@
 package abolt.classify;
 
 import java.util.*;
+import java.io.*;
 
 import april.jmat.*;
 
@@ -54,6 +55,9 @@ public class GKNN implements IClassifier
     // Covariance parameter
     double p;
 
+    // Load data from this file
+    String filename = null;
+
     /** Initialize the KNN
      *  @param k_       The max number of neighbors considered
      *  @param p_       A covariance matrix parameter affecting weighting
@@ -81,15 +85,10 @@ public class GKNN implements IClassifier
         points.add(new CPoint(features, label));
     }
 
-    /** Return a confidence label given the features */
-    public ConfidenceLabel classify(ArrayList<Double> features)
+    @Override
+    public Classifications classify(ArrayList<Double> features)
     {
-        // Find the k nearest neighbors
-        //
-        // Evaluate the neighbors based on the weights
-        //
-        // Return
-        return null;    // XXX Not yet implemented
+        return classify(BoltMath.toArray(features));
     }
 
     /** Return a list of classifications ordered by the
@@ -140,7 +139,10 @@ public class GKNN implements IClassifier
             classifications.add(label, labelWeight);
         }
 
-        // Return
+        // If we have no label, report the unknown label, for now
+        if (classifications.size() < 1) {
+            classifications.add("unknown", 0.0);
+        }
         return classifications;
     }
 
@@ -150,9 +152,34 @@ public class GKNN implements IClassifier
         points.clear();
     }
 
-    /** Load in the classifier data */
+    /** Load in the classifier data from file*/
     public void loadData()
     {
+        if (filename == null)
+            return;
+
+        try {
+            Scanner scanner = new Scanner(new File(filename));
+            scanner.useDelimiter("[\\s\\[\\]\\{\\}]+");
+
+            while (scanner.hasNext()) {
+                ArrayList<Double> features = new ArrayList<Double>();
+                while (scanner.hasNextDouble()) {
+                    features.add(scanner.nextDouble());
+                }
+                String label = scanner.next();
+                add(features, label);
+            }
+        } catch (IOException ioex) {
+            System.err.println("ERR: Trouble loading GKNN file");
+            ioex.printStackTrace();
+        }
+    }
+
+    /** Set the file to load training data from on a load call */
+    public void setDataFile(String filename_)
+    {
+        filename = filename_;
     }
 
     public static void main(String[] args)

@@ -42,7 +42,7 @@ public class Classifications
         labels = new ArrayList<Label>();
     }
 
-    private void sortLabels()
+    public void sortLabels()
     {
         Collections.sort(labels);
         sorted = true;
@@ -52,6 +52,11 @@ public class Classifications
     {
         sorted = false;
         labels.add(new Label(label, weight));
+    }
+
+    public int size()
+    {
+        return labels.size();
     }
 
     public Label getBestLabel()
