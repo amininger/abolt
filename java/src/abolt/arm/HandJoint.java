@@ -38,7 +38,7 @@ public class HandJoint implements Joint
         updateVisObject();
 
         rotation = LinAlg.identity(4);
-        translation = LinAlg.translate(params.length,0,0);
+        translation = LinAlg.translate(0,0,params.length);
     }
 
     public VisObject getVis()

@@ -34,6 +34,7 @@ public class BoltObjectManager {
 	        }
 
 	        for (ObjectInfo info : objectInfo.values()) {
+                double[] c = info.center;
 	        	int id = info.repID;
 	        	BoltObject obj;
 	            if (objects.containsKey(id)) {
@@ -46,6 +47,7 @@ public class BoltObjectManager {
 	                objects.put(id, obj);
 	            }
 	            obj.updateObject(info);
+                c = obj.pos;
 	            ClassifierManager.getSingleton().updateObject(obj);
 	        }
 

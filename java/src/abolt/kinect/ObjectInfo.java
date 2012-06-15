@@ -130,6 +130,15 @@ public class ObjectInfo{
 
     public void resetCenter(double[] newCenter)
     {
+        // Change the locationof all the points in the object
+        double[] translation = new double[3];
+        for(int i=0; i<translation.length; i++){
+            translation[i] = newCenter[i]-center[i];
+        }
+        for(double[] p : points)
+            LinAlg.plusEquals(p, translation);
+
+        // Update center
         center = newCenter;
     }
 
