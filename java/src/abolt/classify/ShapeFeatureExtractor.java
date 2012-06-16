@@ -22,8 +22,10 @@ public class ShapeFeatureExtractor
 		BufferedImage img = ObjectInfo.getImage(points, null);
 		return getFeatures(img);
 	}
-	
+
 	public static ArrayList<Double> getFeatures(BufferedImage img){
-		return PCA.getFeatures(img, 7);
+		ArrayList<Double> features = PCA.getFeatures(img, 7);
+
+        return features;    // XXX Rotations and stuff?
 	}
 }

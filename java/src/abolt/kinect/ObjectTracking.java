@@ -5,15 +5,16 @@ import java.util.*;
 import april.jmat.*;
 import april.util.*;
 import abolt.classify.ColorFeatureExtractor;
-
+import abolt.arm.*;
 
 public class ObjectTracking
 {
-    final double MAX_TRAVEL_DIST = .1;
-    final double MAX_COLOR_CHANGE = 40;
+    final double MAX_TRAVEL_DIST = 0.05;//.1;
+    final double MAX_COLOR_CHANGE = 30;//40;
     final int MAX_HISTORY = 20;
     private final static double darkThreshold = .4;
 
+    private BoltArm arm;
     private HashMap<Integer, ObjectInfo> lastFrame;
     private HashMap<Integer, ObjectInfo> lostObjects;
     private HashMap<Integer, Long> lostTime;
@@ -23,6 +24,7 @@ public class ObjectTracking
 
     public ObjectTracking()
     {
+        arm = BoltArm.getSingleton();
         lastFrame = new HashMap<Integer, ObjectInfo>();
         lostTime = new HashMap<Integer, Long>();
         lostObjects = new HashMap<Integer, ObjectInfo>();
@@ -45,8 +47,6 @@ public class ObjectTracking
 
         if(hashID == -1) return false;
 
-        //System.out.println("MOVING "+id);
-
         holdingObject = true;
         heldObject = lastFrame.get(hashID);
         justDroppedObject = false;
@@ -57,12 +57,8 @@ public class ObjectTracking
     public boolean releasedObject(double[] finalLocation)
     {
         if(holdingObject){
-            /*System.out.print("Drop location of "+heldObject.repID+": ");
-            for(double d : finalLocation)
-                System.out.print(d+", ");
-                System.out.println();*/
 
-            heldObject.center = finalLocation; //resetCenter(finalLocation);
+            heldObject.resetCenter(finalLocation); //resetCenter(finalLocation);
             double[] c = heldObject.getCenter();
             lastFrame.put(heldObject.repID, heldObject);
             lostObjects.remove(heldObject.ufsID);
@@ -178,18 +174,6 @@ public class ObjectTracking
             }
         }
 
-        // Add in held object, if there is one.
-        // XXX -should check whether one of the unusedNew is in the expected        // final location.
-        /*if(holdingObject){
-            Integer id = heldObject.repID;
-            if(prevFrame.containsKey(id) && unusedOld.containsKey(id)){
-                unusedOld.remove(id);
-                currentFrame.put(id, heldObject);
-            }
-            else if(!prevFrame.containsKey(id) && !unusedOld.containsKey(id))
-                currentFrame.put(id, heldObject);
-                }*/
-
         // See if any of the unmatched objects match lost objects
         if(unusedNew.size() > 0){
             Set unusedSet = unusedNew.keySet();
@@ -259,13 +243,16 @@ public class ObjectTracking
         // Set these objects as the previous objects
         lastFrame = currentFrame;
 
-        //System.out.println("OBJECT LOCATIONS");
-        Set objects = currentFrame.keySet();
-        for(Object obj : objects){
-            //System.out.print(currentFrame.get((Integer)obj).repID+": ");
-            double[] loc = currentFrame.get((Integer) obj).getCenter();
-            //System.out.print(loc[0]+", "+loc[1]+", "+loc[2]+"\n");
+        // Add in held object, if there is one.
+        if(holdingObject){
+            double[] gripperPosition = arm.getGripperXYZRPY();
+
+            double[] c1 = heldObject.center;
+            heldObject.resetCenter(gripperPosition);
+            currentFrame.put(heldObject.ufsID, heldObject);
+            double[] c2 = heldObject.center;
         }
+
 
         return currentFrame;
     }

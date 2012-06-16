@@ -34,6 +34,7 @@ public class BoltObjectManager {
 	        }
 
 	        for (ObjectInfo info : objectInfo.values()) {
+                double[] c = info.center;
 	        	int id = info.repID;
 	        	BoltObject obj;
 	            if (objects.containsKey(id)) {
@@ -46,25 +47,11 @@ public class BoltObjectManager {
 	                objects.put(id, obj);
 	            }
 	            obj.updateObject(info);
-	            ClassifierManager.getSingleton().updateObject(obj);
 	        }
 
 	        for (Integer id : objsToRemove) {
 	            objects.remove(id);
 	        }
-		}
-	}
-
-	public object_data_t[] getObjectData() {
-		ArrayList<object_data_t> objData = new ArrayList<object_data_t>();
-		synchronized(objects){
-			for(BoltObject obj : objects.values()){
-				object_data_t data = obj.getData();
-				if(data != null){
-					objData.add(obj.getData());
-				}
-			}
-			return objData.toArray(new object_data_t[0]);
 		}
 	}
 
