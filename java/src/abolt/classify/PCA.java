@@ -186,7 +186,7 @@ public class PCA {
 	    	double[] dir = LinAlg.scale(v2, (i == 0 ? 1 : -1));
 
 	    	// Pick points evenly along the line
-	    	for(float perc = .02f; perc <= .98; perc += .95f/(numFeatures-1)){
+	    	for(float perc = .02f; perc <= .98f; perc += .95f/(numFeatures-1)){
 	    		double[] pt = new double[2];
 	    		pt[0] = start[0] + perc*(proj1[1] - proj1[0])*v1[0];
 	    		pt[1] = start[1] + perc*(proj1[1] - proj1[0])*v1[1];
