@@ -437,17 +437,14 @@ public class BoltArmController implements LCMSubscriber
                         if (!BoltMath.equals(gripper_status.load, 0, 0.01)) {
                             grabbedObject = toGrab;
                             curAction = ActionMode.WAIT;
+                            toGrab = -1;
                         } else {
                             grabbedObject = -1;
                             curAction = ActionMode.FAILURE;
+                            toGrab = -1;
                         }
-                    } else {
-                        System.err.println("ERR: No grab status from arm");
-                        curAction = ActionMode.FAILURE;
-                        grabbedObject = -1;
                     }
 
-                    toGrab = -1;
                     break;
                 default:
                     // XXX DEBUG
