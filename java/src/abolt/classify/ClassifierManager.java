@@ -108,11 +108,12 @@ public class ClassifierManager {
     public object_data_t[] getObjectData()
     {
         BoltObjectManager objManager = BoltObjectManager.getSingleton();
-        object_data_t[] od = new object_data_t[objManager.objects.size()];
+        object_data_t[] od;
         long utime = TimeUtil.utime();
 
         int i = 0;
         synchronized (objManager.objects) {
+            od = new object_data_t[objManager.objects.size()];
             for (BoltObject bo: objManager.objects.values()) {
                 od[i] = new object_data_t();
                 od[i].utime = utime;
