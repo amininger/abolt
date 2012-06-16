@@ -103,8 +103,9 @@ public class BoltObject{
         double[] max = new double[]{bb[3], bb[4], bb[5]};
         double[] xyzrpy = new double[]{0, 0, 0, 0, 0, 0};
         double maxDim = 0;
+        double[] c = info.getCenter();
         for(int i = 0; i < 3; i++){
-            xyzrpy[i] = (min[i] + max[i])/2;
+            xyzrpy[i] = c[i];//(min[i] + max[i])/2; //XXX - Lauren change this!
             if(max[i] - min[i] > maxDim){
             	maxDim = max[i] - min[i];
             }

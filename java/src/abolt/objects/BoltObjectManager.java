@@ -34,6 +34,7 @@ public class BoltObjectManager {
 	        }
 
 	        for (ObjectInfo info : objectInfo.values()) {
+                double[] c = info.center;
 	        	int id = info.repID;
 	        	BoltObject obj;
 	            if (objects.containsKey(id)) {

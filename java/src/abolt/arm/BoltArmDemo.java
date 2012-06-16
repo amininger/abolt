@@ -234,13 +234,14 @@ public class BoltArmDemo implements LCMSubscriber
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
             observations_t obs = observations.get();
             double minDist = Double.MAX_VALUE;
+            double maxSelectionDistance = 0.075;
             int id = 0;
             double[] objPos = null;
             if (obs != null) {
                 for (object_data_t obj_dat : obs.observations) {
                     double[] pos = LinAlg.resize(obj_dat.pos, 3);
                     double mag = LinAlg.distance(pos, xyz);
-                    if (mag < minDist) {
+                    if (mag < minDist && mag < maxSelectionDistance) {
                         minDist = mag;
                         id = obj_dat.id;
                         objPos = pos;
