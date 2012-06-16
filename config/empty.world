@@ -1,7 +1,7 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	.25 .25
+	.2 .2
 	stove
 	red
 	2
@@ -11,7 +11,7 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	-.25 .25
+	-.2 .2
 	pantry
 	purple
 	1
@@ -20,7 +20,7 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	.25 -.25
+	.2 -.2
 	table
 	orange
 	0
@@ -28,7 +28,7 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	-.25 -.25
+	-.2 -.2
 	garbage
 	green
 	0

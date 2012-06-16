@@ -2,6 +2,7 @@ package abolt.objects;
 
 import java.util.*;
 
+import abolt.arm.BoltArmController;
 import abolt.bolt.*;
 import abolt.kinect.*;
 import abolt.lcmtypes.object_data_t;
@@ -50,7 +51,9 @@ public class BoltObjectManager {
 	        }
 
 	        for (Integer id : objsToRemove) {
-	            objects.remove(id);
+	        	if(id != BoltArmController.Singleton.grabbedObject()){
+		            objects.remove(id);
+	        	}
 	        }
 		}
 	}
