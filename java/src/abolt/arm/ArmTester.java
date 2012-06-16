@@ -119,12 +119,27 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             {
             	robot_command_t command = new robot_command_t();
             	command.utime = TimeUtil.utime();
-                command.action = "RESET";
+                command.action = "HOME";
                 command.dest = new double[6];
                 lcm.publish("ROBOT_COMMAND", command);
             }
         });
         panel.add(homeButton);
+        
+        JButton resetButton = new JButton("Reset");
+        resetButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+            	robot_command_t command = new robot_command_t();
+            	command.utime = TimeUtil.utime();
+                command.action = "RESET";
+                command.dest = new double[6];
+                lcm.publish("ROBOT_COMMAND", command);
+            }
+        });
+        panel.add(resetButton);
 
         this.add(panel);
         this.setSize(200, 400);
