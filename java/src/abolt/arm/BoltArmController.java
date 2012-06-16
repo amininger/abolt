@@ -126,14 +126,16 @@ public class BoltArmController implements LCMSubscriber
                         grabStateMachine();
                     } else if (last_cmd.action.contains("DROP")) {
                         dropStateMachine();
-                    } else if (last_cmd.action.contains("RESET") ||
-                               last_cmd.action.contains("HOME"))
-                    {
-                        if (last_cmd.action.contains("HOME")) {
-                            homeArm();
-                        } else if (last_cmd.action.contains("RESET")) {
-                            resetArm();
+                    } else if (last_cmd.action.contains("RESET")) {
+                        resetArm();
+
+                        curAction = ActionMode.WAIT;
+                        grabbedObject = -1;
+                        if (newAction) {
+                            setState(ActionState.HOME);
                         }
+                    } else if (last_cmd.action.contains("HOME")) {
+                        homeArm();
 
                         curAction = ActionMode.WAIT;
                         if (newAction) {
