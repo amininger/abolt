@@ -62,9 +62,8 @@ public class BoltArmController implements LCMSubscriber
         double[] goal = null;
 
         // Controller stability stuff
-        double stableError = 0.0005;              // If position is always within this much for our window, "stable"
         long actionStartTime = 0;           // Time the last action was started in [uSec]
-        long actionCompleteTime = 250000;   // Time to complete action in [uSec]
+        long actionCompleteTime = 500000;   // Time to complete action in [uSec]
 
         // previous command/status state
         dynamixel_command_list_t last_cmds;
@@ -296,7 +295,7 @@ public class BoltArmController implements LCMSubscriber
             double r = LinAlg.magnitude(goal);
 
             double angle = Math.atan2(goal[1], goal[0]);
-            double minSpeed = HandJoint.HAND_SPEED/2.0;
+            double minSpeed = HandJoint.HAND_SPEED/4.0;
 
             // Compute a point "behind" our object in gripper space
             double[] wrVec = new double[] {0.0, 1.0};
@@ -317,8 +316,8 @@ public class BoltArmController implements LCMSubscriber
             //      6: Adjust grip so we grab tightly, but don't break hand
             //      7: Switch action state back to waiting
             dynamixel_status_t gripper_status;
-            double maxLoad = 0.40;
-            double minLoad = 0.20;
+            double maxLoad = 0.425;
+            double minLoad = 0.275;
             double gripIncr = Math.toRadians(3.0);
             switch (state) {
                 case GRAB_UP_CURR:
