@@ -49,7 +49,7 @@ public class BoltArmController implements LCMSubscriber
         WAIT, GRAB, POINT, DROP, FAILURE
     }
     private ActionMode curAction = ActionMode.WAIT;
-    private int grabbedObject = 0;
+    private int grabbedObject = -1;
     private int toGrab = -1;
 
     // A simple elbow-up controller
@@ -131,6 +131,7 @@ public class BoltArmController implements LCMSubscriber
 
                         curAction = ActionMode.WAIT;
                         grabbedObject = -1;
+                        toGrab = -1;
                         if (newAction) {
                             setState(ActionState.HOME);
                         }
