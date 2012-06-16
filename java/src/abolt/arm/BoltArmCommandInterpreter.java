@@ -73,6 +73,8 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                         bolt_cmd = processDropCommand(last_cmd);
                     } else if (last_cmd.action.contains("RESET")) {
                         bolt_cmd = processResetCommand(last_cmd);
+                    } else if (last_cmd.action.contains("HOME")) {
+                        bolt_cmd = processHomeCommand(last_cmd);
                     } else {
                         System.err.println("ERR: Unknown command - "+last_cmd.action);
                     }
@@ -363,6 +365,19 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         bolt_arm_command_t bcmd = new bolt_arm_command_t();
         bcmd.cmd_id = messageID++;
         bcmd.action = "RESET";
+        bcmd.xyz = new double[3];
+        bcmd.wrist = 0;
+        bcmd.obj_id = 0;
+
+        return bcmd;
+    }
+
+    /** Instuct the arm to reset to its default position */
+    private bolt_arm_command_t processHomeCommand(robot_command_t cmd)
+    {
+        bolt_arm_command_t bcmd = new bolt_arm_command_t();
+        bcmd.cmd_id = messageID++;
+        bcmd.action = "HOME";
         bcmd.xyz = new double[3];
         bcmd.wrist = 0;
         bcmd.obj_id = 0;
