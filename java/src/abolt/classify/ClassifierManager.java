@@ -33,7 +33,6 @@ public class ClassifierManager {
 	public ClassifierManager(Config config)
     {
         addClassifiers(config);
-        reloadData();
 	}
 
     public void addClassifiers(Config config)
@@ -61,6 +60,8 @@ public class ClassifierManager {
         GKNN sizeKNN  = new GKNN(25, 0.1);      // XXX Untested parameter
         sizeKNN.setDataFile(sizeDataFile);
         classifiers.put(FeatureCategory.SIZE, sizeKNN);
+
+        reloadData();
     }
 
 	public Classifications classify(FeatureCategory cat, BoltObject obj){
@@ -111,40 +112,42 @@ public class ClassifierManager {
         long utime = TimeUtil.utime();
 
         int i = 0;
-        for (BoltObject bo: objManager.objects.values()) {
-            od[i] = new object_data_t();
-            od[i].utime = utime;
-            od[i].id = bo.getID();
-            od[i].pos = bo.getPose();
-            od[i].bbox = bo.getBBox();
+        synchronized (objManager.objects) {
+            for (BoltObject bo: objManager.objects.values()) {
+                od[i] = new object_data_t();
+                od[i].utime = utime;
+                od[i].id = bo.getID();
+                od[i].pos = bo.getPose();
+                od[i].bbox = bo.getBBox();
 
-            categorized_data_t[] cat_dat = new categorized_data_t[classifiers.size()];
-            int j = 0;
-            for (FeatureCategory fc: classifiers.keySet()) {
-                cat_dat[j] = new categorized_data_t();
-                cat_dat[j].cat = new category_t();
-                cat_dat[j].cat.cat = Features.getLCMCategory(fc);
-                IClassifier classifier = classifiers.get(fc);
-                Classifications cs = classifier.classify(bo.getFeatures(fc));
-                cs.sortLabels();    // Just to be nice
-                cat_dat[j].len = cs.size();
-                cat_dat[j].confidence = new double[cat_dat[j].len];
-                cat_dat[j].label = new String[cat_dat[j].len];
-                int k = 0;
-                for (Classifications.Label label: cs.labels) {
-                    cat_dat[j].confidence[k] = label.weight;
-                    cat_dat[j].label[k] = label.label;
+                categorized_data_t[] cat_dat = new categorized_data_t[classifiers.size()];
+                int j = 0;
+                for (FeatureCategory fc: classifiers.keySet()) {
+                    cat_dat[j] = new categorized_data_t();
+                    cat_dat[j].cat = new category_t();
+                    cat_dat[j].cat.cat = Features.getLCMCategory(fc);
+                    IClassifier classifier = classifiers.get(fc);
+                    Classifications cs = classifier.classify(bo.getFeatures(fc));
+                    cs.sortLabels();    // Just to be nice
+                    cat_dat[j].len = cs.size();
+                    cat_dat[j].confidence = new double[cat_dat[j].len];
+                    cat_dat[j].label = new String[cat_dat[j].len];
+                    int k = 0;
+                    for (Classifications.Label label: cs.labels) {
+                        cat_dat[j].confidence[k] = label.weight;
+                        cat_dat[j].label[k] = label.label;
 
-                    k++;
+                        k++;
+                    }
+
+                    j++;
                 }
 
-                j++;
+                od[i].num_cat = cat_dat.length;
+                od[i].cat_dat = cat_dat;
+
+                i++;
             }
-
-            od[i].num_cat = cat_dat.length;
-            od[i].cat_dat = cat_dat;
-
-            i++;
         }
 
         return od;
