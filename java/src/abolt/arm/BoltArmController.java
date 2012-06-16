@@ -129,7 +129,12 @@ public class BoltArmController implements LCMSubscriber
                     } else if (last_cmd.action.contains("RESET") ||
                                last_cmd.action.contains("HOME"))
                     {
-                        homeArm();
+                        if (last_cmd.action.contains("HOME")) {
+                            homeArm();
+                        } else if (last_cmd.action.contains("RESET")) {
+                            resetArm();
+                        }
+
                         curAction = ActionMode.WAIT;
                         if (newAction) {
                             setState(ActionState.HOME);
@@ -530,6 +535,13 @@ public class BoltArmController implements LCMSubscriber
             // XXX Need better thing than direct joint access
             // Doesn't touch the gripper
             for (int i = 0; i < arm.getJoints().size()-1; i++) {
+                arm.setPos(i, 0);
+            }
+        }
+
+        private void resetArm()
+        {
+            for (int i = 0; i < arm.getJoints().size(); i++) {
                 arm.setPos(i, 0);
             }
         }
