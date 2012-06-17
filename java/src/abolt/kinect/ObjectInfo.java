@@ -14,7 +14,7 @@ import april.jmat.*;
 import april.util.UnionFindSimple;
 
 import abolt.bolt.Bolt;
-import abolt.classify.Features;
+import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.*;
 import abolt.objects.ISimBoltObject;
@@ -134,11 +134,37 @@ public class ObjectInfo{
         double[] translation = new double[3];
         for(int i=0; i<translation.length; i++){
             translation[i] = newCenter[i]-center[i];
-
         }
         for(double[] p : points)
             for(int i=0; i<translation.length; i++)
                 p[i] += translation[i];
+
+        /*
+        System.out.println("CENTER: "+
+                           center[0]+" "+
+                           center[1]+" "+
+                           center[2]);
+        System.out.println("NEW CENTER: "+
+                           newCenter[0]+" "+
+                           newCenter[1]+" "+
+                           newCenter[2]);
+        System.out.println("TRANSLATION: "+
+                           translation[0]+" "+
+                           translation[1]+" "+
+                           translation[2]);
+        */
+
+        double[] bb = SizeFeatureExtractor.boundingBoxWorld(points);
+
+        double[] min = new double[]{bb[0], bb[1], bb[2]};
+        double[] max = new double[]{bb[3], bb[4], bb[5]};
+        /*System.out.println("BOUNDING: ");
+        for(int i = 0; i < 3; i++){
+            double a = (min[i] + max[i])/2;
+            System.out.print(a+" ");
+        }
+        System.out.println();
+        */
 
         // Update center
         center = newCenter;

@@ -34,8 +34,7 @@ public class BoltObjectManager {
 	        }
 
 	        for (ObjectInfo info : objectInfo.values()) {
-                double[] c = info.center;
-	        	int id = info.repID;
+                int id = info.repID;
 	        	BoltObject obj;
 	            if (objects.containsKey(id)) {
 	            	// The object already exists
@@ -47,6 +46,7 @@ public class BoltObjectManager {
 	                objects.put(id, obj);
 	            }
 	            obj.updateObject(info);
+                //ClassifierManager.getSingleton().updateObject(obj);
 	        }
 
 	        for (Integer id : objsToRemove) {
