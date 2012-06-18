@@ -12,17 +12,14 @@ import java.util.HashMap;
 
 import javax.swing.*;
 
-import abolt.classify.ConfidenceLabel;
+import abolt.objects.*;
+import abolt.kinect.*;
+import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 import abolt.collision.ShapeToVisObject;
-import abolt.kinect.KUtils;
-import abolt.kinect.KinectCamera;
-import abolt.kinect.SimKinect;
-import abolt.objects.BoltObject;
-import abolt.objects.BoltObjectManager;
-import abolt.objects.ISimBoltObject;
 import abolt.sim.SimSensable;
 import abolt.util.SimUtil;
+import abolt.objects.SensableManager;
 import abolt.vis.SelectionAnimation;
 import april.config.*;
 import april.jmat.LinAlg;
@@ -32,8 +29,6 @@ import april.util.*;
 import april.vis.*;
 import april.vis.VisCameraManager.CameraPosition;
 import april.vis.VzMesh.Style;
-
-import abolt.objects.*;
 
 public class BoltSimulator implements VisConsole.Listener{
     private final static int K_HEIGHT = 480;

@@ -85,7 +85,7 @@
 	vec 2
 	-.25 .25
 	pantry
-	purple
+	gray
 	1
 	door=open,closed
 }

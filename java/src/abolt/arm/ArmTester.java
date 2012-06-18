@@ -43,8 +43,8 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             	command.utime = TimeUtil.utime();
             	
             	String id = JOptionPane.showInputDialog(null,
-            			  "Grab Command",
             			  "Enter the ID to grab",
+            			  "Grab Command",
             			  JOptionPane.QUESTION_MESSAGE);
             	if(id == null){
             		return;
@@ -66,8 +66,8 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             	command.utime = TimeUtil.utime();
             	
             	String pos = JOptionPane.showInputDialog(null,
-            			  "Drop Command",
             			  "Enter x y to drop at",
+            			  "Drop Command",
             			  JOptionPane.QUESTION_MESSAGE);
             	if(pos == null || !pos.contains(" ")){
             		return;
@@ -90,8 +90,8 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             	command.utime = TimeUtil.utime();
             	
             	String pos = JOptionPane.showInputDialog(null,
-            			  "Point Command",
             			  "Enter x y to point to",
+            			  "Point Command",
             			  JOptionPane.QUESTION_MESSAGE);
             	if(pos == null || !pos.contains(" ")){
             		return;
@@ -118,6 +118,29 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             }
         });
         panel.add(homeButton);
+        
+        JButton actionButton = new JButton("Action");
+        actionButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+            	robot_command_t command = new robot_command_t();
+            	command.utime = TimeUtil.utime();
+            	
+            	String action = JOptionPane.showInputDialog(null,
+            			  "Enter the Action to perform",
+            			  "Action Command",
+            			  JOptionPane.QUESTION_MESSAGE);
+            	if(action == null){
+            		return;
+            	}
+                command.action = action;
+                command.dest = new double[6];
+                lcm.publish("ROBOT_COMMAND", command);
+            }
+        });
+        panel.add(actionButton);
 
         this.add(panel);
         this.setSize(200, 400);
