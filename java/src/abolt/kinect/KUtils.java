@@ -46,7 +46,7 @@ public class KUtils
     public static float[] depthLookup;          //holds depth conversions so we only have to calculate them once
 
     public final static int[] viewBorders = new int[] {180, 180, 500, 380 };
-    public final static Rectangle viewRegion 
+    public final static Rectangle viewRegion
     	= new Rectangle(viewBorders[0], viewBorders[1],
                         viewBorders[2] - viewBorders[0], viewBorders[3] - viewBorders[1]);
 
@@ -124,7 +124,6 @@ public class KUtils
     public static double[] getRegisteredXYZRGB(int pixel_x, int pixel_y,
                                                kinect_status_t kstat)
     {
-
         int i = pixel_y*kstat.WIDTH+pixel_x;
         int d = ((kstat.depth[2*i + 1]&0xff) << 8) | (kstat.depth[2*i]&0xff);
         double depth = d / 1000.0;

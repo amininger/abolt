@@ -13,10 +13,8 @@ import lcm.lcm.LCMSubscriber;
 
 import abolt.bolt.Bolt;
 import abolt.classify.ColorFeatureExtractor;
-import abolt.lcmtypes.kinect_status_t;
-import april.vis.VisChain;
-import april.vis.VisWorld;
-import april.vis.VzImage;
+import abolt.lcmtypes.*;
+import april.vis.*;
 import abolt.objects.*;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
@@ -37,6 +35,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         //        (int)(KUtils.viewRegion.height));
         segment = Segment.getSingleton();
     	lcm.subscribe("KINECT_STATUS", this);
+    	lcm.subscribe("ROBOT_ACTION", this);
     }
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
@@ -67,7 +66,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 	public ArrayList<double[]> extractPointCloudData(){
 		return extractPointCloudData(kinectData);
 	}
-	
+
 	public BufferedImage getKinectImage(kinect_status_t kinectData){
     	if(kinectData == null){
     		return new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);
@@ -85,7 +84,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         }
         return image;
     }
-	
+
 	public void drawKinectData(double[][] viewXform, VisWorld.Buffer buffer){
     	BufferedImage background = getKinectImage(kinectData);
 		double[] pt = new double[2];
@@ -106,7 +105,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 		buffer.addBack(new VisChain(viewXform, new VzImage(background, VzImage.FLIP)));
         buffer.setDrawOrder(-10);
     }
-	
+
 	@Override
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
     {
@@ -134,6 +133,26 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 	//Bolt.getObjectManager().updateObjects(objInfoList);
                     BoltObjectManager.getSingleton().updateObjects(objInfoList);
                 }
+            }
+        }
+        else if(channel.equals("ROBOT_ACTION")){
+            try{
+                robot_action_t command = new robot_action_t(ins);
+                String action = command.action;
+                Integer id = command.obj_id;
+                if(action.equals("WAIT"))
+                    segment.tracker.armWaiting();
+                else if(action.equals("GRAB"))
+                    segment.tracker.armGrabbing(id);
+                else if(action.equals("DROP")){
+                    double[] xyz = command.xyz;
+                    segment.tracker.armDropping(new double[]{xyz[0], xyz[1], 0});
+                }
+                else if(action.equals("FAILURE"))
+                    segment.tracker.armFailed();
+            }catch(IOException e){
+                e.printStackTrace();
+                return;
             }
         }
     }

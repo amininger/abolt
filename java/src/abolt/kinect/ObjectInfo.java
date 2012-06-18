@@ -14,7 +14,7 @@ import april.jmat.*;
 import april.util.UnionFindSimple;
 
 import abolt.bolt.Bolt;
-import abolt.classify.Features;
+import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 import abolt.lcmtypes.*;
 import abolt.objects.ISimBoltObject;
@@ -26,29 +26,30 @@ public class ObjectInfo{
     public int color;
     public int repID;
     public int ufsID;
-    public double[] sumPoints;
+    public double[] center;
     public int[] sumColor;
     public double leftmost;
     public double rightmost;
     public double uppermost;
     public double lowermost;
-    public  BufferedImage image = null;
+    public BufferedImage image = null;
     public boolean matched;
     public Rectangle projBBox = null;
     public ISimBoltObject createdFrom = null;
+
 
     public ArrayList<double[]> points;
     private HashMap<FeatureCategory, ArrayList<Double> > features;
 
     public ObjectInfo(){
+        center = null;
     	features = new HashMap<FeatureCategory, ArrayList<Double> >();
     }
 
     /** Create a new object with info about it. Objects begin with a single point.**/
     public ObjectInfo(int color, int id, double[] point)
     {
-        Random r = new Random();
-        this.repID = SimUtil.nextID();
+//        Random r = new Random();
         this.numPoints = 1;
         this.color = color;
         this.ufsID = id;
@@ -59,13 +60,17 @@ public class ObjectInfo{
         this.uppermost = point[1];
         this.lowermost = point[1];
         this.matched = false;
-        sumPoints = new double[]{point[0], point[1], point[2]};
         Color c = new Color((int) point[3]);
         sumColor = new int[]{c.getRed(), c.getBlue(), c.getGreen()};
 
         this.points = new ArrayList<double[]>();
         this.points.add(point);
     	features = new HashMap<FeatureCategory, ArrayList<Double> >();
+    }
+
+    public void getID()
+    {
+        this.repID = SimUtil.nextID();
     }
 
     /** Add a new point to this object. **/
@@ -80,9 +85,6 @@ public class ObjectInfo{
             this.lowermost = point[1];
 
         this.numPoints ++;
-        for(int i=0; i<sumPoints.length; i++){
-            sumPoints[i] += point[i];
-        }
         Color c = new Color((int)point[3]);
         sumColor[0] += c.getRed();
         sumColor[1] += c.getBlue();
@@ -104,12 +106,68 @@ public class ObjectInfo{
     /** Get the center of the object (mean x, y,z). **/
     public double[] getCenter()
     {
-        double[] center = new double[sumPoints.length];
-        for(int i=0; i<sumPoints.length; i++){
-            center[i] = sumPoints[i]/numPoints;
+        if(center == null){
+            center = new double[3];
+            double[] min = new double[]{1000, 1000, 1000};
+            double[] max = new double[]{-1000, -1000, -1000};
+            for(double[] p : points){
+                for(int i=0; i<3; i++){
+                    if(p[i]<min[i])
+                        min[i] = p[i];
+                    if(p[i] > max[i])
+                        max[i] = p[i];
+                }
+            }
+            for(int i=0; i<3; i++){
+                center[i] = (min[i]+max[i])/2.0;
+            }
+            center = KUtils.getWorldCoordinates(center);
         }
-
         return center;
+//        return new double[]{center[1], center[0], center[2]};
+    }
+
+
+    public void resetCenter(double[] newCenter)
+    {
+        // Change the locationof all the points in the object
+        double[] translation = new double[3];
+        for(int i=0; i<translation.length; i++){
+            translation[i] = newCenter[i]-center[i];
+        }
+        for(double[] p : points)
+            for(int i=0; i<translation.length; i++)
+                p[i] += translation[i];
+
+        /*
+        System.out.println("CENTER: "+
+                           center[0]+" "+
+                           center[1]+" "+
+                           center[2]);
+        System.out.println("NEW CENTER: "+
+                           newCenter[0]+" "+
+                           newCenter[1]+" "+
+                           newCenter[2]);
+        System.out.println("TRANSLATION: "+
+                           translation[0]+" "+
+                           translation[1]+" "+
+                           translation[2]);
+        */
+
+        double[] bb = SizeFeatureExtractor.boundingBoxWorld(points);
+
+        double[] min = new double[]{bb[0], bb[1], bb[2]};
+        double[] max = new double[]{bb[3], bb[4], bb[5]};
+        /*System.out.println("BOUNDING: ");
+        for(int i = 0; i < 3; i++){
+            double a = (min[i] + max[i])/2;
+            System.out.print(a+" ");
+        }
+        System.out.println();
+        */
+
+        // Update center
+        center = newCenter;
     }
 
     /** Get the average color of the object as an array [r, g, b]. **/

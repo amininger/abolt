@@ -1,12 +1,17 @@
 package abolt.bolt;
 
+import java.io.*;
+import javax.swing.*;
+import java.util.*;
+import java.util.Timer;
+import java.awt.event.*;
+
+import lcm.lcm.*;
+
 import april.config.*;
 import april.jmat.LinAlg;
-import april.sim.Collisions;
-import april.sim.Shape;
-import april.sim.SphereShape;
+import april.sim.*;
 import april.util.*;
-import lcm.lcm.*;
 
 import abolt.arm.*;
 import abolt.lcmtypes.*;
@@ -19,13 +24,6 @@ import abolt.arm.BoltArmCommandInterpreter;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
 
-import java.io.*;
-
-import javax.swing.*;
-
-import java.util.*;
-import java.util.Timer;
-import java.awt.event.*;
 
 public class Bolt extends JFrame implements LCMSubscriber
 {
@@ -99,7 +97,7 @@ public class Bolt extends JFrame implements LCMSubscriber
 
     	// Initialize the simulator
         simulator = new BoltSimulator(opts);
-        
+
 
         if(opts.getBoolean("kinect")){
         	camera = new KinectCamera();
@@ -217,7 +215,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
         obs.sensables = sensableManager.getSensableStrings();
         obs.nsens = obs.sensables.length;
-        obs.observations = objectManager.getObjectData();
+        obs.observations = classifierManager.getObjectData();
         obs.nobs = obs.observations.length;
 
         lcm.publish("OBSERVATIONS",obs);
@@ -263,11 +261,15 @@ public class Bolt extends JFrame implements LCMSubscriber
         if (opts.getBoolean("arm")) {
             ArmDriver armDriver = new ArmDriver(config);
             (new Thread(armDriver)).start();
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(false);//opts.getBoolean("debug"));
+            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
             BoltArmController controller = new BoltArmController();
             if (opts.getBoolean("debug")) {
                 BoltArmDemo demo = new BoltArmDemo(null); // XXX This won't quite make sense
             }
+        }
+
+        if (opts.getBoolean("debug")) {
+            ClassifyDebugGUI clDebugger = new ClassifyDebugGUI();
         }
     }
 }
