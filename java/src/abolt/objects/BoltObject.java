@@ -20,6 +20,7 @@ import april.vis.VisObject;
 import april.vis.VzBox;
 import april.vis.VzMesh;
 
+import abolt.arm.BoltArmController;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.classify.ConfidenceLabel;
 import abolt.classify.SizeFeatureExtractor;
@@ -129,6 +130,10 @@ public class BoltObject{
 	}
 	
 	public void updateObject(ObjectInfo info){
+		if(BoltArmController.Singleton != null && 
+				id == BoltArmController.Singleton.grabbedObject()){
+			//return;
+		}
 		this.info = info;
 		double[] bb = SizeFeatureExtractor.boundingBoxWorld(info.points);
         double[] min = new double[]{bb[0], bb[1], bb[2]};
