@@ -69,7 +69,7 @@ public class SensableStates {
 		for(Map.Entry<String, String> state : currentState.entrySet()){
 			properties.append(String.format("%s=%s,", state.getKey(), state.getValue()));
 		}
-		return properties.substring(0, properties.length() - 1);
+		return properties.substring(0, properties.length() - 1) + ",";
 	}
 	
 	public String[] getAllowedStates(String stateName){

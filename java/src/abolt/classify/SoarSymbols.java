@@ -58,13 +58,13 @@ public class SoarSymbols {
 		shapeSymbols.put("triangular", "shape-triangle");
 		shapeSymbols.put("rectangular", "shape-rectangle");
 		shapeSymbols.put("square", "shape-square");
-		shapeSymbols.put("l-shaped", "shape-l-block");
-		shapeSymbols.put("t-shaped", "shape-t-block");
+		shapeSymbols.put("l-shaped", "shape-lblock");
+		shapeSymbols.put("t-shaped", "shape-tblock");
 		shapeSymbols.put("arch", "shape-arch");
 		//shapeSymbols.put("doughnut", "shape-doughnut");
-		shapeSymbols.put("half-cylinder", "shape-half-cylinder");
+		shapeSymbols.put("half-cylinder", "shape-halfcylinder");
 		shapeSymbols.put("cylinder", "shape-cylinder");
-		shapeSymbols.put("sphere", "shape-half-sphere");
+		shapeSymbols.put("sphere", "shape-sphere");
 		
 		colorSymbols = new HashMap<String, String>();
 		colorSymbols.put("red", "color-red");

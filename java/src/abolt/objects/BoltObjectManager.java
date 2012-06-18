@@ -51,8 +51,10 @@ public class BoltObjectManager {
 	        }
 
 	        for (Integer id : objsToRemove) {
-	        	if(id != BoltArmController.Singleton.grabbedObject()){
-		            objects.remove(id);
+	        	if(BoltArmController.Singleton != null){
+		        	if(id != BoltArmController.Singleton.grabbedObject()){
+			            objects.remove(id);
+		        	}
 	        	}
 	        }
 		}

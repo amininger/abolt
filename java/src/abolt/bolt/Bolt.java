@@ -107,7 +107,7 @@ public class Bolt extends JFrame implements LCMSubscriber
             // XXX We'd like to remove this middleman to the arm
             //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
-        	camera = new SimKinect(800, 600, simulator);
+        	camera = new SimKinect(400, 300, simulator);
         	armSimulator = new ArmSimulator(simulator);
         }
 
