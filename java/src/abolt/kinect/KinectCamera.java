@@ -141,8 +141,8 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 else if(action.equals("GRAB"))
                     segment.tracker.armGrabbing(id);
                 else if(action.equals("DROP")){
-                    double[] xyz = command.xyz;
-                    segment.tracker.armDropping(new double[]{xyz[0], xyz[1], 0});
+                    double[] xyz = command.drop;
+                    segment.tracker.armDropping(new double[]{xyz[0], xyz[1], .02});
                 }
                 else if(action.equals("FAILURE"))
                     segment.tracker.armFailed();
