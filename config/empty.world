@@ -15,7 +15,7 @@
 	-.2 .2
 	pantry
   vec 3
-	50 0 255
+	128 0 255
 	1
 	door=open,closed
 }

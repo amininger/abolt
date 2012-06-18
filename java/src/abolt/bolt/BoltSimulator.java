@@ -344,6 +344,7 @@ public class BoltSimulator implements VisConsole.Listener{
                     	if(obj.isVisible()){
                     		for(FeatureCategory cat : FeatureCategory.values()){
                                 Classifications cs = clManager.classify(cat, obj);
+                                Classifications.Label l = cs.getBestLabel();
                         		labelString += String.format("%s%s:%.2f\n", tf, cs.getBestLabel().label, cs.getBestLabel().weight);
                     		}
                     	}
