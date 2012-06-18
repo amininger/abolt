@@ -34,9 +34,9 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
     protected double[] pose;
 
     protected String name;
-    protected String colorStr;
+    protected Color color;
 
-    protected double size = .12;
+    protected double size = .1;
     protected SensableStates sensStates;
 
     public SimLocation(SimWorld sw)
@@ -81,7 +81,7 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
 	public String getProperties() {
 		String props = String.format("ID=%d,NAME=%s,", id, name);
 		props += sensStates.getProperties();
-		props += String.format("POSE=[%f %f %f %f %f %f],", pose[0], pose[1], pose[2] + size, pose[3], pose[4], pose[5]);
+		props += String.format("POSE=[%f %f %f %f %f %f],", pose[0], pose[1], pose[2], pose[3], pose[4], pose[5]);
 		props += String.format("BBOX=[%f %f %f %f %f %f]", -size, -size, -size, size, size, size);
 
 		return props;
@@ -93,8 +93,11 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
     	pose = new double[]{xy[0], xy[1], 0, 0, 0, 0};
 
     	name = ins.readString();
-        colorStr = ins.readString();
-
+    	
+    	int[] colors = ins.readInts();
+    	color = new Color(colors[0], colors[1], colors[2]);
+    	
+    	
         
         int numProps = ins.readInt();
         String[] props = new String[numProps];
@@ -113,14 +116,14 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
     {
     	outs.writeComment("XY");
         outs.writeDoubles(new double[]{pose[0], pose[1]});
-        outs.writeString(colorStr);
+        outs.writeInts(new int[]{color.getRed(), color.getGreen(), color.getBlue()});
     }
 
 	@Override
 	public void setState(String keyValString) {
 		sensStates.setState(keyValString);
 	}
-
+	
 	@Override
 	public boolean inSenseRange(double[] xyt) {
 		return true;
@@ -128,7 +131,6 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
 	
 	private VisObject constructModel(){
 		ArrayList<Object> objs = new ArrayList<Object>();
-        Color color = SimFeatures.getColorValue(colorStr);
 
         // The larger box making up the background of the object
 		objs.add(new VisChain(LinAlg.translate(0,0,.001),

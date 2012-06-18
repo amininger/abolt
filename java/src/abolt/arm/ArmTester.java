@@ -11,6 +11,8 @@ import lcm.lcm.LCM;
 import lcm.lcm.LCMDataInputStream;
 import lcm.lcm.LCMSubscriber;
 
+import abolt.lcmtypes.object_data_t;
+import abolt.lcmtypes.observations_t;
 import abolt.lcmtypes.robot_action_t;
 import abolt.lcmtypes.robot_command_t;
 import april.util.TimeUtil;
@@ -19,11 +21,13 @@ public class ArmTester extends JFrame implements LCMSubscriber{
 
     private JLabel idLabel;
     private JLabel statusLabel;
+    private JLabel idListLabel;
     private LCM lcm = LCM.getSingleton();
 
     public ArmTester() {
         super("Arm Tester");
         lcm.subscribe("ROBOT_ACTION", this);
+        lcm.subscribe("OBSERVATIONS", this);
 
 		JPanel panel = new JPanel(new GridLayout(0, 1));
 		
@@ -32,6 +36,9 @@ public class ArmTester extends JFrame implements LCMSubscriber{
 		
 		statusLabel = new JLabel("wait");
 		panel.add(statusLabel);
+		
+		idListLabel = new JLabel("");
+		panel.add(idListLabel);
 	
         JButton grabButton = new JButton("Grab");
         grabButton.addActionListener(new ActionListener()
@@ -112,34 +119,46 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             {
             	robot_command_t command = new robot_command_t();
             	command.utime = TimeUtil.utime();
-                command.action = "RESET";
+                command.action = "HOME";
                 command.dest = new double[6];
                 lcm.publish("ROBOT_COMMAND", command);
             }
         });
         panel.add(homeButton);
         
-        JButton actionButton = new JButton("Action");
-        actionButton.addActionListener(new ActionListener()
-        {
+        JButton resetButton = new JButton("Reset");
+        resetButton.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e)
             {
             	robot_command_t command = new robot_command_t();
             	command.utime = TimeUtil.utime();
-            	
-            	String action = JOptionPane.showInputDialog(null,
-            			  "Enter the Action to perform",
-            			  "Action Command",
-            			  JOptionPane.QUESTION_MESSAGE);
-            	if(action == null){
-            		return;
-            	}
-                command.action = action;
+                command.action = "RESET";
                 command.dest = new double[6];
                 lcm.publish("ROBOT_COMMAND", command);
             }
         });
+        panel.add(resetButton);
+        
+		JButton actionButton = new JButton("Action");
+		actionButton.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e){
+            	robot_command_t command = new robot_command_t();
+            	command.utime = TimeUtil.utime();
+                command.dest = new double[6];
+                
+	        	String action = JOptionPane.showInputDialog(null,
+	        			  "Enter the Action to perform",
+	        			  "Action Command",
+	        			  JOptionPane.QUESTION_MESSAGE);
+	        	if(action == null){
+	        		return;
+	        	}
+	            command.action = action;
+                lcm.publish("ROBOT_COMMAND", command);
+			}
+		});
         panel.add(actionButton);
 
         this.add(panel);
@@ -159,6 +178,17 @@ public class ArmTester extends JFrame implements LCMSubscriber{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+    	} else if(channel.equals("OBSERVATIONS")){
+    		try{
+    			observations_t obs = new observations_t(ins);
+    			String objs = "";
+    			for(object_data_t obj : obs.observations){
+    				objs += obj.id + ", ";
+    			}
+    			idListLabel.setText(objs);
+    		} catch (IOException e){
+    			e.printStackTrace();
+    		}
     	}
     }
     

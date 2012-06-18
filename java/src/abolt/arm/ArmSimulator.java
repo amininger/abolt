@@ -108,7 +108,7 @@ public class ArmSimulator implements LCMSubscriber{
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
-			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
+			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.05), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
 		boltSim.drawVisObjects("arm", visObjs);
 	}

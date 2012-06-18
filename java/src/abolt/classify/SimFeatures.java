@@ -32,9 +32,9 @@ public class SimFeatures {
 	private static HashMap<String, Double> sizeValues;
 	static{
 		sizeValues = new HashMap<String, Double>();
-		sizeValues.put("small", .6);
-		sizeValues.put("medium", 1.0);
-		sizeValues.put("large", 1.5);
+		sizeValues.put("small", .3);
+		sizeValues.put("medium", .8);
+		sizeValues.put("large", 1.2);
 	}
 	public static Double getSizeValue(String size){
 		return sizeValues.get(size.toLowerCase());

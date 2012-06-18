@@ -1,9 +1,10 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	.25 .25
+	.2 .2
 	stove
-	red
+  vec 3
+	255 0 0
 	2
 	door=closed,open
 	heat=off,on
@@ -11,25 +12,28 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	-.25 .25
+	-.2 .2
 	pantry
-	purple
+  vec 3
+	50 0 255
 	1
 	door=open,closed
 }
 "abolt.sim.SimLocation"
 {
 	vec 2
-	.25 -.25
+	.2 -.2
 	table
-	orange
+  vec 3
+	255 128 0
 	0
 }
 "abolt.sim.SimLocation"
 {
 	vec 2
-	-.25 -.25
+	-.2 -.2
 	garbage
-	green
+  vec 3
+	0 255 0
 	0
 }

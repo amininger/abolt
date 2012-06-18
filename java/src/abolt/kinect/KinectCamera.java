@@ -66,7 +66,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 	public ArrayList<double[]> extractPointCloudData(){
 		return extractPointCloudData(kinectData);
 	}
-
+	
 	public BufferedImage getKinectImage(kinect_status_t kinectData){
     	if(kinectData == null){
     		return new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);

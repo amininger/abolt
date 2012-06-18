@@ -52,6 +52,15 @@ public class BoltArmController implements LCMSubscriber
     private int grabbedObject = -1;
     private int toGrab = -1;
 
+    public int grabbedObject(){
+    	if(grabbedObject != -1){
+    		return grabbedObject;
+    	} else {
+    		return toGrab;
+    	}
+    }
+    public static BoltArmController Singleton = null;
+    
     // A simple elbow-up controller
     class ControlThread extends Thread
     {
@@ -683,6 +692,7 @@ public class BoltArmController implements LCMSubscriber
 
     public BoltArmController()
     {
+    	Singleton = this;
         initArm();
 
         // Start independent control thread.
