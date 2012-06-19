@@ -97,7 +97,9 @@ public class ObjectInfo{
             for(int i=0; i<3; i++){
                 center[i] = (min[i]+max[i])/2.0;
             }
-            center = KUtils.getWorldCoordinates(center);
+            // For Aaron
+            center = Bolt.getCamera().getWorldCoords(center);
+            //center = KUtils.getWorldCoordinates(center);
         }
         return center;
     }
