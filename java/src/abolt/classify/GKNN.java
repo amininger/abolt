@@ -219,6 +219,7 @@ public class GKNN implements IClassifier
         }
 
         // Print out stats
+        System.out.println("=============");
         for (String label: accumulator.keySet()) {
             Pair<Integer, Integer> pair = accumulator.get(label);
             System.out.printf("%s: %f\n", label, (double)pair.o2/(double)pair.o1);
