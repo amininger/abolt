@@ -4,6 +4,7 @@ import java.util.*;
 import java.io.*;
 
 import april.jmat.*;
+import april.util.*;
 
 import abolt.util.*;
 
@@ -174,12 +175,55 @@ public class GKNN implements IClassifier
             System.err.println("ERR: Trouble loading GKNN file");
             ioex.printStackTrace();
         }
+
+        //LOOCV();
     }
 
     /** Set the file to load training data from on a load call */
     public void setDataFile(String filename_)
     {
         filename = filename_;
+    }
+
+    // Leave one out cross validation
+    public void LOOCV()
+    {
+        HashMap<String, Pair<Integer, Integer> > accumulator = new HashMap<String, Pair<Integer, Integer> >();
+        int size = points.size();
+        for (int i = 0; i < size; i++) {
+            // Take out a test point
+            ArrayList<CPoint> training = new ArrayList<CPoint>(points);
+            CPoint cp = training.remove(i);
+
+            // Swap the training points - 1 in for classification
+            ArrayList<CPoint> temp = points;
+            points = training;
+
+            if (!accumulator.containsKey(cp.label)) {
+                accumulator.put(cp.label, new Pair<Integer, Integer>(0, 0));
+            }
+            Pair<Integer, Integer> pair = accumulator.get(cp.label);
+            pair.o1 += 1;
+
+            Classifications cs = classify(cp.coords);
+            String label = cs.getBestLabel().label;
+
+            if (cp.label.equals(label)) {
+                pair.o2 += 1;
+            }
+
+            accumulator.put(cp.label, pair);
+
+            // Swap back in the old points
+            points = temp;
+        }
+
+        // Print out stats
+        System.out.println("=============");
+        for (String label: accumulator.keySet()) {
+            Pair<Integer, Integer> pair = accumulator.get(label);
+            System.out.printf("%s: %f\n", label, (double)pair.o2/(double)pair.o1);
+        }
     }
 
     public static void main(String[] args)
