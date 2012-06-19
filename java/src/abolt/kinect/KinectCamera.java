@@ -35,7 +35,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         //        (int)(KUtils.viewRegion.height));
         segment = Segment.getSingleton();
     	lcm.subscribe("KINECT_STATUS", this);
-    	lcm.subscribe("ROBOT_COMMAND", this);
+    	lcm.subscribe("ROBOT_ACTION", this);
     }
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
@@ -131,19 +131,22 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 }
             }
         }
-        else if(channel.equals("ROBOT_COMMAND")){
+        else if(channel.equals("ROBOT_ACTION")){
             try{
-                robot_command_t command = new robot_command_t(ins);
-                String[] action = command.action.split("=");
-                if(action[0].equals("GRAB")){
-                    segment.tracker.movingObject(Integer.parseInt(action[1]));
+                robot_action_t command = new robot_action_t(ins);
+                String action = command.action;
+                Integer id = command.obj_id;
+                if(action.equals("WAIT"))
+                    segment.tracker.armWaiting();
+                else if(action.equals("GRAB"))
+                    segment.tracker.armGrabbing(id);
+                else if(action.equals("DROP")){
+                    double[] xyz = command.drop;
+                    segment.tracker.armDropping(new double[]{xyz[0], xyz[1], .02});
                 }
-                else if(action[0].equals("DROP")){
-                    double[] loc = command.dest;
-                    segment.tracker.releasedObject(new double[]{loc[0], loc[1], 0});
-                }
-
-            }catch (IOException e) {
+                else if(action.equals("FAILURE"))
+                    segment.tracker.armFailed();
+            }catch(IOException e){
                 e.printStackTrace();
                 return;
             }

@@ -156,6 +156,10 @@ public class BoltArmController implements LCMSubscriber
                 dynamixel_command_list_t desired_cmds = getArmCommandList();
                 lcm.publish("ARM_COMMAND", desired_cmds);
                 robot_action_t current_action = getCurrentAction();
+                double[] xyzrpy = arm.getGripperXYZRPY(); // Lauren (next three lines)
+                if(current_action.action.equals("DROP"))
+                   current_action.drop = new double[]{goal[0], goal[1], 0};
+                current_action.xyz = new double[]{xyzrpy[0], xyzrpy[1], xyzrpy[2]};
                 lcm.publish("ROBOT_ACTION", current_action);
             }
         }
@@ -352,6 +356,8 @@ public class BoltArmController implements LCMSubscriber
                     if (actionComplete()) {
                         setState(ActionState.GRAB_APPROACH);
                     }
+                    if(toGrab > -1)
+                        grabbedObject = toGrab; // Lauren
                     break;
                 case GRAB_APPROACH:
                     moveTo(behind, preGrabHeight);
@@ -395,6 +401,7 @@ public class BoltArmController implements LCMSubscriber
                         arm.setPos(5, gripper_status.position_radians);
                         setState(ActionState.GRAB_ADJUST_GRIP);
                     }
+
                     break;
                 case GRAB_ADJUST_GRIP:
                     // Tweak the grip strength so we don't break the hand XXX

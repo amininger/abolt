@@ -1,7 +1,8 @@
 struct robot_action_t
 {
     int64_t utime;
-    string action;     // Type of action we're taking
+    string action;    // Type of action we're taking
     int32_t obj_id;   // ID of object we're interacting with
-		double xyz[3];			// position of the gripper
+    double xyz[3];	  // position of the gripper
+    double drop[3];   // Location we will be dropping object
 }
