@@ -36,7 +36,6 @@ class ObjectLabeler // implements LCMSubscriber
     Log log;
     int[] objRefs;
     int currentObject;
-    static DataAggregator da;
     static Segment segment;
 
     // The most recently accessed kinect status
@@ -84,19 +83,9 @@ class ObjectLabeler // implements LCMSubscriber
         JScrollPane scrollPane = new JScrollPane(jlist);
         ParameterGUI pg = new ParameterGUI();
         pg.addButtons("skipF", "Skip Frame", "skipO", "Skip Object", "commit", "Commit Labels");
-        //pg.addIntSlider("cThresh", "Color Threshold", 1, 50, initialColorThresh);
-        //pg.addDoubleSlider("uThresh", "Union Threshold", 0.01, 0.5, initialUnionThresh);
 
         pg.addListener(new ParameterListener() {
                 public void parameterChanged(ParameterGUI pg, String name) {
-                    /*if (name.equals("cThresh")) {
-                        da.colorThresh = pg.gi("cThresh");
-                        updateParams();
-                    }
-                    else if (name.equals("uThresh")) {
-                        da.unionThresh = pg.gd("uThresh");
-                        updateParams();
-                    }*/
                     if (name.equals("skipF")) {
                         getNewFrame();
                     }
@@ -108,7 +97,6 @@ class ObjectLabeler // implements LCMSubscriber
                         commitLabels(labelFile);
                         boolean objectExists = selectNewObject();
                         if (!objectExists) getNewFrame();
-                        //getNewFrame();
                     }
                 }
             });
@@ -175,9 +163,9 @@ class ObjectLabeler // implements LCMSubscriber
     public void updateParams()
     {
         // Segment the image and return list of segmented objects
-        segment.segmentFrame(da.currentPoints, FRAME_WIDTH, FRAME_HEIGHT);
-        objRefs = new int[da.objects.size()];
-        Set<Integer> keys = da.objects.keySet();
+        segment.segmentFrame(segment.points, FRAME_WIDTH, FRAME_HEIGHT);
+        objRefs = new int[segment.objects.size()];
+        Set<Integer> keys = segment.objects.keySet();
         Integer[] keysArray = keys.toArray(new Integer[0]);
         for(int i=0; i<keysArray.length; i++){
             objRefs[i] = keysArray[i];
@@ -200,8 +188,8 @@ class ObjectLabeler // implements LCMSubscriber
             for(int i=0; i<20; i++){
                 ks = new kinect_status_t(log.readNext().data);
             }
-            da.currentPoints = new ArrayList<double[]>();
-            da.coloredPoints = new ArrayList<double[]>();
+            segment.points = new ArrayList<double[]>();
+            segment.coloredPoints = new ArrayList<double[]>();
             for(int y=0; y<ks.HEIGHT; y++){
                 for(int x=0; x<ks.WIDTH; x++){
 
@@ -209,15 +197,15 @@ class ObjectLabeler // implements LCMSubscriber
                     int d = ((ks.depth[2*i+1]&0xff) << 8) |
                         (ks.depth[2*i+0]&0xff);
 
-                    double[] p = KUtils.getXYZRGB(x, y, da.depthLookUp[d], ks);
-                    da.currentPoints.add(p);
+                    double[] p = KUtils.getXYZRGB(x, y, d, ks);
+                    segment.points.add(p);
                 }
             }
 
             // Segment the image and return list of segmented objects
-            segment.segmentFrame(da.currentPoints, FRAME_WIDTH, FRAME_HEIGHT);
-            objRefs = new int[da.objects.size()];
-            Set<Integer> keys = da.objects.keySet();
+            segment.segmentFrame(segment.points, FRAME_WIDTH, FRAME_HEIGHT);
+            objRefs = new int[segment.objects.size()];
+            Set<Integer> keys = segment.objects.keySet();
             Integer[] keysArray = keys.toArray(new Integer[0]);
             for(int i=0; i<keysArray.length; i++){
                 objRefs[i] = keysArray[i];
@@ -238,14 +226,7 @@ class ObjectLabeler // implements LCMSubscriber
 
         // Need to highlight the correct attributes in the jlist
         currentObject ++;
-        ObjectInfo oi = da.objects.get(objRefs[currentObject]);
-        /*while(oi.points.size() < MIN_POINTS){
-            currentObject ++;
-            if (currentObject >= objRefs.length){
-                getNewFrame();
-            }
-            oi = da.objects.get(objRefs[currentObject]);
-            }*/
+        ObjectInfo oi = segment.objects.get(objRefs[currentObject]);
         draw2DImage(oi);
         return true;
     }
@@ -266,7 +247,7 @@ class ObjectLabeler // implements LCMSubscriber
 
         // Get the feature vector
         int id = objRefs[currentObject];
-        ArrayList<double[]> points = da.objects.get(id).points;
+        ArrayList<double[]> points = segment.objects.get(id).points;
 
 
         // Write labels and pointclouds to file
@@ -323,20 +304,20 @@ class ObjectLabeler // implements LCMSubscriber
     public void draw2DImage(ObjectInfo oi)
     {
         double[] center = oi.getCenter();
-        double[] color = oi.avgColor();
+        int[] color = oi.avgColor();
         /*System.out.println("RepID: "+oi.repID+
                            "\tCenter: ("+
                            center[0]+","+center[1]+","+center[2]
                            +")\tColor: ("+
                            color[0]+","+color[1]+","+color[2]
                            +")");*/
-        if(da.coloredPoints.size() <= 0){ return; }
+        if(segment.coloredPoints.size() <= 0){ return; }
 
         VisColorData cd = new VisColorData();
         VisVertexData vd = new VisVertexData();
 
         // Add color 2D points
-        for(double[] p: da.coloredPoints){
+        for(double[] p: segment.coloredPoints){
             vd.add(new double[]{p[0], p[1], 0});
             cd.add((int) p[3]);
         }
@@ -387,16 +368,7 @@ class ObjectLabeler // implements LCMSubscriber
             System.exit(1);
         }
 
-        //Segment segment = new Segment(g, opts.getBoolean("segment"));
-        da = new DataAggregator(false);
-        da.colorThresh = initialColorThresh;
-        da.unionThresh = initialUnionThresh;
-        da.ransacThresh = initialRansacThresh;
-        da.ransacPercent = initialRansacPercent;
-        da.depthLookUp = KUtils.createDepthMap();
-        //segment = new Segment(FRAME_WIDTH, FRAME_HEIGHT);
         segment = Segment.getSingleton();
-
         ObjectLabeler ol = new ObjectLabeler(opts);
     }
 }
