@@ -209,11 +209,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         observations_t obs = new observations_t();
         obs.utime = TimeUtil.utime();
         synchronized(objectManager.objects){
-        	if(objectManager.objects.containsKey(simulator.getSelectedId())){
-        		obs.click_id = simulator.getSelectedId();
-        	} else {
-        		obs.click_id = -1;
-        	}
+        	obs.click_id = simulator.getSelectedId();
         }
         obs.sensables = sensableManager.getSensableStrings();
         obs.nsens = obs.sensables.length;
