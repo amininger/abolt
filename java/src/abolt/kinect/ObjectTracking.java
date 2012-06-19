@@ -270,7 +270,8 @@ public class ObjectTracking
         lastFrame = currentFrame;
 
         // Add in held object, if there is one.
-        if(armState == ArmState.HOLDING_OBJECT && heldObject != null){
+        if((armState == ArmState.HOLDING_OBJECT || armState == ArmState.GRABBING_OBJECT)
+            && heldObject != null){
             heldObject.resetCenter(arm.getGripperXYZRPY());
             currentFrame.put(heldObject.ufsID, heldObject);
         }
