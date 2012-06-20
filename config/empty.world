@@ -3,7 +3,7 @@
 	vec 2
 	.2 .2
 	stove
-  vec 3
+  	ivec 3
 	255 0 0
 	2
 	door=closed,open
@@ -14,7 +14,7 @@
 	vec 2
 	-.2 .2
 	pantry
-  vec 3
+  	ivec 3
 	128 0 255
 	1
 	door=open,closed
@@ -24,7 +24,7 @@
 	vec 2
 	.2 -.2
 	table
-  vec 3
+  	ivec 3
 	255 128 0
 	0
 }
@@ -33,7 +33,7 @@
 	vec 2
 	-.2 -.2
 	garbage
-  vec 3
+  	ivec 3
 	0 255 0
 	0
 }

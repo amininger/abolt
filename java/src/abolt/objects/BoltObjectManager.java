@@ -51,10 +51,10 @@ public class BoltObjectManager {
 	        }
 
 	        for (Integer id : objsToRemove) {
-	        	if(BoltArmController.Singleton == null ||
-	        			id != BoltArmController.Singleton.grabbedObject()){
+//	        	if(BoltArmController.Singleton == null ||
+//	        			id != BoltArmController.Singleton.grabbedObject()){
 		            objects.remove(id);
-	        	}
+//	        	}
 	        }
 		}
 	}

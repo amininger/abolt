@@ -21,7 +21,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
     final static int K_HEIGHT = kinect_status_t.HEIGHT;
 
-    private final static double darkThreshold = .4;
+     private final static double darkThreshold = .4;
 
     // LCM
     static LCM lcm = LCM.getSingleton();
