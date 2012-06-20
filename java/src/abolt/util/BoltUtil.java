@@ -55,7 +55,7 @@ public class BoltUtil
     static public ArrayList<double[]> getCanonical(ArrayList<double[]> points)
     {
         // Translate points to the origin
-        ArrayList<double[]> topFace = isolateTopFace(points, 0.25);
+        ArrayList<double[]> topFace = isolateTopFace(points, 0.0025);
         double[] cxyz = getCentroid(topFace);
         double[][] cXform = LinAlg.translate(-cxyz[0], -cxyz[1], 0);
         ArrayList<double[]> centered = LinAlg.transform(cXform, topFace);
@@ -129,6 +129,57 @@ public class BoltUtil
         rotated = LinAlg.transform(LinAlg.scale(sx, sy, 1), rotated);
 
         return rotated;
+    }
+
+    static public double minBBoxTheta(ArrayList<double[]> points)
+    {
+        ArrayList<double[]> centered = null; // XXX
+
+        // Rotate the points incrementally and calculate the area of the bbox.
+        // There should be several orientations in which the box is minimized,
+        // so choose the one resulting in the longested distribution along the
+        // x-axis
+        double minArea = Double.MAX_VALUE;
+        double xlen = 0;
+        double theta = 0;
+        for (double r = 0; r < 180.0; r += 0.25)
+        {
+            ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(r)),
+                                                           centered);
+
+            // Find the area of the bounding box
+            double minX = Double.MAX_VALUE;
+            double minY = Double.MAX_VALUE;
+            double maxX = Double.MIN_VALUE;
+            double maxY = Double.MIN_VALUE;
+            for (double[] p: rotated) {
+                minX = Math.min(minX, p[0]);
+                maxX = Math.max(maxX, p[0]);
+                minY = Math.min(minY, p[1]);
+                maxY = Math.max(maxY, p[1]);
+            }
+
+            double area = (maxX - minX) * (maxY - minY);
+            if (area < minArea || BoltMath.equals(area, minArea, 0.0000001)) {
+                if (xlen < (maxX - minX)) {
+                    minArea = area;
+                    xlen = (maxX - minX);
+                    theta = r;
+                }
+            }
+        }
+
+        return theta;
+    }
+
+    static public ArrayList<double[]> rotateInPlace(ArrayList<double[]> points, double theta)
+    {
+        double[] cxyz = getCentroid(points);
+        double[][] cXform = LinAlg.translate(cxyz);
+        ArrayList<double[]> centered = LinAlg.transform(cXform, points);
+        ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(theta), centered);
+
+        return LinAlg.transform(LinAlg.inverse(cXform), rotated);
     }
 
     /** Return the centroid of the supplied points */
