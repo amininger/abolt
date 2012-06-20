@@ -52,37 +52,83 @@ public class BoltUtil
      *  in XY and such that the X coordinate of the
      *  box is maximized
      */
-    static public ArrayList<double[]> minimizeBBoxXY(ArrayList<double[]> points)
+    static public ArrayList<double[]> getCanonical(ArrayList<double[]> points)
     {
         // Translate points to the origin
         ArrayList<double[]> topFace = isolateTopFace(points, 0.25);
         double[] cxyz = getCentroid(topFace);
         double[][] cXform = LinAlg.translate(-cxyz[0], -cxyz[1], 0);
         ArrayList<double[]> centered = LinAlg.transform(cXform, topFace);
+        ArrayList<double[]> rotated;
 
         // Rotate the points incrementally and calculate the area of the bbox.
         // Chooses the minimal area that puts the shape in some canonical
         // orientation. In this case, we choose the orientation that shifts
         // our points closest to the edges that are down and to the left
         double minArea = Double.MAX_VALUE;
+        double xlen = 0;
         double theta = 0;
         for (double r = 0; r < 360.0; r += 0.5)
         {
-            ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(r)),
-                                                           centered);
+            rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(r)),
+                                       centered);
 
             // Find the area of the bounding box
-            //
-            //
+            double minX = Double.MAX_VALUE;
+            double minY = Double.MAX_VALUE;
+            double maxX = Double.MIN_VALUE;
+            double maxY = Double.MIN_VALUE;
+            for (double[] p: rotated) {
+                minX = Math.min(minX, p[0]);
+                maxX = Math.max(maxX, p[0]);
+                minY = Math.min(minY, p[1]);
+                maxY = Math.max(maxY, p[1]);
+            }
+
             // If the area is approximately minimal (within our threshold)
             // then look at the centroid position with relation to the
             // bounding box corner positions and choose the orientation
             // such that the centroid is closest to the bottom left corner
             // of the box.
-
+            double area = (maxX - minX) * (maxY - minY);
+            if (area < minArea || BoltMath.equals(area, minArea, 0.0000001)) {
+                if (xlen < (maxX - minX)) {
+                    minArea = area;
+                    xlen = (maxX - minX);
+                    theta = r;
+                }
+            }
         }
 
-        return null;    // XXX
+        centered = LinAlg.transform(cXform, points);
+        rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(theta)),
+                                   centered);
+        double minX = Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE;
+        double maxX = Double.MIN_VALUE;
+        double maxY = Double.MIN_VALUE;
+        for (double[] p: rotated) {
+            minX = Math.min(minX, p[0]);
+            maxX = Math.max(maxX, p[0]);
+            minY = Math.min(minY, p[1]);
+            maxY = Math.max(maxY, p[1]);
+        }
+
+        // Flip the points such that they are in the "canonical"
+        // orientation for this shape. This is accomplished by
+        // minimizing the distance from the bottom left corner
+        // to the centroid
+        double lx = cxyz[0] - minX;
+        double rx = maxX - cxyz[1];
+        double by = cxyz[1] - minY;
+        double ty = maxY - cxyz[1];
+
+        double sx = rx > lx ? -1 : 1;
+        double sy = ty > by ? -1 : 1;
+
+        rotated = LinAlg.transform(LinAlg.scale(sx, sy, 1), rotated);
+
+        return rotated;
     }
 
     /** Return the centroid of the supplied points */
