@@ -65,7 +65,7 @@ public class BoltObject{
     public void setVisible(boolean v){
     	visible = v;
     }
-    
+
     public int getID(){
     	return id;
     }
@@ -93,7 +93,7 @@ public class BoltObject{
 	public ObjectInfo getInfo(){
 		return info;
 	}
-	
+
 	public ArrayList<Double> getFeatures(FeatureCategory cat) {
 		return info.getFeatures(cat);
 	}

@@ -199,6 +199,7 @@ public class BoltArmController implements LCMSubscriber
             for (int i = 0; i < arm.getJoints().size(); i++) {
                 dynamixel_status_t stat = arm.getStatus(i);
                 if (stat != null && !BoltMath.equals(0, stat.speed, 0.01)) {
+                	// actionStartTime = TimeUtil.utime();
                     return false;
                 }
             }

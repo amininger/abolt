@@ -127,7 +127,8 @@ public class ArmTester extends JFrame implements LCMSubscriber{
         panel.add(homeButton);
         
         JButton resetButton = new JButton("Reset");
-        resetButton.addActionListener(new ActionListener(){
+        resetButton.addActionListener(new ActionListener()
+        {
             @Override
             public void actionPerformed(ActionEvent e)
             {
@@ -139,6 +140,7 @@ public class ArmTester extends JFrame implements LCMSubscriber{
             }
         });
         panel.add(resetButton);
+
         
 		JButton actionButton = new JButton("Action");
 		actionButton.addActionListener(new ActionListener(){
