@@ -45,10 +45,7 @@ public class KUtils
 
     public static float[] depthLookup;          //holds depth conversions so we only have to calculate them once
 
-    public final static int[] viewBorders = new int[] {180, 180, 500, 380 };
-    public final static Rectangle viewRegion
-    	= new Rectangle(viewBorders[0], viewBorders[1],
-                        viewBorders[2] - viewBorders[0], viewBorders[3] - viewBorders[1]);
+    public static Rectangle viewRegion = new Rectangle(0, 0, kinect_status_t.WIDTH, kinect_status_t.HEIGHT);
 
     public static double[][] kinectToWorldXForm = null;
     /*static{
@@ -67,13 +64,24 @@ public class KUtils
     }*/
     public static void loadCalibFromConfig(Config config)
     {
-        double[] values = config.getDoubles("calibration.xform");
-        assert (values.length == 16);
-        kinectToWorldXForm = new double[4][4];
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                kinectToWorldXForm[i][j] = values[4*i + j];
+        if(config.hasKey("calibration.xform")){
+            double[] xform = config.getDoubles("calibration.xform");
+        	assert (xform.length == 16);
+            kinectToWorldXForm = new double[4][4];
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    kinectToWorldXForm[i][j] = xform[4*i + j];
+                }
             }
+        } else {
+        	kinectToWorldXForm = LinAlg.identity(4);
+        }
+        
+        if(config.hasKey("calibration.borders")){
+            int[] borders = config.getInts("calibration.borders");
+            assert(borders.length == 4);
+            viewRegion = new Rectangle(borders[0], borders[1],
+            		borders[2] - borders[0], borders[3] - borders[1]);
         }
     }
 

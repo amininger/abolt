@@ -43,6 +43,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     private SensableManager sensableManager;
     private ClassifierManager classifierManager;
     private IBoltCamera camera;
+    private KinectView kinectView;
 
     // objects for visualization
     private BoltSimulator simulator;
@@ -100,16 +101,17 @@ public class Bolt extends JFrame implements LCMSubscriber
 
         if(opts.getBoolean("kinect")){
         	camera = new KinectCamera();
+        	kinectView = new KinectView();
             // XXX We'd like to remove this middleman to the arm
             //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
-        	camera = new SimKinect(800, 600, simulator);
+        	camera = new SimKinect(400, 300, simulator);
         	armSimulator = new ArmSimulator(simulator);
         }
 
         // Initialize the JMenuBar
         JMenuBar menuBar = createMenuBar();
-        simulator.addToMenu(menuBar, opts.getBoolean("kinect"));
+        simulator.addToMenu(menuBar);
         this.setJMenuBar(menuBar);
     	this.add(simulator.getCanvas());
 
@@ -204,11 +206,8 @@ public class Bolt extends JFrame implements LCMSubscriber
     {
         observations_t obs = new observations_t();
         obs.utime = TimeUtil.utime();
-        BoltObject selectedObj = simulator.getSelectedObject();
-        if(selectedObj != null){
-        	obs.click_id = selectedObj.getID();
-        } else {
-        	obs.click_id = -1;
+        synchronized(objectManager.objects){
+        	obs.click_id = simulator.getSelectedId();
         }
         obs.sensables = sensableManager.getSensableStrings();
         obs.nsens = obs.sensables.length;

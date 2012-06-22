@@ -42,6 +42,10 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
 	public int getID() {
 		return id;
 	}
+	
+	public void setID(int id){
+		this.id = id;
+	}
 
 
     @Override

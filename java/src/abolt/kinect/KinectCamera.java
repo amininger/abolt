@@ -21,7 +21,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
     final static int K_HEIGHT = kinect_status_t.HEIGHT;
 
-    private final static double darkThreshold = .4;
+     private final static double darkThreshold = .4;
 
     // LCM
     static LCM lcm = LCM.getSingleton();
@@ -40,7 +40,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
     and map it to the frame of the arm. **/
-	public ArrayList<double[]> extractPointCloudData()
+	public static ArrayList<double[]> extractPointCloudData(kinect_status_t kinectData)
 	{
 	    ArrayList<double[]> currentPoints = new ArrayList<double[]>();
 	    if(kinectData == null){
@@ -62,7 +62,11 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 	    }
 	    return currentPoints;
 	}
-
+	
+	public ArrayList<double[]> extractPointCloudData(){
+		return extractPointCloudData(kinectData);
+	}
+	
 	public BufferedImage getKinectImage(kinect_status_t kinectData){
     	if(kinectData == null){
     		return new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);
@@ -112,7 +116,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 e.printStackTrace();
                 return;
             }
-            pointCloudData = extractPointCloudData();
+            pointCloudData = extractPointCloudData(kinectData);
             if(pointCloudData.size() > 0){
                 segment.segmentFrame(pointCloudData,
                                      KUtils.viewRegion.width,

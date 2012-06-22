@@ -1,36 +1,36 @@
 "april.sim.SimBox"
 {
 	vec 6
-	-.5 0 .05 0 0 0
+	-.4 0 .01 0 0 0
 	vec 3
-	.1 1.1 .1
+	.02 .82 .02
 	vec 4
 	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
 }
 "april.sim.SimBox"
 {
 	vec 6
-	.5 0 .05 0 0 0
+	.4 0 .01 0 0 0
 	vec 3
-	.1 1.1 .1
+	.02 .82 .02
 	vec 4
 	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
 }
 "april.sim.SimBox"
 {
 	vec 6
-	0 .5 .05 0 0 0
+	0 .4 .01 0 0 0
 	vec 3
-	.9 .1 .1
+	.78 .02 .02
 	vec 4
 	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
 }
 "april.sim.SimBox"
 {
 	vec 6
-	0 -.5 .05 0 0 0
+	0 -.4 .01 0 0 0
 	vec 3
-	.9 .1 .1
+	.78 .02 .02
 	vec 4
 	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
 }
@@ -38,7 +38,7 @@
 {
 	# XYZRPY 
 	vec 6
-	.25 .25 .05 0 0 0
+	.2 .2 .05 0 0 0
 	red
 	square
 	small
@@ -47,7 +47,7 @@
 {
 	# XYZRPY 
 	vec 6
-	-.25 .25 .05 0 0 0
+	-.2 .2 .05 0 0 0
 	blue
 	cylinder
 	medium
@@ -56,7 +56,7 @@
 {
 	# XYZRPY 
 	vec 6
-	.25 -.25 .05 0 0 0
+	.2 -.2 .05 0 0 0
 	green
 	t-shape
 	large
@@ -65,7 +65,7 @@
 {
 	# XYZRPY 
 	vec 6
-	-.25 -.25 .05  0 0 0
+	-.2 -.2 .05  0 0 0
 	red
 	triangle
 	medium
@@ -73,29 +73,39 @@
 "abolt.sim.SimLocation"
 {
 	vec 2
-	.25 .25
+	.2 .2
 	stove
-	red
+  	ivec 3
+	255 0 0
+	2
+	door=closed,open
+	heat=off,on
 }
 "abolt.sim.SimLocation"
 {
 	vec 2
-	-.25 .25
+	-.2 .2
 	pantry
-	purple
+  	ivec 3
+	128 0 255
+	1
+	door=open,closed
 }
 "abolt.sim.SimLocation"
 {
 	vec 2
-	.25 -.25
+	.2 -.2
 	table
-	orange
+  	ivec 3
+	255 128 0
+	0
 }
 "abolt.sim.SimLocation"
 {
 	vec 2
-	-.25 -.25
+	-.2 -.2
 	garbage
-	green
+  	ivec 3
+	0 255 0
+	0
 }
-

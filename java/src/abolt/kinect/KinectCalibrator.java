@@ -2,6 +2,7 @@
 package abolt.kinect;
 
 import april.vis.*;
+import april.config.ConfigFile;
 import april.jmat.*;
 import april.jmat.geom.GRay3D;
 import april.util.*;
@@ -54,6 +55,11 @@ class KinectCalibrator // implements LCMSubscriber
     {
     	// Calibration variables
         calibFilename = filename;
+        try {
+			KUtils.loadCalibFromConfig(new ConfigFile(filename));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
         // Setup Frame
         JFrame frame = new JFrame("Calibrate Kinect");
@@ -73,7 +79,6 @@ class KinectCalibrator // implements LCMSubscriber
                                   false);
 
     	imageLayer.addEventHandler(new ClickEventHandler());
-
 
         frame.add(visCanvas, BorderLayout.CENTER);
 
@@ -245,6 +250,10 @@ class KinectCalibrator // implements LCMSubscriber
                                                  k2wTransform[i][2],
                                                  k2wTransform[i][3]));
     		}
+    		out.write("\tborders = ");
+    		out.write(String.format("[%d, %d, %d, %d];\n", (int)KUtils.viewRegion.getMinX(), 
+    				(int)KUtils.viewRegion.getMinY(), (int)KUtils.viewRegion.getMaxX(), 
+    				(int)KUtils.viewRegion.getMaxY()));
             out.write("}\n");
     		out.close();
     	} catch (IOException e){
@@ -315,6 +324,13 @@ class KinectCalibrator // implements LCMSubscriber
         	//System.out.println(String.format("(%f, %f, %f)", testPt[0], testPt[1], testPt[2]));
         	System.out.println(String.format("(%f, %f, %f)", a[0], a[1], a[2]));
         }
+        
+        VzRectangle rect = new VzRectangle(KUtils.viewRegion.getWidth(), KUtils.viewRegion.getHeight(), new VzLines.Style(Color.white, 2));
+        double[] t = new double[]{KUtils.viewRegion.getX() + KUtils.viewRegion.getWidth()/2, 
+        		KINECT_HEIGHT - (KUtils.viewRegion.getY() + KUtils.viewRegion.getHeight()/2), .01};
+        VisChain rectVC = new VisChain(LinAlg.translate(t), rect);
+        visBuffer.addBack(rectVC);
+        
         visBuffer.swap();
     }
 

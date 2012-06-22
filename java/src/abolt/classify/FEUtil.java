@@ -58,12 +58,13 @@ public abstract class FEUtil {
         Pattern p = Pattern.compile(reg);
 
         Matcher m = p.matcher(featureString);
-        int i = 0;
 
         ArrayList<Double> features = new ArrayList<Double>();
         while (m.find()) {
-        	features.add(Double.valueOf(m.group()).doubleValue());
-            i++;
+        	Double val = Double.valueOf(m.group());
+        	if(val != null){
+        		features.add(val);
+        	}
         }
         return features;
 	}

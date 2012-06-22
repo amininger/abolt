@@ -24,7 +24,7 @@ public class BoltArm implements LCMSubscriber
     final static double baseHeight = 0.075;
     private ArrayList<Joint> joints;
 
-    private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.2, true);
+    private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.5, true);
 
     private BoltArm()
     {

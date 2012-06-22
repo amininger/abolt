@@ -49,17 +49,18 @@ public class ClassifierManager {
 
         // New classification code
         // For now, manually specified parameters on weight
-        GKNN colorKNN = new GKNN(20, 0.1);
+
+        GKNN colorKNN = new GKNN(10, 0.1);
         colorKNN.setDataFile(colorDataFile);
         classifiers.put(FeatureCategory.COLOR, colorKNN);
 
-        //ShapeGKNN shapeKNN = new ShapeGKNN(10, 0.5);
-        GKNN shapeKNN = new GKNN(10, 1.0);
+        GKNN shapeKNN = new GKNN(10, .3);      // XXX Untested parameter
         shapeKNN.setDataFile(shapeDataFile);
         classifiers.put(FeatureCategory.SHAPE, shapeKNN);
 
-        GKNN sizeKNN  = new GKNN(5, 1.0);
-        sizeKNN.setDataFile(sizeDataFile);
+        GKNN sizeKNN  = new GKNN(5, .00003);      // XXX Needs revisiting, both in terms of
+        sizeKNN.setDataFile(sizeDataFile);      // XXX parameter and classification
+
         classifiers.put(FeatureCategory.SIZE, sizeKNN);
 
         reloadData();

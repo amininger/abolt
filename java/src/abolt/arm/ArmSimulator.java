@@ -95,6 +95,7 @@ public class ArmSimulator implements LCMSubscriber{
 				double[] objPos = obj.getPose();
 				objPos[0] = pos[0];
 				objPos[1] = pos[1];
+				objPos[2] = LinAlg.matrixToXyzrpy(obj.getInfo().createdFrom.getPose())[2];
 				obj.getInfo().createdFrom.setPose(LinAlg.xyzrpyToMatrix(objPos));
 			}
 		}
@@ -107,7 +108,7 @@ public class ArmSimulator implements LCMSubscriber{
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
-			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.09), new VzCircle(new VzMesh.Style(Color.cyan))));
+			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.05), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
 		boltSim.drawVisObjects("arm", visObjs);
 	}
@@ -124,7 +125,7 @@ public class ArmSimulator implements LCMSubscriber{
 			BoltObjectManager objManager = BoltObjectManager.getSingleton();
 			BoltObject obj;
 			synchronized(objManager.objects){
-				obj = objManager.objects.get(grabbedID);
+				obj = objManager.objects.get(id);
 			}
 			if(obj == null){
 				return;

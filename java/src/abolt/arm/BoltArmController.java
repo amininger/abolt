@@ -52,6 +52,15 @@ public class BoltArmController implements LCMSubscriber
     private int grabbedObject = -1;
     private int toGrab = -1;
 
+    public int grabbedObject(){
+    	if(grabbedObject != -1){
+    		return grabbedObject;
+    	} else {
+    		return toGrab;
+    	}
+    }
+    public static BoltArmController Singleton = null;
+    
     // A simple elbow-up controller
     class ControlThread extends Thread
     {
@@ -190,6 +199,7 @@ public class BoltArmController implements LCMSubscriber
             for (int i = 0; i < arm.getJoints().size(); i++) {
                 dynamixel_status_t stat = arm.getStatus(i);
                 if (stat != null && !BoltMath.equals(0, stat.speed, 0.01)) {
+                	// actionStartTime = TimeUtil.utime();
                     return false;
                 }
             }
@@ -685,6 +695,7 @@ public class BoltArmController implements LCMSubscriber
 
     public BoltArmController()
     {
+    	Singleton = this;
         initArm();
 
         // Start independent control thread.

@@ -179,4 +179,8 @@ public class SimStove implements SimObject, SimSensable, SimActionable
             }
         }
     }
+
+	public void setID(int id) {
+		this.id = id;
+	}
 }
