@@ -34,18 +34,13 @@ public class BoltArmDemo implements LCMSubscriber
     // XXX Do we even use cmds anymore?
     ExpiringMessageCache<observations_t> observations = new ExpiringMessageCache<observations_t>(2.5, true);
 
-    // Command line flags/options
-    GetOpt opts;
-
-    public BoltArmDemo(GetOpt opts_)
+    public BoltArmDemo(boolean sim)
     {
-        opts = opts_;
-
         // If we're simulating, we spoof our own ARM_STATUS messages. Otherwise,
         // we just run normally.
-        if (opts != null && opts.getBoolean("sim")) {
-            BoltArmController controller = new BoltArmController();
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter();
+        if (sim) {
+            //BoltArmController controller = new BoltArmController();
+            //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter();
             st = new SimulationThread();
             st.start();
         }
@@ -389,8 +384,6 @@ public class BoltArmDemo implements LCMSubscriber
         GetOpt opts = new GetOpt();
         opts.addBoolean('s',"sim",false,"Run in simulation mode");
         opts.addBoolean('h',"help",false,"Display this help screen");
-        opts.addBoolean('l',"lcm",false,"Emit LCM");
-        opts.addString('k',"kconfig",null,"Kinect calibration config file");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Option error - "+opts.getReason());
@@ -402,6 +395,6 @@ public class BoltArmDemo implements LCMSubscriber
             return;
         }
 
-        BoltArmDemo bd = new BoltArmDemo(opts);
+        BoltArmDemo bd = new BoltArmDemo(opts.getBoolean("sim"));
     }
 }

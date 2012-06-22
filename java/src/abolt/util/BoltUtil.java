@@ -54,55 +54,12 @@ public class BoltUtil
      */
     static public ArrayList<double[]> getCanonical(ArrayList<double[]> points)
     {
-        // Translate points to the origin
-        ArrayList<double[]> topFace = isolateTopFace(points, 0.0025);
-        double[] cxyz = getCentroid(topFace);
-        double[][] cXform = LinAlg.translate(-cxyz[0], -cxyz[1], 0);
-        ArrayList<double[]> centered = LinAlg.transform(cXform, topFace);
-        ArrayList<double[]> rotated;
-
-        // Rotate the points incrementally and calculate the area of the bbox.
-        // Chooses the minimal area that puts the shape in some canonical
-        // orientation. In this case, we choose the orientation that shifts
-        // our points closest to the edges that are down and to the left
-        double minArea = Double.MAX_VALUE;
-        double xlen = 0;
-        double theta = 0;
-        for (double r = 0; r < 360.0; r += 0.5)
-        {
-            rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(r)),
-                                       centered);
-
-            // Find the area of the bounding box
-            double minX = Double.MAX_VALUE;
-            double minY = Double.MAX_VALUE;
-            double maxX = Double.MIN_VALUE;
-            double maxY = Double.MIN_VALUE;
-            for (double[] p: rotated) {
-                minX = Math.min(minX, p[0]);
-                maxX = Math.max(maxX, p[0]);
-                minY = Math.min(minY, p[1]);
-                maxY = Math.max(maxY, p[1]);
-            }
-
-            // If the area is approximately minimal (within our threshold)
-            // then look at the centroid position with relation to the
-            // bounding box corner positions and choose the orientation
-            // such that the centroid is closest to the bottom left corner
-            // of the box.
-            double area = (maxX - minX) * (maxY - minY);
-            if (area < minArea || BoltMath.equals(area, minArea, 0.0000001)) {
-                if (xlen < (maxX - minX)) {
-                    minArea = area;
-                    xlen = (maxX - minX);
-                    theta = r;
-                }
-            }
-        }
-
-        centered = LinAlg.transform(cXform, points);
-        rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(theta)),
-                                   centered);
+        double theta = getBBoxTheta(points);
+        double[] cxyz = getCentroidXY(points);
+        double[][] cXform = LinAlg.translate(cxyz);
+        ArrayList<double[]> centered = LinAlg.transform(cXform, points);
+        ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(theta)),
+                                                       centered);
         double minX = Double.MAX_VALUE;
         double minY = Double.MAX_VALUE;
         double maxX = Double.MIN_VALUE;
@@ -131,9 +88,16 @@ public class BoltUtil
         return rotated;
     }
 
-    static public double minBBoxTheta(ArrayList<double[]> points)
+    /** Return the rotation around the XY centroid necessary to
+     *  minimize the area of the axis-aligned bounding box. Since
+     *  several such rotations should exist, pick the orientation
+     *  with the greatest spread of points along the X-axis.
+     */
+    static public double getBBoxTheta(ArrayList<double[]> points)
     {
-        ArrayList<double[]> centered = null; // XXX
+        double[] cxyz = getCentroidXY(points);
+        double[][] cXform = LinAlg.translate(cxyz);
+        ArrayList<double[]> centered = LinAlg.transform(LinAlg.inverse(cXform), points);
 
         // Rotate the points incrementally and calculate the area of the bbox.
         // There should be several orientations in which the box is minimized,
@@ -142,15 +106,15 @@ public class BoltUtil
         double minArea = Double.MAX_VALUE;
         double xlen = 0;
         double theta = 0;
-        for (double r = 0; r < 180.0; r += 0.25)
+        for (double r = 0; r < 360.0; r += 0.25)
         {
             ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(r)),
                                                            centered);
 
             // Find the area of the bounding box
             double minX = Double.MAX_VALUE;
-            double minY = Double.MAX_VALUE;
             double maxX = Double.MIN_VALUE;
+            double minY = Double.MAX_VALUE;
             double maxY = Double.MIN_VALUE;
             for (double[] p: rotated) {
                 minX = Math.min(minX, p[0]);
@@ -160,26 +124,39 @@ public class BoltUtil
             }
 
             double area = (maxX - minX) * (maxY - minY);
-            if (area < minArea || BoltMath.equals(area, minArea, 0.0000001)) {
-                if (xlen < (maxX - minX)) {
-                    minArea = area;
-                    xlen = (maxX - minX);
-                    theta = r;
-                }
+            if (area < minArea) {
+                minArea = area;
+                theta = Math.toRadians(r);
+                xlen = (maxX - minX);
             }
         }
 
         return theta;
     }
 
+    /** Move the supplied points to the origin and rotate
+     *  by the requested angle
+     */
+    static public ArrayList<double[]> rotateAtOrigin(ArrayList<double[]> points, double theta)
+    {
+        double[] cxyz = getCentroidXY(points);
+        double[][] cXform = LinAlg.translate(cxyz);
+        ArrayList<double[]> centered = LinAlg.transform(LinAlg.inverse(cXform), points);
+
+        return LinAlg.transform(LinAlg.rotateZ(theta), centered);
+    }
+
+    /** Rotate the supplied points in place around their
+     *  XY centroid
+     */
     static public ArrayList<double[]> rotateInPlace(ArrayList<double[]> points, double theta)
     {
-        double[] cxyz = getCentroid(points);
+        double[] cxyz = getCentroidXY(points);
         double[][] cXform = LinAlg.translate(cxyz);
-        ArrayList<double[]> centered = LinAlg.transform(cXform, points);
+        ArrayList<double[]> centered = LinAlg.transform(LinAlg.inverse(cXform), points);
         ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(theta), centered);
 
-        return LinAlg.transform(LinAlg.inverse(cXform), rotated);
+        return LinAlg.transform(cXform, rotated);
     }
 
     /** Return the centroid of the supplied points */
@@ -198,6 +175,22 @@ public class BoltUtil
         return mean;
     }
 
+    /** Return the XY centroid of the supplied points based
+     *  on the upper face of the shape
+     */
+    static public double[] getCentroidXY(ArrayList<double[]> points)
+    {
+        if (points == null || points.size() < 1)
+            return null;
+
+        return getCentroid(isolateTopFace(points));
+    }
+
+    static public ArrayList<double[]> isolateTopFace(ArrayList<double[]> points)
+    {
+        return isolateTopFace(points, 0.005);
+    }
+
     /** Isolates the upper face of our observed shapes.
      *  Discretizes points in the Z dimension based on
      *  the r parameter and then returns all points within
@@ -207,6 +200,7 @@ public class BoltUtil
     {
         assert (points.size() != 0);
 
+        /*
         HashMap<BinKey, ArrayList<double[]> > bins = new HashMap<BinKey, ArrayList<double[]> >();
         for (double[] p: points) {
             BinKey key = new BinKey(r, p[2]);
@@ -228,7 +222,39 @@ public class BoltUtil
 
         assert (maxKey != null);
 
-        return bins.get(maxKey);
+        return bins.get(maxKey);*/
+
+        // Find a search range
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+        for (double[] p: points) {
+            min = Math.min(p[2], min);
+            max = Math.max(p[2], max);
+        }
+
+        double bestZ = max;
+        int bestCnt = 0;
+
+        for (double z = min; z <= max; z+= 0.001) {
+            int cnt = 0;
+            for (double[] p: points) {
+                if (Math.abs(z-p[2]) < r)
+                    cnt++;
+            }
+            if (cnt > bestCnt) {
+                bestCnt = cnt;
+                bestZ = z;
+            }
+        }
+
+        ArrayList<double[]> top = new ArrayList<double[]>();
+        for (double[] p: points) {
+            if (Math.abs(bestZ-p[2]) < r) {
+                top.add(p);
+            }
+        }
+
+        return top;
     }
 
 }
