@@ -134,9 +134,13 @@ public class GKNN implements IClassifier
         for (String label: labelWeights.keySet()) {
             double labelWeight = labelWeights.get(label);
 
+            // Total weight normalizer
+            double weightNormalizer = labelWeight/totalWeight;
+
             // Weight normalization
             labelWeight /= labelExamples.get(label);
             labelWeight /= maxValue;
+            labelWeight *= weightNormalizer;
             classifications.add(label, labelWeight);
         }
 
