@@ -36,6 +36,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
         segment = Segment.getSingleton();
     	lcm.subscribe("KINECT_STATUS", this);
     	lcm.subscribe("ROBOT_ACTION", this);
+        lcm.subscribe("BOLT_ARM_COMMAND", this);
     }
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
@@ -62,11 +63,11 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 	    }
 	    return currentPoints;
 	}
-	
+
 	public ArrayList<double[]> extractPointCloudData(){
 		return extractPointCloudData(kinectData);
 	}
-	
+
 	public BufferedImage getKinectImage(kinect_status_t kinectData){
     	if(kinectData == null){
     		return new BufferedImage(10, 10, BufferedImage.TYPE_3BYTE_BGR);
@@ -149,6 +150,16 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                     segment.tracker.armDropping(new double[]{xyz[0], xyz[1], .02});
                 }
                 else if(action.equals("FAILURE"))
+                    segment.tracker.armFailed();
+            }catch(IOException e){
+                e.printStackTrace();
+                return;
+            }
+        }
+        else if(channel.equals("BOLT_ARM_COMMAND")){
+            try{
+                bolt_arm_command_t command = new bolt_arm_command_t(ins);
+                if(command.action.contains("RESET"))
                     segment.tracker.armFailed();
             }catch(IOException e){
                 e.printStackTrace();

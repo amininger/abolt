@@ -24,6 +24,7 @@ public class Segment
     final static double RANSAC_THRESH = .015;
     final static double RANSAC_PERCENT = .2;
     final static double MIN_OBJECT_SIZE = 100;
+    final static double MAX_POINT_HEIGHT = .38;
     final static int MAX_HISTORY = 100;
     int width, height;
 
@@ -63,7 +64,7 @@ public class Segment
         height = h;
         points = currentPoints;
         coloredPoints.clear();
-        removeFloorPoints();
+        removeFloorPoints(MAX_POINT_HEIGHT);
         unionFind();
     }
 
@@ -150,7 +151,7 @@ public class Segment
      ** empty arrays.
      ** @return whether a plane was found and points were removed
      **/
-    private boolean removeFloorPoints()
+    private boolean removeFloorPoints(double maxHeight)
     {
         // Only calculate the floor plane once XXX - maybe do multiple times and average?
         if(floorFound == false){
@@ -167,6 +168,8 @@ public class Segment
                 points.set(i, new double[4]);
             if(belowPlane(p, floorPlane))
                 points.set(i, new double[4]);
+            else if(pointToPlaneDist(p, floorPlane) > maxHeight)
+                points.set(i, new double[4]);
             else if(almostBlack((int)point[3]))
                 points.set(i, new double[4]);
         }
@@ -181,7 +184,7 @@ public class Segment
     }
 
 
-    /** Check if a given poinjt is on the other side of the ground plane as
+    /** Check if a given point is on the other side of the ground plane as
      ** the camera is (this might mean we want to delete them).**/
     private boolean belowPlane(double[] p, double[] coef)
     {
@@ -190,6 +193,7 @@ public class Segment
         else if(eval > 0 && coef[3] < 0) return true;
         return false;
     }
+
 
     /** Given a point and the coefficients for a plane, find the distance
      ** between them.
