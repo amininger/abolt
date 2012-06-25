@@ -5,6 +5,7 @@ import javax.swing.*;
 import java.util.*;
 import java.util.Timer;
 import java.awt.event.*;
+import java.text.*;
 
 import lcm.lcm.*;
 
@@ -54,6 +55,9 @@ public class Bolt extends JFrame implements LCMSubscriber
     private Timer sendObservationTimer;
     private static final int OBSERVATION_RATE = 2; // # sent per second
 
+    // Periodic tasks
+    PeriodicTasks tasks = new PeriodicTasks(1);   // Only one thread for now
+
     public Bolt(GetOpt opts)
     {
         super("BOLT");
@@ -82,7 +86,18 @@ public class Bolt extends JFrame implements LCMSubscriber
 
         // Initialize classifier manager
         classifierManager = ClassifierManager.getSingleton();
-        classifierManager.addClassifiers(config);
+        classifierManager.addClassifiers(config); // XXX Auto-coded config stuff here. Meh
+
+        if (opts.getString("backup") != null) {
+            try {
+                System.out.println("ATTN: Loading from autosave file");
+                classifierManager.readState(opts.getString("backup"));
+                System.out.println("ATTN: Successfully restored from autosave file");
+            } catch (IOException ioex) {
+                System.err.println("ERR: Failure to load from autosave file");
+                ioex.printStackTrace();
+            }
+        }
 
         // Initialize sensable manager
         sensableManager = SensableManager.getSingleton();
@@ -130,10 +145,15 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
         sendObservationTimer = new Timer();
         sendObservationTimer.schedule(new SendObservationTask(), 1000, 1000/OBSERVATION_RATE);
+
+        // Write to file task
+        tasks.addFixedDelay(new AutoSaveTask(), 10.0);
+        tasks.setRunning(true);
     }
 
 
-    public static JMenuBar createMenuBar(){
+    public JMenuBar createMenuBar()
+    {
     	JMenuBar menuBar = new JMenuBar();
         JMenu controlMenu = new JMenu("Control");
         JMenuItem clearData, reloadData;
@@ -160,6 +180,33 @@ public class Bolt extends JFrame implements LCMSubscriber
                 }
             });
         controlMenu.add(reloadData);
+
+        // Edit menu XXX
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem undoAction, redoAction;
+
+        menuBar.add(editMenu);
+
+        // Undo & redo actions
+        undoAction = new JMenuItem("Undo");
+        undoAction.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) {
+                    classifierManager.undo();
+                }
+            });
+        editMenu.add(undoAction);
+
+        redoAction = new JMenuItem("Redo");
+        redoAction.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) {
+                    classifierManager.redo();
+                }
+            });
+        editMenu.add(redoAction);
+
+        // Set up a periodic task to update the state of the menu items XXX
 
         return menuBar;
     }
@@ -217,11 +264,35 @@ public class Bolt extends JFrame implements LCMSubscriber
         lcm.publish("OBSERVATIONS",obs);
     }
 
+    /** AutoSave the classifier state */
+    class AutoSaveTask implements PeriodicTasks.Task
+    {
+        String filename;
+
+        public AutoSaveTask()
+        {
+            Date date = new Date(System.currentTimeMillis());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd");
+            filename = "/tmp/bolt_autosave_"+sdf.format(date);
+        }
+
+        public void run(double dt)
+        {
+            try {
+                classifierManager.writeState(filename);
+            } catch (IOException ioex)  {
+                System.err.println("ERR: Could not save to autosave file");
+                ioex.printStackTrace();
+            }
+        }
+    }
+
 
     public static void main(String args[])
     {
         GetOpt opts = new GetOpt();
 
+        // XXX Todo: clean up arguments
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('c', "config", null, "Specify the configuration file for Bolt");
         opts.addBoolean('d', "debug", false, "Toggle debugging mode");
@@ -230,6 +301,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         opts.addBoolean('\0', "seg", false, "Show the segmentation instead of the simulator");
         opts.addString('w', "world", null, "World file");
         opts.addString('s', "sim-config", null, "Configuration file for the Simulator");
+        opts.addString('\0', "backup", null, "Load from backup file");
         opts.addInt('\0', "fps", 10, "Maximum frame rate");
 
         if (!opts.parse(args) || opts.getBoolean("help") || opts.getExtraArgs().size() > 0) {

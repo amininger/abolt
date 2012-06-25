@@ -1,6 +1,7 @@
 package abolt.classify;
 
 import java.util.*;
+import java.io.*;
 
 import april.config.*;
 import april.util.*;
@@ -26,19 +27,45 @@ public class ClassifierManager {
     }
 
     // Undo/redo functionality
-    private Stack<StackEntry> undoStack = new Stack<StackEntry>();
-    private Stack<StackEntry> redoStack = new Stack<StackEntry>();
+    Object stateLock = new Object();
+    private LinkedList<StackEntry> undoStack = new LinkedList<StackEntry>();
+    private LinkedList<StackEntry> redoStack = new LinkedList<StackEntry>();
     private class StackEntry
     {
         public CPoint point;
         public FeatureCategory cat;
         public String action;
 
+        // Only used when reading in
+        public StackEntry()
+        {
+
+        }
+
         public StackEntry(CPoint point_, FeatureCategory cat_, String action_)
         {
             point = point_;
             cat = cat_;
             action = action_;
+        }
+
+        public void write(StructureWriter outs) throws IOException
+        {
+            outs.writeString(point.label);
+            outs.writeDoubles(point.coords);
+            outs.writeString(cat.name());
+            outs.writeString(action);
+        }
+
+        public void read(StructureReader ins) throws IOException
+        {
+            String label = ins.readString();
+            double[] coords = ins.readDoubles();
+            point = new CPoint(label, coords);
+
+            cat = FeatureCategory.valueOf(ins.readString());
+
+            action = ins.readString();
         }
     }
 
@@ -92,25 +119,25 @@ public class ClassifierManager {
 			return null;
 		}
         Classifications classifications;
-		synchronized(classifier){
-			classifications =classifier.classify(features);
+		synchronized (stateLock) {
+			classifications = classifier.classify(features);
 		}
 		return classifications;
 	}
 
 	public void addDataPoint(FeatureCategory cat, ArrayList<Double> features, String label){
 		IClassifier classifier = classifiers.get(cat);
-		synchronized(classifier){
+		synchronized(stateLock){
             CPoint point = new CPoint(label, features);
             StackEntry entry = new StackEntry(point, cat, "ADD");
-            undoStack.push(entry);
 			classifier.add(point);
+            undoStack.push(entry);
 		}
 	}
 
 	public void clearData(){
 		for(IClassifier classifier : classifiers.values()){
-			synchronized(classifier){
+			synchronized(stateLock){
 				classifier.clearData();
 			}
 		}
@@ -118,7 +145,7 @@ public class ClassifierManager {
 
 	public void reloadData(){
 		for(IClassifier classifier : classifiers.values()){
-			synchronized(classifier){
+			synchronized(stateLock){
 				classifier.clearData();
 				classifier.loadData();
 			}
@@ -138,30 +165,120 @@ public class ClassifierManager {
     /** Undo function. Undoes the last action taken by the user */
     public void undo()
     {
-        if (undoStack.size() < 1)
-            return;
-        StackEntry entry = undoStack.pop();
+        synchronized (stateLock) {
+            if (undoStack.size() < 1)
+                return;
+            StackEntry entry = undoStack.pop();
 
-        if (entry.action.equals("ADD")) {
-            classifiers.get(entry.cat).removeLast();
-            redoStack.push(entry);
-        } else {
-            System.err.println("ERR: Unhandled undo case - "+entry.action);
+            if (entry.action.equals("ADD")) {
+                classifiers.get(entry.cat).removeLast();
+                redoStack.push(entry);
+            } else {
+                System.err.println("ERR: Unhandled undo case - "+entry.action);
+            }
         }
     }
 
     /** Redo function. Takes the last undone action and redoes it */
     public void redo()
     {
-        if (redoStack.size() < 1)
-            return;
-        StackEntry entry = redoStack.pop();
+        synchronized (stateLock) {
+            if (redoStack.size() < 1)
+                return;
+            StackEntry entry = redoStack.pop();
 
-        if (entry.action.equals("ADD")) {
-            classifiers.get(entry.cat).add(entry.point);
-            undoStack.push(entry);
-        } else {
-            System.err.println("ERR: Unhandled redo case - "+entry.action);
+            if (entry.action.equals("ADD")) {
+                classifiers.get(entry.cat).add(entry.point);
+                undoStack.push(entry);
+            } else {
+                System.err.println("ERR: Unhandled redo case - "+entry.action);
+            }
+        }
+    }
+
+    // XXX Might want to spawn a backup thread to do this...
+    /** Write out a backup file of our current state. */
+    public void writeState(String filename) throws IOException
+    {
+        synchronized (stateLock) {
+            // As it stands, the undo/redo stacks possess all of the
+            // information necessary to back up the entire system
+            // state. Thus, the implementation of undo and redo
+            // are directly connected with our ability to load from
+            // this state
+            StructureWriter outs = new TextStructureWriter(new BufferedWriter(new FileWriter(filename)));
+
+            outs.writeString("undo");
+            outs.writeInt(undoStack.size());
+            outs.blockBegin();
+            for (StackEntry entry: undoStack) {
+                outs.blockBegin();
+                entry.write(outs);
+                outs.blockEnd();
+            }
+            outs.blockEnd();
+
+            outs.writeString("redo");
+            outs.writeInt(redoStack.size());
+            outs.blockBegin();
+            for (StackEntry entry: redoStack) {
+                outs.blockBegin();
+                entry.write(outs);
+                outs.blockEnd();
+            }
+            outs.blockEnd();
+
+            outs.close();
+        }
+    }
+
+    /** Read in a backup file of our current state,
+     *  resetting all state to match that of the file
+     */
+    public void readState(String filename) throws IOException
+    {
+        synchronized (stateLock) {
+            // Reset state
+            clearData();
+
+            // Again, based on the premise than undo and redo work a certain way
+            StructureReader ins = new TextStructureReader(new BufferedReader(new FileReader(filename)));
+
+            String undoString = ins.readString();
+            assert (undoString.equals("undo"));
+            int undoSize = ins.readInt();
+            ins.blockBegin();
+            for (int i = 0; i < undoSize; i++) {
+                ins.blockBegin();
+                StackEntry entry = new StackEntry();
+                entry.read(ins);
+
+                if (entry.action.equals("ADD")) {
+                    classifiers.get(entry.cat).add(entry.point);
+                }
+
+                undoStack.push(entry);
+
+                ins.blockEnd();
+            }
+            ins.blockEnd();
+
+            String redoString = ins.readString();
+            assert (redoString.equals("redo"));
+            int redoSize = ins.readInt();
+            ins.blockBegin();
+            for (int i = 0; i < redoSize; i++) {
+                ins.blockBegin();
+                StackEntry entry = new StackEntry();
+                entry.read(ins);
+
+                redoStack.add(entry);
+
+                ins.blockEnd();
+            }
+            ins.blockEnd();
+
+            ins.close();
         }
     }
 

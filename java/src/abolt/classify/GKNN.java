@@ -60,7 +60,7 @@ public class GKNN implements IClassifier
 
 
     /** Add a training example to the classifier */
-    public void add(ArrayList<Double> features, String label)
+    synchronized public void add(ArrayList<Double> features, String label)
     {
         if (label == null)
             return;
@@ -75,7 +75,7 @@ public class GKNN implements IClassifier
         points.add(new CPoint(label, features));
     }
 
-    public void add(CPoint point)
+    synchronized public void add(CPoint point)
     {
         if (point == null)
             return;
@@ -83,7 +83,7 @@ public class GKNN implements IClassifier
     }
 
     @Override
-    public CPoint removeLast()
+    synchronized public CPoint removeLast()
     {
         if (points.size() > 0) {
             CPoint last = points.remove(points.size()-1);
@@ -94,7 +94,7 @@ public class GKNN implements IClassifier
     }
 
     @Override
-    public Classifications classify(ArrayList<Double> features)
+    synchronized public Classifications classify(ArrayList<Double> features)
     {
         return classify(BoltMath.toArray(features));
     }
@@ -159,13 +159,13 @@ public class GKNN implements IClassifier
     }
 
     /** Clear the classifier information */
-    public void clearData()
+    synchronized public void clearData()
     {
         points.clear();
     }
 
     /** Load in the classifier data from file*/
-    public void loadData()
+    synchronized public void loadData()
     {
         if (filename == null)
             return;
