@@ -15,17 +15,6 @@ import abolt.util.*;
 public class GKNN implements IClassifier
 {
     ArrayList<CPoint> points = new ArrayList<CPoint>();
-    class CPoint
-    {
-        public String label;
-        public double[] coords;
-
-        public CPoint(double[] coords_, String label_)
-        {
-            label = label_;
-            coords = coords_;
-        }
-    }
 
     class CPointComparator implements Comparator<CPoint>
     {
@@ -83,7 +72,25 @@ public class GKNN implements IClassifier
     {
         if (label == null)
             return;
-        points.add(new CPoint(features, label));
+        points.add(new CPoint(label, features));
+    }
+
+    public void add(CPoint point)
+    {
+        if (point == null)
+            return;
+        points.add(point);
+    }
+
+    @Override
+    public CPoint removeLast()
+    {
+        if (points.size() > 0) {
+            CPoint last = points.remove(points.size()-1);
+            return last;
+        }
+
+        return null;
     }
 
     @Override
@@ -229,6 +236,8 @@ public class GKNN implements IClassifier
             System.out.printf("%s: %f\n", label, (double)pair.o2/(double)pair.o1);
         }
     }
+
+    // =============================================
 
     public static void main(String[] args)
     {

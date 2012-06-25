@@ -1,7 +1,6 @@
 package abolt.classify;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 import april.config.*;
 import april.util.*;
@@ -15,6 +14,8 @@ import abolt.lcmtypes.*;
  * Creates the classifiers used in the system and acts as a point of contact to them
  */
 public class ClassifierManager {
+
+    // Singleton handling
     private static ClassifierManager singleton = null;
     public static ClassifierManager getSingleton()
     {
@@ -24,6 +25,24 @@ public class ClassifierManager {
         return singleton;
     }
 
+    // Undo/redo functionality
+    private Stack<StackEntry> undoStack = new Stack<StackEntry>();
+    private Stack<StackEntry> redoStack = new Stack<StackEntry>();
+    private class StackEntry
+    {
+        public CPoint point;
+        public FeatureCategory cat;
+        public String action;
+
+        public StackEntry(CPoint point_, FeatureCategory cat_, String action_)
+        {
+            point = point_;
+            cat = cat_;
+            action = action_;
+        }
+    }
+
+    // The classfiers
 	private HashMap<FeatureCategory, IClassifier> classifiers;
 
     public ClassifierManager()
@@ -82,7 +101,10 @@ public class ClassifierManager {
 	public void addDataPoint(FeatureCategory cat, ArrayList<Double> features, String label){
 		IClassifier classifier = classifiers.get(cat);
 		synchronized(classifier){
-			classifier.add(features, label);
+            CPoint point = new CPoint(label, features);
+            StackEntry entry = new StackEntry(point, cat, "ADD");
+            undoStack.push(entry);
+			classifier.add(point);
 		}
 	}
 
@@ -102,6 +124,46 @@ public class ClassifierManager {
 			}
 		}
 	}
+
+    public boolean hasUndo()
+    {
+        return undoStack.size() > 0;
+    }
+
+    public boolean hasRedo()
+    {
+        return redoStack.size() > 0;
+    }
+
+    /** Undo function. Undoes the last action taken by the user */
+    public void undo()
+    {
+        if (undoStack.size() < 1)
+            return;
+        StackEntry entry = undoStack.pop();
+
+        if (entry.action.equals("ADD")) {
+            classifiers.get(entry.cat).removeLast();
+            redoStack.push(entry);
+        } else {
+            System.err.println("ERR: Unhandled undo case - "+entry.action);
+        }
+    }
+
+    /** Redo function. Takes the last undone action and redoes it */
+    public void redo()
+    {
+        if (redoStack.size() < 1)
+            return;
+        StackEntry entry = redoStack.pop();
+
+        if (entry.action.equals("ADD")) {
+            classifiers.get(entry.cat).add(entry.point);
+            undoStack.push(entry);
+        } else {
+            System.err.println("ERR: Unhandled redo case - "+entry.action);
+        }
+    }
 
     /** Build up the object_data_t describing the observed objects
      *  in the world. Runs classifiers on the objects and builds
