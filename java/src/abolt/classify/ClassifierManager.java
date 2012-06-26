@@ -89,13 +89,9 @@ public class ClassifierManager {
         sizeDataFile = config.getString("training.size_data");
 
 		classifiers = new HashMap<FeatureCategory, IClassifier>();
-        //classifiers.put(FeatureCategory.COLOR, new KNN(1, 6, colorDataFile, 0.2));
-        //classifiers.put(FeatureCategory.SHAPE, new ShapeKNN(10, 15, shapeDataFile, 1));
-        //classifiers.put(FeatureCategory.SIZE, new KNN(5, 2, sizeDataFile, 1));
 
         // New classification code
         // For now, manually specified parameters on weight
-
         GKNN colorKNN = new GKNN(10, 0.1);
         colorKNN.setDataFile(colorDataFile);
         classifiers.put(FeatureCategory.COLOR, colorKNN);
@@ -131,7 +127,7 @@ public class ClassifierManager {
             CPoint point = new CPoint(label, features);
             StackEntry entry = new StackEntry(point, cat, "ADD");
 			classifier.add(point);
-            undoStack.push(entry);
+            undoStack.add(entry);
 		}
 	}
 
@@ -168,11 +164,11 @@ public class ClassifierManager {
         synchronized (stateLock) {
             if (undoStack.size() < 1)
                 return;
-            StackEntry entry = undoStack.pop();
+            StackEntry entry = undoStack.pollLast();
 
             if (entry.action.equals("ADD")) {
                 classifiers.get(entry.cat).removeLast();
-                redoStack.push(entry);
+                redoStack.add(entry);
             } else {
                 System.err.println("ERR: Unhandled undo case - "+entry.action);
             }
@@ -185,11 +181,11 @@ public class ClassifierManager {
         synchronized (stateLock) {
             if (redoStack.size() < 1)
                 return;
-            StackEntry entry = redoStack.pop();
+            StackEntry entry = redoStack.pollLast();
 
             if (entry.action.equals("ADD")) {
                 classifiers.get(entry.cat).add(entry.point);
-                undoStack.push(entry);
+                undoStack.add(entry);
             } else {
                 System.err.println("ERR: Unhandled redo case - "+entry.action);
             }
@@ -257,7 +253,7 @@ public class ClassifierManager {
                     classifiers.get(entry.cat).add(entry.point);
                 }
 
-                undoStack.push(entry);
+                undoStack.add(entry);
 
                 ins.blockEnd();
             }

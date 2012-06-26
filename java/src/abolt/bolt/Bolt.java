@@ -56,7 +56,13 @@ public class Bolt extends JFrame implements LCMSubscriber
     private static final int OBSERVATION_RATE = 2; // # sent per second
 
     // Periodic tasks
-    PeriodicTasks tasks = new PeriodicTasks(1);   // Only one thread for now
+    PeriodicTasks tasks = new PeriodicTasks(2);   // Only one thread for now
+
+    // GUI Stuff
+    JMenuBar menuBar;
+    JMenu controlMenu, editMenu;
+    JMenuItem clearData, reloadData;
+    JMenuItem undoAction, redoAction;
 
     public Bolt(GetOpt opts)
     {
@@ -125,7 +131,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
 
         // Initialize the JMenuBar
-        JMenuBar menuBar = createMenuBar();
+        createMenuBar();
         simulator.addToMenu(menuBar);
         this.setJMenuBar(menuBar);
     	this.add(simulator.getCanvas());
@@ -148,15 +154,15 @@ public class Bolt extends JFrame implements LCMSubscriber
 
         // Write to file task
         tasks.addFixedDelay(new AutoSaveTask(), 10.0);
+        tasks.addFixedDelay(new MenuUpdateTask(), 0.2);
         tasks.setRunning(true);
     }
 
 
-    public JMenuBar createMenuBar()
+    public void createMenuBar()
     {
-    	JMenuBar menuBar = new JMenuBar();
-        JMenu controlMenu = new JMenu("Control");
-        JMenuItem clearData, reloadData;
+    	menuBar = new JMenuBar();
+        controlMenu = new JMenu("Control");
 
         menuBar.add(controlMenu);
 
@@ -182,8 +188,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         controlMenu.add(reloadData);
 
         // Edit menu XXX
-        JMenu editMenu = new JMenu("Edit");
-        JMenuItem undoAction, redoAction;
+        editMenu = new JMenu("Edit");
 
         menuBar.add(editMenu);
 
@@ -205,10 +210,6 @@ public class Bolt extends JFrame implements LCMSubscriber
                 }
             });
         editMenu.add(redoAction);
-
-        // Set up a periodic task to update the state of the menu items XXX
-
-        return menuBar;
     }
 
 
@@ -287,6 +288,31 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
     }
 
+    /** Update the status of menu entries to ensure only the
+     *  appropriate ones are marked as active
+     */
+    class MenuUpdateTask implements PeriodicTasks.Task
+    {
+        public MenuUpdateTask()
+        {
+
+        }
+
+        public void run(double dt)
+        {
+            if (classifierManager.hasUndo()) {
+                undoAction.setEnabled(true);
+            } else {
+                undoAction.setEnabled(false);
+            }
+
+            if (classifierManager.hasRedo()) {
+                redoAction.setEnabled(true);
+            } else {
+                redoAction.setEnabled(false);
+            }
+        }
+    }
 
     public static void main(String args[])
     {

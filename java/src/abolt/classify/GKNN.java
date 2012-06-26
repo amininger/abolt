@@ -109,7 +109,8 @@ public class GKNN implements IClassifier
         // By sorting the list, we ensure that the first
         // k entries of the list of points are also the
         // nearest neighbors.
-        Collections.sort(points, new CPointComparator(features));
+        ArrayList<CPoint> sortedPoints = (ArrayList<CPoint>)points.clone();
+        Collections.sort(sortedPoints, new CPointComparator(features));
 
         // Evaluate the neighbors based on the weights
         double[][] P = LinAlg.scale(LinAlg.identity(features.length), p);
@@ -120,8 +121,8 @@ public class GKNN implements IClassifier
         HashMap<String, Integer> labelExamples = new HashMap<String, Integer>();
         double totalWeight = 0;
 
-        for (int i = 0; i < Math.min(k, points.size()); i++) {
-            CPoint point = points.get(i);
+        for (int i = 0; i < Math.min(k, sortedPoints.size()); i++) {
+            CPoint point = sortedPoints.get(i);
             double weight = mg.prob(point.coords);
             totalWeight += weight;
             double oldWeight = 0;
