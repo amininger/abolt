@@ -108,8 +108,10 @@ class RevoluteJoint implements Joint
     {
         dynamixel_command_t cmd = new dynamixel_command_t();
         cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.dAngle, params.rMin, params.rMax));
-        cmd.speed = 0.25;
-        cmd.max_torque = 0.95;
+        //cmd.speed = 0.25;
+        cmd.speed = 0.15;
+        //cmd.max_torque = 0.95;
+        cmd.max_torque = 0.60;
 
         // XXX Receiver sets utimes
         return cmd;

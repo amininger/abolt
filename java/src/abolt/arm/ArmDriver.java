@@ -31,14 +31,17 @@ public class ArmDriver implements LCMSubscriber, Runnable
         }
 
         if (device.equals("sim")) {
-            SimBus sbus = new SimBus(10);
-            sbus.addMX28(0);
-            sbus.addMX28(1);
-            sbus.addMX28(2);
-            sbus.addAX12(3);
+            /*SimBus sbus = new SimBus(10);
+            sbus.addMX64(0);
+            sbus.addMX106(1);
+            sbus.addMX64(2);
+            sbus.addMX22(3);
             sbus.addAX12(4);
             sbus.addAX12(5);
-            bus = sbus;
+            bus = sbus;*/
+            bus = null;
+            System.err.println("ERR: Simulation currently not supported");
+            System.exit(1);
         } else {
             JSerial js = null;
             try {
@@ -69,11 +72,11 @@ public class ArmDriver implements LCMSubscriber, Runnable
                 System.exit(-1);
             }
             // handle PID
-            if (servos[id] instanceof MX28Servo) {
-                MX28Servo mx28 = (MX28Servo)(servos[id]);
+            if (servos[id] instanceof MXSeriesServo) {
+                MXSeriesServo mx = (MXSeriesServo)(servos[id]);
                 if (pids.containsKey(id)) {
                     byte[] pid = pids.get(id);
-                    mx28.setPID(pid[0], pid[1], pid[2]);
+                    mx.setPID(pid[0], pid[1], pid[2]);
                     System.out.printf("Servo %d : set PID to [%d %d %d]\n", id, pid[0], pid[1], pid[2]);
                 }
             }

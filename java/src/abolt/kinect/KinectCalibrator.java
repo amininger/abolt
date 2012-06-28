@@ -222,7 +222,8 @@ class KinectCalibrator // implements LCMSubscriber
     			{1, 0, 0, 0},
     			{0, 1, 0, 0},
     			{0, 0, 1, 0},
-    			{.061, 0, 0, 1}
+    			//{.061, 0, 0, 1}
+                {0.0525, 0, 0, 1}
     	};
 
     	// Overall transform is k2wTranslate * inv(w2kTransform) * wTranslate
@@ -251,8 +252,8 @@ class KinectCalibrator // implements LCMSubscriber
                                                  k2wTransform[i][3]));
     		}
     		out.write("\tborders = ");
-    		out.write(String.format("[%d, %d, %d, %d];\n", (int)KUtils.viewRegion.getMinX(), 
-    				(int)KUtils.viewRegion.getMinY(), (int)KUtils.viewRegion.getMaxX(), 
+    		out.write(String.format("[%d, %d, %d, %d];\n", (int)KUtils.viewRegion.getMinX(),
+    				(int)KUtils.viewRegion.getMinY(), (int)KUtils.viewRegion.getMaxX(),
     				(int)KUtils.viewRegion.getMaxY()));
             out.write("}\n");
     		out.close();
@@ -324,13 +325,13 @@ class KinectCalibrator // implements LCMSubscriber
         	//System.out.println(String.format("(%f, %f, %f)", testPt[0], testPt[1], testPt[2]));
         	System.out.println(String.format("(%f, %f, %f)", a[0], a[1], a[2]));
         }
-        
+
         VzRectangle rect = new VzRectangle(KUtils.viewRegion.getWidth(), KUtils.viewRegion.getHeight(), new VzLines.Style(Color.white, 2));
-        double[] t = new double[]{KUtils.viewRegion.getX() + KUtils.viewRegion.getWidth()/2, 
+        double[] t = new double[]{KUtils.viewRegion.getX() + KUtils.viewRegion.getWidth()/2,
         		KINECT_HEIGHT - (KUtils.viewRegion.getY() + KUtils.viewRegion.getHeight()/2), .01};
         VisChain rectVC = new VisChain(LinAlg.translate(t), rect);
         visBuffer.addBack(rectVC);
-        
+
         visBuffer.swap();
     }
 
