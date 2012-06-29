@@ -18,6 +18,85 @@ public class ArmStatusPanel extends JScrollPane implements LCMSubscriber
 
     JPanel panel = new JPanel();
 
+    ServoPanel[] panelList = null;
+    class ServoPanel extends JPanel
+    {
+        JLabel pos;
+        JLabel speed;
+        JLabel load;
+        JLabel volt;
+        JLabel temp;
+
+        public ServoPanel(String name)
+        {
+            super();
+            setBorder(BorderFactory.createTitledBorder(name));
+
+            pos = new JLabel("Pos [-Pi,Pi]: ");
+            speed = new JLabel("Speed [0,1]: ");
+            load = new JLabel("Load [-1,1]: ");
+            volt = new JLabel("Volt [V]: ");
+            temp = new JLabel("Temp [C]: ");
+
+            setLayout(new GridLayout(5, 1));
+            add(pos);
+            add(speed);
+            add(load);
+            add(volt);
+            add(temp);
+        }
+
+        public void setPos(double in, boolean warn)
+        {
+            pos.setText(String.format("Pos [-Pi,Pi]: %.4f", in));
+            if (warn) {
+                pos.setForeground(Color.red);
+            } else {
+                pos.setForeground(Color.black);
+            }
+        }
+
+        public void setSpeed(double in, boolean warn)
+        {
+            speed.setText(String.format("Speed [0,1]: %.4f", in));
+            if (warn) {
+                speed.setForeground(Color.red);
+            } else {
+                speed.setForeground(Color.black);
+            }
+        }
+
+        public void setLoad(double in, boolean warn)
+        {
+            load.setText(String.format("Load [-1,1]: %.4f", in));
+            if (warn) {
+                load.setForeground(Color.red);
+            } else {
+                load.setForeground(Color.black);
+            }
+        }
+
+        public void setTemp(double in, boolean warn)
+        {
+            temp.setText(String.format("Temp [F]: %.2f", in));
+            if (warn) {
+                temp.setForeground(Color.red);
+            } else {
+                temp.setForeground(Color.black);
+            }
+        }
+
+        public void setVolt(double in, boolean warn)
+        {
+            volt.setText(String.format("Volt [V}: %.4f", in));
+            if (warn) {
+                volt.setForeground(Color.red);
+            } else {
+                volt.setForeground(Color.black);
+            }
+        }
+    }
+
     public ArmStatusPanel()
     {
         this("ARM_STATUS");
@@ -59,80 +138,29 @@ public class ArmStatusPanel extends JScrollPane implements LCMSubscriber
         if (dsl == null)
             return;
 
-        // Iterate through statuses and put entries in the layout
-        //System.out.println("1");
-        synchronized (panel) {
-            panel.removeAll();
+        if (panelList == null) {
             panel.setLayout(new GridLayout(dsl.len, 1));
+            panelList = new ServoPanel[dsl.len];
+            for (int i = 0; i < dsl.len; i++) {
+                panelList[i] = new ServoPanel("Servo "+i);
+                panel.add(panelList[i]);
+            }
         }
+
 
         for (int i = 0; i < dsl.len; i++) {
             dynamixel_status_t s = dsl.statuses[i];
 
-            // XXX Figure out how to max a sexier display
-            //GridBagLayout bag = new GridBagLayout();
-            //GridBagConstraints bc = new GridBagConstraints();
-            JPanel statPanel = new JPanel(new GridLayout(5,1));
-            statPanel.setBorder(BorderFactory.createTitledBorder("Servo "+i));
+            boolean vErr = ((s.error_flags & dynamixel_status_t.ERROR_VOLTAGE) > 0);
+            boolean angErr = ((s.error_flags & dynamixel_status_t.ERROR_ANGLE_LIMIT) > 0);
+            boolean heatErr = ((s.error_flags & dynamixel_status_t.ERROR_OVERHEAT) > 0);
+            boolean overErr = ((s.error_flags & dynamixel_status_t.ERROR_OVERLOAD) > 0);
 
-            JLabel temp = new JLabel(String.format("Temp [C]: %.2f",
-                                                   s.temperature));
-
-            JLabel volt = new JLabel(String.format("Voltage [V]: %.4f",
-                                                   s.voltage));
-
-            JLabel load = new JLabel(String.format("Load [-1,1]: %.4f",
-                                                   s.load));
-
-            JLabel speed = new JLabel(String.format("Speed [0,1]: %.4f",
-                                                    s.speed));
-
-            JLabel pos = new JLabel(String.format("Pos [-Pi,Pi]: %.4f",
-                                                  s.position_radians));
-
-            // Error flag handling
-            if ((s.error_flags & dynamixel_status_t.ERROR_VOLTAGE) > 0) {
-                volt.setForeground(Color.red);
-            }
-
-            if ((s.error_flags & dynamixel_status_t.ERROR_ANGLE_LIMIT) > 0) {
-                pos.setForeground(Color.red);
-            }
-
-            if ((s.error_flags & dynamixel_status_t.ERROR_OVERHEAT) > 0) {
-                temp.setForeground(Color.red);
-            }
-
-            if ((s.error_flags & dynamixel_status_t.ERROR_OVERLOAD) > 0) {
-                load.setForeground(Color.red);
-            }
-
-            statPanel.add(pos);
-            statPanel.add(speed);
-            statPanel.add(load);
-            statPanel.add(volt);
-            statPanel.add(temp);
-
-            //System.out.println("2");
-            synchronized (panel) {
-                panel.add(statPanel);
-            }
-        }
-
-        //setViewportView(panel);
-
-        //add(panel);
-        //System.out.println("3");
-        synchronized (panel) {
-            panel.revalidate();
-            panel.repaint();
-        }
-    }
-
-    public void paint(Graphics g)
-    {
-        synchronized (panel) {
-            super.paint(g);
+            panelList[i].setPos(s.position_radians, angErr);
+            panelList[i].setSpeed(s.speed, false);
+            panelList[i].setLoad(s.load, overErr);
+            panelList[i].setVolt(s.voltage, vErr);
+            panelList[i].setTemp(s.temperature, heatErr);
         }
     }
 }

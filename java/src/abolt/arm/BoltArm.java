@@ -57,6 +57,8 @@ public class BoltArm implements LCMSubscriber
             double[] range = config.getDoubles("arm.joints.r"+i+".range", null);
             double length = config.getDouble("arm.joints.r"+i+".length", 0);
             String axis = config.getString("arm.joints.r"+i+".axis", null);
+            double speed = config.getDouble("arm.joints.r"+i+".speed", 0);
+            double torque = config.getDouble("arm.joints.r"+i+".torque", 0);
             if (range == null)
                 break;
 
@@ -75,6 +77,9 @@ public class BoltArm implements LCMSubscriber
                 System.err.println("Defaulting to Y-axis rotation");
                 params.orientation = RevoluteJoint.Y_AXIS;
             }
+
+            params.speed = speed;
+            params.torque = torque;
 
             joints.add(new RevoluteJoint(params));
         }

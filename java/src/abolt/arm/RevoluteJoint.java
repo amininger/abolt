@@ -86,6 +86,10 @@ class RevoluteJoint implements Joint
         public double rMin = -Math.PI;
         public double rMax = Math.PI;
         public double[] orientation = Z_AXIS;
+
+        // Servo settings
+        public double speed = 0.1;
+        public double torque = 0.6;
     }
 
     /** Set the joint to the requested angle */
@@ -108,10 +112,8 @@ class RevoluteJoint implements Joint
     {
         dynamixel_command_t cmd = new dynamixel_command_t();
         cmd.position_radians = MathUtil.mod2pi(MathUtil.clamp(params.dAngle, params.rMin, params.rMax));
-        //cmd.speed = 0.25;
-        cmd.speed = 0.15;
-        //cmd.max_torque = 0.95;
-        cmd.max_torque = 0.60;
+        cmd.speed = params.speed;
+        cmd.max_torque = params.torque;
 
         // XXX Receiver sets utimes
         return cmd;
