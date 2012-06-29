@@ -273,7 +273,7 @@ public class Bolt extends JFrame implements LCMSubscriber
         public AutoSaveTask()
         {
             Date date = new Date(System.currentTimeMillis());
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
             filename = "/tmp/bolt_autosave_"+sdf.format(date);
         }
 
