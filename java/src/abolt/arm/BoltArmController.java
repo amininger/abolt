@@ -336,9 +336,9 @@ public class BoltArmController implements LCMSubscriber
             //      6: Adjust grip so we grab tightly, but don't break hand
             //      7: Switch action state back to waiting
             dynamixel_status_t gripper_status;
-            double maxLoad = 0.425;
+            double maxLoad = 0.400;
             double minLoad = 0.275;
-            double gripIncr = Math.toRadians(3.0);
+            double gripIncr = Math.toRadians(2.5);
             switch (state) {
                 case GRAB_UP_CURR:
                     // Open hand
@@ -375,7 +375,8 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case GRAB_AT:
-                    moveTo(goal, grabHeight, grabHeight*1.8);   // Try to compensate for sagging arm
+                    //moveTo(goal, grabHeight, grabHeight*1.8);   // Try to compensate for sagging arm
+                    moveTo(goal, grabHeight);
 
                     if (actionComplete()) {
                         setState(ActionState.GRAB_START_GRIP);
@@ -570,7 +571,7 @@ public class BoltArmController implements LCMSubscriber
         private void moveTo(double[] goal, double heightS, double heightC)
         {
             // Compute gripping ranges on the fly
-            double minR = 0.07;
+            double minR = 0.010;
             double maxSR;
             double maxCR;
 

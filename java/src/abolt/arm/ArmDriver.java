@@ -208,5 +208,6 @@ public class ArmDriver implements LCMSubscriber, Runnable
 
         //new ArmDriver(config).run();
         ArmDriver ad = new ArmDriver(config);
+        (new Thread(ad)).start();
     }
 }
