@@ -9,6 +9,7 @@ import lcm.lcm.*;
 import april.util.*;
 import april.jmat.*;
 import april.vis.*;
+import april.config.*;
 
 import abolt.lcmtypes.*;
 
@@ -21,15 +22,14 @@ public class BoltArm implements LCMSubscriber
 {
     private LCM lcm = LCM.getSingleton();
 
-    final static double baseHeight = 0.075;
-    private ArrayList<Joint> joints;
+    public static double baseHeight = 0.0;
+    private ArrayList<Joint> joints = new ArrayList<Joint>();
 
     private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.5, true);
 
     private BoltArm()
     {
-        initArm();
-
+        //initArm();
         lcm.subscribe("ARM_STATUS", this);
     }
 
@@ -43,29 +43,70 @@ public class BoltArm implements LCMSubscriber
         return singleton;
     }
 
-    /** Create a model of the arm. Change segment
-     *  dimensions and constraints on movement here
+    /** Create a model of the arm. Starts us off with
+     *  some default parameters.
      */
-    private void initArm()
+    public void initArm(Config config)
     {
-        joints = new ArrayList<Joint>();
+        joints.clear();
         Joint j0, j1, j2, j3, j4, j5;
         RevoluteJoint.Parameters p0, p1, p2, p3, p4;
 
+        String name = config.getString("arm.arm_version", null);
+        assert (name != null);
+
+        baseHeight = config.getDouble("arm."+name+".base_height", 0);
+
+        for (int i = 0;; i++) {
+            double[] range = config.getDoubles("arm."+name+".r"+i+".range", null);
+            double length = config.getDouble("arm."+name+".r"+i+".length", 0);
+            String axis = config.getString("arm."+name+".r"+i+".axis", null);
+            double speed = config.getDouble("arm."+name+".r"+i+".speed", 0);
+            double torque = config.getDouble("arm."+name+".r"+i+".torque", 0);
+            if (range == null)
+                break;
+
+            RevoluteJoint.Parameters params = new RevoluteJoint.Parameters();
+            params.lSegment = length;
+            params.rMin = Math.toRadians(range[0]);
+            params.rMax = Math.toRadians(range[1]);
+            if (axis.equals("X")) {
+                params.orientation = RevoluteJoint.X_AXIS;
+            } else if (axis.equals("Y")) {
+                params.orientation = RevoluteJoint.Y_AXIS;
+            } else if (axis.equals("Z")) {
+                params.orientation = RevoluteJoint.Z_AXIS;
+            } else {
+                System.err.println("ERR: Bad axis specification - "+axis);
+                System.err.println("Defaulting to Y-axis rotation");
+                params.orientation = RevoluteJoint.Y_AXIS;
+            }
+
+            params.speed = speed;
+            params.torque = torque;
+
+            joints.add(new RevoluteJoint(params));
+        }
+
+        // XXX Old hardcoded values
+        /*
         p0 = new RevoluteJoint.Parameters();
-        p0.lSegment = 0.04;
+        //p0.lSegment = 0.04;
+        p0.lSegment = 0.051;
         p0.rMin = -Math.PI;
         p0.rMax = Math.PI;
         p0.orientation = RevoluteJoint.Z_AXIS;
 
         p1 = new RevoluteJoint.Parameters();
-        p1.lSegment = 0.101;
+        //p1.lSegment = 0.101;
+        p1.lSegment = 0.2245;
         p1.rMin = Math.toRadians(-120.0);
         p1.rMax = Math.toRadians(120.0);
         p1.orientation = RevoluteJoint.Y_AXIS;
 
         p2 = new RevoluteJoint.Parameters();
-        p2.lSegment = 0.098;
+        //p2.lSegment = 0.098;
+        p2.lSegment = 0.2000;
         p2.rMin = Math.toRadians(-125.0);
         p2.rMax = Math.toRadians(125.0);
         p2.orientation = RevoluteJoint.Y_AXIS;
@@ -87,14 +128,8 @@ public class BoltArm implements LCMSubscriber
         j2 = new RevoluteJoint(p2);
         j3 = new RevoluteJoint(p3);
         j4 = new RevoluteJoint(p4);
-        j5 = new HandJoint(new HandJoint.Parameters());
-
-        joints.add(j0);
-        joints.add(j1);
-        joints.add(j2);
-        joints.add(j3);
-        joints.add(j4);
-        joints.add(j5);
+        */
+        joints.add(new HandJoint(new HandJoint.Parameters()));
     }
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
