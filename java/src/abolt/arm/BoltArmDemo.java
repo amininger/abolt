@@ -115,6 +115,9 @@ public class BoltArmDemo implements LCMSubscriber
                 }
             });
 
+            ArmStatusPanel statusPanel = new ArmStatusPanel();
+            jf.add(statusPanel, BorderLayout.EAST);
+
             // Grid
             VzGrid.addGrid(vw);
 
@@ -318,6 +321,10 @@ public class BoltArmDemo implements LCMSubscriber
                     // XXX Ignore the rest of the values we could set
                     // for now. Could later get clever and actually set
                     // these in a way that simulates movement
+                    /*status.error_flags = dynamixel_status_t.ERROR_VOLTAGE |
+                                         dynamixel_status_t.ERROR_OVERLOAD |
+                                         dynamixel_status_t.ERROR_ANGLE_LIMIT |
+                                         dynamixel_status_t.ERROR_OVERHEAT;*/
 
                     dsl.statuses[i] = status;
                 }
