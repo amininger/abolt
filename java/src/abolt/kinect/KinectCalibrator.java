@@ -1,25 +1,22 @@
-
 package abolt.kinect;
 
-import april.vis.*;
-import april.config.ConfigFile;
-import april.jmat.*;
-import april.jmat.geom.GRay3D;
-import april.util.*;
 
-import lcm.lcm.LCM;
-import lcm.lcm.LCMDataInputStream;
-import lcm.lcm.LCMSubscriber;
+import lcm.lcm.*;
 import lcm.logging.*;
-import abolt.lcmtypes.*;
-
 
 import java.io.*;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.image.*;
+
+import april.vis.*;
+import april.config.*;
+import april.jmat.*;
+import april.jmat.geom.*;
+import april.util.*;
+
+import abolt.lcmtypes.*;
 
 
 class KinectCalibrator // implements LCMSubscriber
@@ -46,6 +43,8 @@ class KinectCalibrator // implements LCMSubscriber
     double[] xLocation = null;
     double[] yLocation = null;
     double[] testLocation = null;
+
+    static double x_offset = 0;
 
     // The most recently accessed kinect status
     kinect_status_t ks = null;
@@ -222,8 +221,7 @@ class KinectCalibrator // implements LCMSubscriber
     			{1, 0, 0, 0},
     			{0, 1, 0, 0},
     			{0, 0, 1, 0},
-    			//{.061, 0, 0, 1}
-                {0.0525, 0, 0, 1}
+                {x_offset, 0, 0, 1}
     	};
 
     	// Overall transform is k2wTranslate * inv(w2kTransform) * wTranslate
@@ -342,6 +340,7 @@ class KinectCalibrator // implements LCMSubscriber
 
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('c', "config", null, "Configuration file to write to");
+        opts.addString('a', "arm-config", null, "Configuration file designating any arm parameters necessary for calibration");
 
         if (!opts.parse(args) || opts.getBoolean("help") || opts.getExtraArgs().size() > 0) {
             opts.doHelp();
@@ -353,6 +352,26 @@ class KinectCalibrator // implements LCMSubscriber
             opts.doHelp();
             return;
         }
+
+        if (opts.getString("arm-config") == null) {
+            System.err.println("Usage: Must specify an arm configuration file");
+            opts.doHelp();
+            return;
+        }
+
+        Config armConfig;
+        try {
+            armConfig = new ConfigFile(opts.getString("arm-config"));
+        } catch (IOException ioex) {
+            System.err.println("ERR: Error opening arm configuration file");
+            ioex.printStackTrace();
+            return;
+        }
+        String name = armConfig.getString("arm.arm_version", null);
+        assert (name != null);
+        x_offset = armConfig.getDouble("arm."+name+".calib_offset", 0);
+
+
         //segment = new Segment(da, true);
         KinectCalibrator kc = new KinectCalibrator(opts.getString("config"));
     }

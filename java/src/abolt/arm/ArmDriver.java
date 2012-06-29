@@ -24,10 +24,13 @@ public class ArmDriver implements LCMSubscriber, Runnable
     {
         AbstractBus bus;
         String device;
+        String name;
         if (config != null) {
             device = config.getString("arm.device");
+            name = config.getString("arm.arm_version");
         } else {
             device = "/dev/ttyUSB0";
+            name = null;
         }
 
         if (device.equals("sim")) {
@@ -54,16 +57,6 @@ public class ArmDriver implements LCMSubscriber, Runnable
             bus = new SerialBus(js);
         }
 
-        HashMap<Integer, byte[]> pids = new HashMap<Integer, byte[]>();
-        if (config != null) {
-            for (int i = 0; i < 10; i++) {
-                int[] pid = config.getInts("arm.pids.pid"+i,null);
-                if (pid == null)
-                    continue;
-                pids.put(pid[0], new byte[]{(byte)pid[1],(byte)pid[2],(byte)pid[3]});
-            }
-        }
-
         // self-test
         for (int id = 0; id < 6; id++) {
             servos[id] = bus.getServo(id);
@@ -72,11 +65,11 @@ public class ArmDriver implements LCMSubscriber, Runnable
                 System.exit(-1);
             }
             // handle PID
-            if (servos[id] instanceof MXSeriesServo) {
-                MXSeriesServo mx = (MXSeriesServo)(servos[id]);
-                if (pids.containsKey(id)) {
-                    byte[] pid = pids.get(id);
-                    mx.setPID(pid[0], pid[1], pid[2]);
+            if (servos[id] instanceof MXSeriesServo && config != null) {
+                int[] pid = config.getInts("arm."+name+".r"+id+".pid", null);
+                if (pid != null) {
+                    MXSeriesServo mx = (MXSeriesServo)(servos[id]);
+                    mx.setPID((byte)pid[0], (byte)pid[1], (byte)pid[2]);
                     System.out.printf("Servo %d : set PID to [%d %d %d]\n", id, pid[0], pid[1], pid[2]);
                 }
             }

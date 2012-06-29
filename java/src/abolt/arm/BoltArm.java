@@ -22,8 +22,7 @@ public class BoltArm implements LCMSubscriber
 {
     private LCM lcm = LCM.getSingleton();
 
-    //final static double baseHeight = 0.075;
-    final static double baseHeight = 0.052;
+    public static double baseHeight = 0.0;
     private ArrayList<Joint> joints = new ArrayList<Joint>();
 
     private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.5, true);
@@ -53,12 +52,17 @@ public class BoltArm implements LCMSubscriber
         Joint j0, j1, j2, j3, j4, j5;
         RevoluteJoint.Parameters p0, p1, p2, p3, p4;
 
+        String name = config.getString("arm.arm_version", null);
+        assert (name != null);
+
+        baseHeight = config.getDouble("arm."+name+".base_height", 0);
+
         for (int i = 0;; i++) {
-            double[] range = config.getDoubles("arm.joints.r"+i+".range", null);
-            double length = config.getDouble("arm.joints.r"+i+".length", 0);
-            String axis = config.getString("arm.joints.r"+i+".axis", null);
-            double speed = config.getDouble("arm.joints.r"+i+".speed", 0);
-            double torque = config.getDouble("arm.joints.r"+i+".torque", 0);
+            double[] range = config.getDoubles("arm."+name+".r"+i+".range", null);
+            double length = config.getDouble("arm."+name+".r"+i+".length", 0);
+            String axis = config.getString("arm."+name+".r"+i+".axis", null);
+            double speed = config.getDouble("arm."+name+".r"+i+".speed", 0);
+            double torque = config.getDouble("arm."+name+".r"+i+".torque", 0);
             if (range == null)
                 break;
 
