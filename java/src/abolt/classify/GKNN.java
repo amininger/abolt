@@ -15,17 +15,6 @@ import abolt.util.*;
 public class GKNN implements IClassifier
 {
     ArrayList<CPoint> points = new ArrayList<CPoint>();
-    class CPoint
-    {
-        public String label;
-        public double[] coords;
-
-        public CPoint(double[] coords_, String label_)
-        {
-            label = label_;
-            coords = coords_;
-        }
-    }
 
     class CPointComparator implements Comparator<CPoint>
     {
@@ -71,7 +60,7 @@ public class GKNN implements IClassifier
 
 
     /** Add a training example to the classifier */
-    public void add(ArrayList<Double> features, String label)
+    synchronized public void add(ArrayList<Double> features, String label)
     {
         if (label == null)
             return;
@@ -83,11 +72,29 @@ public class GKNN implements IClassifier
     {
         if (label == null)
             return;
-        points.add(new CPoint(features, label));
+        points.add(new CPoint(label, features));
+    }
+
+    synchronized public void add(CPoint point)
+    {
+        if (point == null)
+            return;
+        points.add(point);
     }
 
     @Override
-    public Classifications classify(ArrayList<Double> features)
+    synchronized public CPoint removeLast()
+    {
+        if (points.size() > 0) {
+            CPoint last = points.remove(points.size()-1);
+            return last;
+        }
+
+        return null;
+    }
+
+    @Override
+    synchronized public Classifications classify(ArrayList<Double> features)
     {
         return classify(BoltMath.toArray(features));
     }
@@ -102,7 +109,8 @@ public class GKNN implements IClassifier
         // By sorting the list, we ensure that the first
         // k entries of the list of points are also the
         // nearest neighbors.
-        Collections.sort(points, new CPointComparator(features));
+        ArrayList<CPoint> sortedPoints = (ArrayList<CPoint>)points.clone();
+        Collections.sort(sortedPoints, new CPointComparator(features));
 
         // Evaluate the neighbors based on the weights
         double[][] P = LinAlg.scale(LinAlg.identity(features.length), p);
@@ -113,8 +121,8 @@ public class GKNN implements IClassifier
         HashMap<String, Integer> labelExamples = new HashMap<String, Integer>();
         double totalWeight = 0;
 
-        for (int i = 0; i < Math.min(k, points.size()); i++) {
-            CPoint point = points.get(i);
+        for (int i = 0; i < Math.min(k, sortedPoints.size()); i++) {
+            CPoint point = sortedPoints.get(i);
             double weight = mg.prob(point.coords);
             totalWeight += weight;
             double oldWeight = 0;
@@ -152,13 +160,13 @@ public class GKNN implements IClassifier
     }
 
     /** Clear the classifier information */
-    public void clearData()
+    synchronized public void clearData()
     {
         points.clear();
     }
 
     /** Load in the classifier data from file*/
-    public void loadData()
+    synchronized public void loadData()
     {
         if (filename == null)
             return;
@@ -229,6 +237,8 @@ public class GKNN implements IClassifier
             System.out.printf("%s: %f\n", label, (double)pair.o2/(double)pair.o1);
         }
     }
+
+    // =============================================
 
     public static void main(String[] args)
     {

@@ -169,7 +169,7 @@ void *publcm(void *arg)
 
         got_rgb = 0;
         got_depth = 0;
-        if (num_sent++ >= max_count) {
+        if (++num_sent >= max_count) {
             pthread_mutex_unlock(&frame_lock);
             kinect_status_t_publish(k_lcm, "KINECT_STATUS", &ks);
             pthread_mutex_lock(&frame_lock);
