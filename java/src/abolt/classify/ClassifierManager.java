@@ -112,16 +112,20 @@ public class ClassifierManager {
         BoltObjectManager objManager = BoltObjectManager.getSingleton();
         object_data_t[] od;
         long utime = TimeUtil.utime();
+    	ArrayList<object_data_t> objectDatas = new ArrayList<object_data_t>();
 
         int i = 0;
         synchronized (objManager.objects) {
             od = new object_data_t[objManager.objects.size()];
             for (BoltObject bo: objManager.objects.values()) {
-                od[i] = new object_data_t();
-                od[i].utime = utime;
-                od[i].id = bo.getID();
-                od[i].pos = bo.getPose();
-                od[i].bbox = bo.getBBox();
+            	if(!bo.isVisible()){
+            		continue;
+            	}
+            	object_data_t objData = new object_data_t();
+            	objData.utime = utime;
+            	objData.id = bo.getID();
+            	objData.pos = bo.getPose();
+            	objData.bbox = bo.getBBox();
 
                 categorized_data_t[] cat_dat = new categorized_data_t[classifiers.size()];
                 int j = 0;
@@ -146,13 +150,12 @@ public class ClassifierManager {
                     j++;
                 }
 
-                od[i].num_cat = cat_dat.length;
-                od[i].cat_dat = cat_dat;
-
-                i++;
+                objData.num_cat = cat_dat.length;
+                objData.cat_dat = cat_dat;
+                objectDatas.add(objData);
             }
         }
 
-        return od;
+        return objectDatas.toArray(new object_data_t[objectDatas.size()]);
     }
 }

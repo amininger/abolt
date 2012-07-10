@@ -57,7 +57,7 @@ public class ArmSimulator implements LCMSubscriber{
 
         this.boltSim = boltSim;
 
-        pos = new double[]{0, 0, 0.001};
+        pos = new double[]{0, 0, 0.05};
         goal = new double[]{0, 0};
 
 		class UpdateTask extends TimerTask{
@@ -76,10 +76,10 @@ public class ArmSimulator implements LCMSubscriber{
 			}
 		} else {
 			if(--stepsLeft == 0){
-				curState = ActionMode.WAIT;
 				if(curState == ActionMode.DROP){
 					grabbedID = -1;
 				}
+				curState = ActionMode.WAIT;
 			} else {
 				pos[0] += (goal[0] - pos[0])/stepsLeft;
 				pos[1] += (goal[1] - pos[1])/stepsLeft;
@@ -108,7 +108,7 @@ public class ArmSimulator implements LCMSubscriber{
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
-			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.05), new VzCircle(new VzMesh.Style(Color.cyan))));
+			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .051}), LinAlg.scale(.05), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
 		boltSim.drawVisObjects("arm", visObjs);
 	}
