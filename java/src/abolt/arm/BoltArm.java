@@ -146,6 +146,12 @@ public class BoltArm implements LCMSubscriber
         return LinAlg.matrixToXyzrpy(xform);
     }
 
+    /** Get the height of the base.**/
+    public double getBaseHeight()
+    {
+        return baseHeight;
+    }
+
     /** Returns the most recent status of the requested servo */
     public dynamixel_status_t getStatus(int idx)
     {

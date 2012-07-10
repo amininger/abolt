@@ -1,11 +1,14 @@
 package abolt.kinect;
 
-import april.jmat.*;
-import april.util.UnionFindSimple;
-
 import java.awt.*;
 import java.util.*;
 
+import april.jmat.*;
+import april.jmat.geom.*;
+import april.util.UnionFindSimple;
+import april.vis.*;
+
+import abolt.arm.*;
 
 public class Segment
 {
@@ -18,14 +21,16 @@ public class Segment
         return singleton;
     }
 
-
     final static double COLOR_THRESH = .01;//20;
     final static double DISTANCE_THRESH = 0.01;
     final static double RANSAC_THRESH = .015;
     final static double RANSAC_PERCENT = .2;
     final static double MIN_OBJECT_SIZE = 100;
-    final static double MAX_POINT_HEIGHT = .38;
     final static int MAX_HISTORY = 100;
+
+    final double[] ARM_WIDTH = new double[]{.08, .08, .08, .08, .08, .09, .09};
+    final double MAX_HEIGHT = .38;
+
     int width, height;
 
     // Originally in data aggregator
@@ -35,6 +40,7 @@ public class Segment
     public ArrayList<double[]> points;
     public UnionFindSimple ufs;
     public ObjectTracking tracker;
+    public VisWorld.Buffer vb;
 
     static Random rand = new Random();
     static double[] t = new double[] { -0.0254, -0.00013, -0.01218 }; // Added .01 to t[2] here rather than below
@@ -64,7 +70,7 @@ public class Segment
         height = h;
         points = currentPoints;
         coloredPoints.clear();
-        removeFloorPoints(MAX_POINT_HEIGHT);
+        removeFloorAndArmPoints();
         unionFind();
     }
 
@@ -151,7 +157,7 @@ public class Segment
      ** empty arrays.
      ** @return whether a plane was found and points were removed
      **/
-    private boolean removeFloorPoints(double maxHeight)
+    private boolean removeFloorAndArmPoints()
     {
         // Only calculate the floor plane once XXX - maybe do multiple times and average?
         if(floorFound == false){
@@ -161,21 +167,100 @@ public class Segment
 
         if (Arrays.equals(floorPlane, new double[4])) return false;
 
+        // Figure out where each of the joints are
+        ArrayList<double[]> armPoints = new ArrayList<double[]>();
+        ArrayList<Joint> joints = tracker.arm.getJoints();
+
+        double[][] xform = LinAlg.translate(0,0,tracker.arm.getBaseHeight());
+        armPoints.add(new double[3]);
+        armPoints.add(LinAlg.matrixToXyzrpy(xform));
+        for (Joint j: joints) {
+            LinAlg.timesEquals(xform, j.getRotation());
+            LinAlg.timesEquals(xform, j.getTranslation());
+            armPoints.add(LinAlg.matrixToXyzrpy(xform));
+        }
+
+
+        // Set up segments of the arm
+        ArrayList<GLineSegment2D> armLines = new ArrayList<GLineSegment2D>();
+        for(int i=1; i<armPoints.size(); i++){
+            armLines.add(new GLineSegment2D(armPoints.get(i-1), armPoints.get(i)));
+            double[] p1 = armPoints.get(i-1);
+            double[] p2 = armPoints.get(i);
+            System.out.printf("%d: (%.4f, %.4f, %.4f) --> (%.4f, %.4f, %.4f)\n",
+                              i, p1[0], p1[1], p1[2],p2[0], p2[1], p2[2]);
+        }
+
+/*        vb.addBack(new VisChain(LinAlg.translate(0,0,snowmanShoulders + headRadius),
+                                LinAlg.translate(headRadius,0,0),
+                                LinAlg.rotateY(Math.PI/2),
+                                new VzCone(0.05,.25,new VzMesh.Style(Color.orange))));*/
+
+
+        int seg = 0;
+        VzMesh.Style[] meshes = new VzMesh.Style[]{
+            new VzMesh.Style(Color.red),
+            new VzMesh.Style(Color.orange),
+            new VzMesh.Style(Color.yellow),
+            new VzMesh.Style(Color.green),
+            new VzMesh.Style(Color.blue),
+            new VzMesh.Style(Color.red),
+            new VzMesh.Style(Color.orange),
+            new VzMesh.Style(Color.yellow),
+            new VzMesh.Style(Color.green)};
+
+        for (GLineSegment2D line : armLines){
+            double[] p1 = new double[]{line.p1[0], line.p1[1], line.p1[2]};
+            double[] p2 = new double[]{line.p2[0], line.p2[1], line.p2[2]};
+            double length = LinAlg.distance(p1,p2);
+            double[] diff = LinAlg.subtract(p2, p1);
+            double[] center = new double[]{p1[0]+diff[0],p1[1]+diff[1],p1[2]+diff[2]};
+            VzCylinder cyl = new VzCylinder(ARM_WIDTH[seg], length, meshes[seg]);
+            vb.addBack(new VisChain(LinAlg.translate(p1),
+                                    //LinAlg.rotate(
+                                    cyl));
+            seg++;
+        }
+        vb.swap();
+
+        /*
+        vb.addBack(new VzLines(new VisVertexData(armPoints), 4, new VzLines.Style(Color.red, 1)));
+        vb.swap();
+        */
+
+        // Remove points that are either on the floor plane, below the plane,
+        // or along the arm's position
         for(int i=0; i<points.size(); i++){
             double[] point = points.get(i);
             double[] p = new double[]{point[0], point[1], point[2]};
-            if(pointToPlaneDist(p, floorPlane) < RANSAC_THRESH)
-                points.set(i, new double[4]);
-            if(belowPlane(p, floorPlane))
-                points.set(i, new double[4]);
-            else if(pointToPlaneDist(p, floorPlane) > maxHeight)
-                points.set(i, new double[4]);
-            else if(almostBlack((int)point[3]))
+            if(pointToPlaneDist(p, floorPlane) < RANSAC_THRESH ||
+               pointToPlaneDist(p, floorPlane) > MAX_HEIGHT ||
+               belowPlane(p, floorPlane) ||
+               inArmRange(armLines, p))// ||//almostBlack((int)point[3]))
                 points.set(i, new double[4]);
         }
+
+        VzCylinder cyl0 = new VzCylinder();
+
         return true;
     }
 
+    /** Determine whether a line is part of the arm, given a set of lines
+     *  representing the positions of the joints.**/
+    private boolean inArmRange(ArrayList<GLineSegment2D> armLines, double[] p)
+    {
+        assert(ARM_WIDTH.length <= armLines.size());
+        boolean inArm = false;
+        for(int i=0; i<ARM_WIDTH.length; i++){
+            if(armLines.get(i).distanceTo(p) < ARM_WIDTH[i]){
+                inArm = true;
+                break;
+            }
+        }
+        return inArm;
+    }
+
+    /** For determining whether a point is basically at the origin.**/
     private boolean almostZero(double[] p)
     {
         if(p[0] < .0001 && p[1] < .0001 && p[2] < .0001 && p[3] < .0001)

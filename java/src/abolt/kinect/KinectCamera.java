@@ -21,7 +21,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
     final static int K_HEIGHT = kinect_status_t.HEIGHT;
 
-     private final static double darkThreshold = .4;
+     private final static double darkThreshold = .35;
 
     // LCM
     static LCM lcm = LCM.getSingleton();
@@ -38,6 +38,15 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     	lcm.subscribe("ROBOT_ACTION", this);
         lcm.subscribe("BOLT_ARM_COMMAND", this);
     }
+
+    public KinectCamera(VisWorld.Buffer vb){
+        segment = Segment.getSingleton();
+        segment.vb = vb;
+    	lcm.subscribe("KINECT_STATUS", this);
+    	lcm.subscribe("ROBOT_ACTION", this);
+        lcm.subscribe("BOLT_ARM_COMMAND", this);
+    }
+
 
     /** Use the most recent frame from the kinect to extract a 3D point cloud
     and map it to the frame of the arm. **/
@@ -126,10 +135,10 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 	HashMap<Integer, ObjectInfo> objInfoList = new HashMap<Integer, ObjectInfo>();
                 	for(ObjectInfo info : segment.objects.values()){
                 		ArrayList<Double> colorFeatures = ColorFeatureExtractor.getFeatures(info);
-        	        	if(colorFeatures.get(0) > darkThreshold || colorFeatures.get(1) > darkThreshold ||
-        	        			colorFeatures.get(2) > darkThreshold){
+        	        	//if(colorFeatures.get(0) > darkThreshold || colorFeatures.get(1) > darkThreshold ||
+        	        	//		colorFeatures.get(2) > darkThreshold){
         	        		objInfoList.put(info.repID, info);
-        	        	}
+                            //}
                     }
                 	//Bolt.getObjectManager().updateObjects(objInfoList);
                     BoltObjectManager.getSingleton().updateObjects(objInfoList);

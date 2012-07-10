@@ -100,7 +100,7 @@ public class Bolt extends JFrame implements LCMSubscriber
 
 
         if(opts.getBoolean("kinect")){
-        	camera = new KinectCamera();
+        	camera = new KinectCamera(simulator.getVisWorld()); // Lauren
         	kinectView = new KinectView();
             // XXX We'd like to remove this middleman to the arm
             //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
