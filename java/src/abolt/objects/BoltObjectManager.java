@@ -21,9 +21,11 @@ public class BoltObjectManager {
     }
 
     public HashMap<Integer, BoltObject> objects;
+    private HashSet<ObjectEffector> effectors;
 
     private BoltObjectManager(){
     	objects = new HashMap<Integer, BoltObject>();
+    	effectors = new HashSet<ObjectEffector>();
     }
 
 	public void updateObjects(HashMap<Integer, ObjectInfo> objectInfo) {
@@ -51,12 +53,23 @@ public class BoltObjectManager {
 	        }
 
 	        for (Integer id : objsToRemove) {
-//	        	if(BoltArmController.Singleton == null ||
-//	        			id != BoltArmController.Singleton.grabbedObject()){
-		            objects.remove(id);
-//	        	}
+		       objects.remove(id);
+	        }
+	        
+	        for(ObjectEffector effector : effectors){
+	        	for(BoltObject obj : objects.values()){
+	        		effector.effect(obj);
+	        	}
 	        }
 		}
+	}
+	
+	public void addEffector(ObjectEffector effector){
+		effectors.add(effector);
+	}
+	
+	public void removeEffector(ObjectEffector effector){
+		effectors.remove(effector);
 	}
 
 	public void addObject(BoltObject obj) {

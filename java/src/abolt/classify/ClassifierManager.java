@@ -65,16 +65,20 @@ public class ClassifierManager {
 
         reloadData();
     }
+    
+    public void addClassifier(FeatureCategory cat, IClassifier classifier){
+    	classifiers.put(cat, classifier);
+    }
 
 	public Classifications classify(FeatureCategory cat, BoltObject obj){
 		IClassifier classifier = classifiers.get(cat);
 		ArrayList<Double> features = obj.getFeatures(cat);
-		if(features == null){
+		if(features == null || classifier == null){
 			return null;
 		}
         Classifications classifications;
 		synchronized(classifier){
-			classifications =classifier.classify(features);
+			classifications = classifier.classify(features);
 		}
 		return classifications;
 	}
@@ -126,32 +130,47 @@ public class ClassifierManager {
             	objData.id = bo.getID();
             	objData.pos = bo.getPose();
             	objData.bbox = bo.getBBox();
-
-                categorized_data_t[] cat_dat = new categorized_data_t[classifiers.size()];
+            	ArrayList<categorized_data_t> cat_dats = new ArrayList<categorized_data_t>();
                 int j = 0;
                 for (FeatureCategory fc: classifiers.keySet()) {
-                    cat_dat[j] = new categorized_data_t();
-                    cat_dat[j].cat = new category_t();
-                    cat_dat[j].cat.cat = Features.getLCMCategory(fc);
+                    ArrayList<Double> features = bo.getFeatures(fc);
                     IClassifier classifier = classifiers.get(fc);
-                    Classifications cs = classifier.classify(bo.getFeatures(fc));
+                    if(features == null || classifier == null){
+                    	continue;
+                    }
+                	categorized_data_t cat_dat = new categorized_data_t();
+                    cat_dat = new categorized_data_t();
+                    cat_dat.cat = new category_t();
+                    cat_dat.cat.cat = Features.getLCMCategory(fc);
+                    // AM: I don't like this, but I don't want to deal with features from visual properties at the moment
+                    if(fc == FeatureCategory.WEIGHT){
+                        cat_dat.num_features = features.size();
+                        cat_dat.features = new double[features.size()];
+                        for(int k = 0; k < features.size(); k++){
+                        	cat_dat.features[k] = features.get(k);
+                        }
+                    } else {
+                    	cat_dat.num_features = 0;
+                    	cat_dat.features = new double[0];
+                    }
+                    Classifications cs = classifier.classify(features);
                     cs.sortLabels();    // Just to be nice
-                    cat_dat[j].len = cs.size();
-                    cat_dat[j].confidence = new double[cat_dat[j].len];
-                    cat_dat[j].label = new String[cat_dat[j].len];
+                    cat_dat.len = cs.size();
+                    cat_dat.confidence = new double[cat_dat.len];
+                    cat_dat.label = new String[cat_dat.len];
                     int k = 0;
                     for (Classifications.Label label: cs.labels) {
-                        cat_dat[j].confidence[k] = label.weight;
-                        cat_dat[j].label[k] = label.label;
+                        cat_dat.confidence[k] = label.weight;
+                        cat_dat.label[k] = label.label;
 
                         k++;
                     }
-
-                    j++;
+                    
+                    cat_dats.add(cat_dat);
                 }
 
-                objData.num_cat = cat_dat.length;
-                objData.cat_dat = cat_dat;
+                objData.num_cat = cat_dats.size();
+                objData.cat_dat = cat_dats.toArray(new categorized_data_t[cat_dats.size()]);
                 objectDatas.add(objData);
             }
         }

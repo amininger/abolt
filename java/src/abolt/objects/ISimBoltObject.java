@@ -9,6 +9,7 @@ public interface ISimBoltObject extends SimObject
 {	
 	Color getColor();
 	Shape getAboltShape();
+	double getWeight();
 	double[][] getPose();
 	int getID();
 	void setID(int id);

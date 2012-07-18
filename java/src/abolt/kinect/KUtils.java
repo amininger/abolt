@@ -8,6 +8,7 @@ import java.io.IOException;
 import abolt.lcmtypes.*;
 
 import april.jmat.*;
+import april.vis.VisCameraManager.CameraPosition;
 import april.config.*;
 
 public class KUtils
@@ -185,4 +186,19 @@ public class KUtils
                    (ks.rgb[3*i+0]&0xff);
         return rgb;
     }
+    
+
+	public static double[][] getFaceCameraTransform(CameraPosition camera){
+		double[] forward = LinAlg.normalize(LinAlg.subtract(camera.eye, camera.lookat));
+		// Spherical coordinates
+        double psi = Math.PI/2.0 - Math.asin(forward[2]);   // psi = Pi/2 - asin(z)
+        double theta = Math.atan2(forward[1], forward[0]);  // theta = atan(y/x)
+        if(forward[0] == 0 && forward[1] == 0){
+        	theta = -Math.PI/2;
+        }
+        double[][] tilt = LinAlg.rotateX(psi); 				// tilt up or down to face the camera vertically
+        double[][] rot = LinAlg.rotateZ(theta + Math.PI/2); // rotate flat to face the camera horizontally
+        double[][] faceCamera = LinAlg.matrixAB(rot, tilt);
+        return faceCamera;
+	}
 }

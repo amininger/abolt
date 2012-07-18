@@ -78,6 +78,10 @@ public class ObjectInfo{
     		return fts;
     	}
     }
+    
+    public void addFeatures(FeatureCategory cat, ArrayList<Double> features){
+		this.features.put(cat, features);
+	}
 
     /** Get the center of the object (mean x, y,z). **/
     public double[] getCenter()
