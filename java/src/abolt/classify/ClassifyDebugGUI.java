@@ -31,7 +31,7 @@ public class ClassifyDebugGUI
     public ClassifyDebugGUI()
     {
         JFrame jf = new JFrame("Classication Debugging Console");
-        jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jf.setLayout(new GridLayout(4,1));
 
         // ID input

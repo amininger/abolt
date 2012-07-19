@@ -7,6 +7,7 @@ import april.jmat.*;
 import april.jmat.geom.*;
 import april.util.UnionFindSimple;
 import april.vis.*;
+import april.config.*;
 
 import abolt.arm.*;
 
@@ -21,6 +22,7 @@ public class Segment
         return singleton;
     }
 
+
     final static double COLOR_THRESH = .01;//20;
     final static double DISTANCE_THRESH = 0.01;
     final static double RANSAC_THRESH = .015;
@@ -28,8 +30,10 @@ public class Segment
     final static double MIN_OBJECT_SIZE = 100;
     final static int MAX_HISTORY = 100;
 
-    final double[] ARM_WIDTH = new double[]{.08, .08, .08, .08, .08, .09, .09};
-    final double MAX_HEIGHT = .38;
+    static BoltArm ba;
+    static Config config;
+    ArrayList<Double> ARM_WIDTH;// = new double[]{.08, .08, .08, .08, .08, .09, .09};
+    double MAX_HEIGHT;// = .56;//.38;
 
     int width, height;
 
@@ -60,12 +64,32 @@ public class Segment
         objects = new HashMap<Integer, ObjectInfo>();
         map = new HashMap<Integer, Integer>();
         coloredPoints = new ArrayList<double[]>();
+        ba = BoltArm.getSingleton();
+//        MAX_HEIGHT = ba.wristHeight;
     }
+
+/*    public void init(Config config){
+        // Set up parameters based on the arm we're using
+        this.config = config;
+        String name = config.getString("arm.arm_version", null);
+        max_height = config.getDouble("arm."+name+".wrist_height", 0);
+        for (int i = 0;; i++) {
+            if (config.getString("arm."+name+".r"+i+".axis", null) == null)
+                break;
+            else{
+                double width = config.getDouble("arm."+name+".r"+i+".width", 0);
+                ARM_WIDTH.add(width);
+            }
+        }
+        }*/
 
     /** First segment the frame into objects and then get the features
      ** for each object. **/
     public void segmentFrame(ArrayList<double[]> currentPoints, int w, int h)
     {
+//        if(ARM_WIDTH == null)
+            ARM_WIDTH = ba.getArmWidths();
+
         width = w;
         height = h;
         points = currentPoints;
@@ -187,9 +211,10 @@ public class Segment
             armLines.add(new GLineSegment2D(armPoints.get(i-1), armPoints.get(i)));
             double[] p1 = armPoints.get(i-1);
             double[] p2 = armPoints.get(i);
-            System.out.printf("%d: (%.4f, %.4f, %.4f) --> (%.4f, %.4f, %.4f)\n",
-                              i, p1[0], p1[1], p1[2],p2[0], p2[1], p2[2]);
+//            System.out.printf("%d: (%.4f, %.4f, %.4f) --> (%.4f, %.4f, %.4f)   %.2f\n",
+//                              i, p1[0], p1[1], p1[2],p2[0], p2[1], p2[2], ARM_WIDTH.get(i-1));
         }
+//        System.out.println(armLines.size()+" arm lines, and "+ARM_WIDTH.size()+" arm widths.");
 
 /*        vb.addBack(new VisChain(LinAlg.translate(0,0,snowmanShoulders + headRadius),
                                 LinAlg.translate(headRadius,0,0),
@@ -197,7 +222,6 @@ public class Segment
                                 new VzCone(0.05,.25,new VzMesh.Style(Color.orange))));*/
 
 
-        int seg = 0;
         VzMesh.Style[] meshes = new VzMesh.Style[]{
             new VzMesh.Style(Color.red),
             new VzMesh.Style(Color.orange),
@@ -209,21 +233,22 @@ public class Segment
             new VzMesh.Style(Color.yellow),
             new VzMesh.Style(Color.green)};
 
-        for (GLineSegment2D line : armLines){
+        for (int seg=0; seg<ARM_WIDTH.size(); seg++){
+            GLineSegment2D line = armLines.get(seg);
             double[] p1 = new double[]{line.p1[0], line.p1[1], line.p1[2]};
             double[] p2 = new double[]{line.p2[0], line.p2[1], line.p2[2]};
             double length = LinAlg.distance(p1,p2);
             double[] diff = LinAlg.subtract(p2, p1);
             double[] center = new double[]{p1[0]+diff[0],p1[1]+diff[1],p1[2]+diff[2]};
-            VzCylinder cyl = new VzCylinder(ARM_WIDTH[seg], length, meshes[seg]);
+            VzCylinder cyl = new VzCylinder(ARM_WIDTH.get(seg), length, meshes[seg]);
             vb.addBack(new VisChain(LinAlg.translate(p1),
-                                    //LinAlg.rotate(
+                                    //LinAlg.rotate(Math.)
                                     cyl));
-            seg++;
         }
         vb.swap();
 
-        /*
+
+        /* Draw lines corresponding to the segments of the arm.
         vb.addBack(new VzLines(new VisVertexData(armPoints), 4, new VzLines.Style(Color.red, 1)));
         vb.swap();
         */
@@ -233,14 +258,15 @@ public class Segment
         for(int i=0; i<points.size(); i++){
             double[] point = points.get(i);
             double[] p = new double[]{point[0], point[1], point[2]};
-            if(pointToPlaneDist(p, floorPlane) < RANSAC_THRESH ||
-               pointToPlaneDist(p, floorPlane) > MAX_HEIGHT ||
-               belowPlane(p, floorPlane) ||
-               inArmRange(armLines, p))// ||//almostBlack((int)point[3]))
+            double distToPlane = pointToPlaneDist(p, floorPlane);
+            if(distToPlane < RANSAC_THRESH ||
+               distToPlane > ba.wristHeight ||
+               belowPlane(p, floorPlane))// ||
+                //inArmRange(armLines, p))// ||//almostBlack((int)point[3]))
+                points.set(i, new double[4]);
+            else if(inArmRange(armLines, KUtils.getWorldCoordinates(p)))
                 points.set(i, new double[4]);
         }
-
-        VzCylinder cyl0 = new VzCylinder();
 
         return true;
     }
@@ -249,14 +275,17 @@ public class Segment
      *  representing the positions of the joints.**/
     private boolean inArmRange(ArrayList<GLineSegment2D> armLines, double[] p)
     {
-        assert(ARM_WIDTH.length <= armLines.size());
+        assert(ARM_WIDTH.size() <= armLines.size());
         boolean inArm = false;
-        for(int i=0; i<ARM_WIDTH.length; i++){
-            if(armLines.get(i).distanceTo(p) < ARM_WIDTH[i]){
+        for(int i=0; i<ARM_WIDTH.size(); i++){
+            if(armLines.get(i).distanceTo(p) < ARM_WIDTH.get(i)){
                 inArm = true;
                 break;
             }
         }
+
+//        if(inArm) System.out.print(".");
+//        else System.out.printf("(%.2f,%.2f,%.3f)",p[0], p[1], p[2]);
         return inArm;
     }
 

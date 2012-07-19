@@ -12,19 +12,15 @@ public class ObjectTracking
 {
     final double MAX_TRAVEL_DIST = 0.07;//.1;
     final double MAX_COLOR_CHANGE = 60;//40;
-    final double BASE_WIDTH = .045;
-    final double SHOULDER_WIDTH = .04;
-    final double HUMERUS_WIDTH = .04;
-    final double RADIUS_WIDTH = .04;
-    final double WRIST_WIDTH = .05;
     final int MAX_HISTORY = 10;
-    //private final static double DARK_THRESHOLD = .35;
+    final int MAX_JUST_DROPPED = 5;
 
     public BoltArm arm; //XXXXXXXXXXXXXXXXXXXx
     private HashMap<Integer, ObjectInfo> lastFrame;
     private HashMap<Integer, ObjectInfo> lostObjects;
     private HashMap<Integer, Long> lostTime;
     private ObjectInfo heldObject;
+    private int justDroppedCount;
 
     enum ArmState
     {  GRABBING_OBJECT, HOLDING_OBJECT, DROPPING_OBJECT,
@@ -93,9 +89,17 @@ public class ObjectTracking
             armState = ArmState.HOLDING_OBJECT;
             removeRepIDFromHistory(heldObject.repID);
         }
-        else if(armState == ArmState.DROPPING_OBJECT
-                || armState == ArmState.JUST_DROPPED_OBJECT){
+        else if(armState == ArmState.DROPPING_OBJECT){
             armState = ArmState.JUST_DROPPED_OBJECT;
+            justDroppedCount = 0;
+        }
+        else if (armState == ArmState.JUST_DROPPED_OBJECT){
+            if(justDroppedCount < MAX_JUST_DROPPED)
+                armState = ArmState.JUST_DROPPED_OBJECT;
+            else{
+                armState = ArmState.WAITING;
+                heldObject = null;
+            }
         }
         else
             armState = ArmState.WAITING;
@@ -187,63 +191,6 @@ public class ObjectTracking
     }
 
 
-    public HashMap<Integer, ObjectInfo> removeArm(HashMap<Integer, ObjectInfo> objects)
-    {
-        ArrayList<double[]> armPoints = new ArrayList<double[]>();
-        armPoints.add(new double[3]);
-        ArrayList<Joint> joints = arm.getJoints();
-        double[][] xform = LinAlg.translate(0,0,arm.getBaseHeight());
-        armPoints.add(LinAlg.matrixToXyzrpy(xform));
-        for (Joint j: joints) {
-            LinAlg.timesEquals(xform, j.getRotation());
-            LinAlg.timesEquals(xform, j.getTranslation());
-            armPoints.add(LinAlg.matrixToXyzrpy(xform));
-        }
-        // Set up segments of the arm
-        GLineSegment2D base = new GLineSegment2D(armPoints.get(0), armPoints.get(1));
-        GLineSegment2D shoulder = new GLineSegment2D(armPoints.get(1), armPoints.get(2));
-        GLineSegment2D humerus = new GLineSegment2D(armPoints.get(2), armPoints.get(3));
-        GLineSegment2D radius = new GLineSegment2D(armPoints.get(3), armPoints.get(4));
-        GLineSegment2D wrist = new GLineSegment2D(armPoints.get(4), armPoints.get(5));
-
-
-        // -----------------------------------------------------------------------------//
-        /*double[] p0 = armPoints.get(0);
-        double[] p1 = armPoints.get(1);
-        double[] p2 = armPoints.get(2);
-        double[] p3 = armPoints.get(3);
-        double[] p4 = armPoints.get(4);
-        double[] p5 = armPoints.get(5);
-        System.out.printf("Base: (%.4f, %.4f, %.4f)---(%.4f, %.4f, %.4f)\n",p0[0], p0[1], p0[2], p1[0], p1[1], p1[2]);
-        System.out.printf("Shoulder: (%.4f, %.4f, %.4f)---(%.4f, %.4f, %.4f)\n",p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
-        System.out.printf("Humerus: (%.4f, %.4f, %.4f)---(%.4f, %.4f, %.4f)\n",p2[0], p2[1], p2[2], p3[0], p3[1], p3[2]);
-        System.out.printf("Radius: (%.4f, %.4f, %.4f)---(%.4f, %.4f, %.4f)\n",p3[0], p3[1], p3[2], p4[0], p4[1], p4[2]);
-        System.out.printf("Wrist: (%.4f, %.4f, %.4f)---(%.4f, %.4f, %.4f)\n",p4[0], p4[1], p4[2], p5[0], p5[1], p5[2]);*/
-        // -----------------------------------------------------------------------------//
-
-
-        // Remove any point too close to one of the arm segments
-        ArrayList<Integer> toRemove = new ArrayList<Integer>();
-        for(ObjectInfo info : objects.values()){
-            double[] location = info.getCenter();
-            if(base.distanceTo(location) < BASE_WIDTH ||
-               shoulder.distanceTo(location) < SHOULDER_WIDTH ||
-               humerus.distanceTo(location) < HUMERUS_WIDTH ||
-               radius.distanceTo(location) < RADIUS_WIDTH ||
-               wrist.distanceTo(location) < WRIST_WIDTH ||
-               location[2] > armPoints.get(5)[2])
-                toRemove.add(info.ufsID);
-
-        }
-
-        for(Integer i: toRemove)
-            objects.remove(i);
-
-        return objects;
-    }
-
-
-
     /** When we get a new frame of objects, we want to try to match them
      *  to the objects from the most recent frame. If there are no matches
      *  then we want to compare to objects from previous frames (although this
@@ -253,7 +200,10 @@ public class ObjectTracking
     public HashMap<Integer, ObjectInfo> newObjects(HashMap<Integer,
                                                    ObjectInfo> currentFrame)
     {
-//        currentFrame = removeArm(currentFrame);
+        //System.out.println("==========="+armState+"============"+(heldObject!=null));
+
+        if(armState == ArmState.JUST_DROPPED_OBJECT)
+            justDroppedCount ++;
 
         // Make sure there are previous objects
         if(lastFrame.size() <= 0){
@@ -262,9 +212,10 @@ public class ObjectTracking
                 oi.createRepID();
             }
             lastFrame = currentFrame;
-            if(heldObject != null)
+            if(heldObject != null){
+                heldObject.resetCenter(arm.getGripperXYZRPY());
                 currentFrame.put(heldObject.ufsID, heldObject);
-
+            }
             return currentFrame;
         }
 
@@ -282,6 +233,8 @@ public class ObjectTracking
         // try to match it before anything else.
         boolean unmatchedDroppedObject = false;
         if(heldObject != null ){
+            double[] pos = heldObject.getCenter();
+            //System.out.printf("%.4f, %.4f, %.4f\n", pos[0], pos[1], pos[2]);
             double bestMatch = 100000;
             int bestID = -1;
 
@@ -314,7 +267,11 @@ public class ObjectTracking
                     unusedOld.remove(toRemove);
 
                 removeRepIDFromHistory(heldObject.repID);
-
+                //System.out.println("Found a match!");
+                if(armState == ArmState.JUST_DROPPED_OBJECT){
+                    //System.out.println("Setting held object to null");
+                    heldObject = null;
+                }
             }
             else
                 unmatchedDroppedObject = true;
@@ -416,12 +373,18 @@ public class ObjectTracking
             currentFrame.put(heldObject.ufsID, heldObject);
         }
 
-        /*System.out.println("Current Objects:");
+/*
+        System.out.println("Current Objects:");
         for(ObjectInfo info : currentFrame.values()){
             double[] c = info.getCenter();
             System.out.printf("\t%d: (%.4f, %.4f, %.4f)\n", info.repID, c[0], c[1], c[2]);
-            }*/
-
+        }
+        System.out.println("Lost Objects:");
+        for(ObjectInfo info : .values()){
+            double[] c = info.getCenter();
+            System.out.printf("\t%d: (%.4f, %.4f, %.4f)\n", info.repID, c[0], c[1], c[2]);
+        }
+*/
         return currentFrame;
     }
 }

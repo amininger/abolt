@@ -23,7 +23,9 @@ public class BoltArm implements LCMSubscriber
     private LCM lcm = LCM.getSingleton();
 
     public static double baseHeight = 0.0;
+    public static double wristHeight;
     private ArrayList<Joint> joints = new ArrayList<Joint>();
+    private ArrayList<Double> armWidths = new ArrayList<Double>();
 
     private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.5, true);
 
@@ -56,6 +58,7 @@ public class BoltArm implements LCMSubscriber
         assert (name != null);
 
         baseHeight = config.getDouble("arm."+name+".base_height", 0);
+        wristHeight = config.getDouble("arm."+name+".wrist_height",0);
 
         for (int i = 0;; i++) {
             double[] range = config.getDoubles("arm."+name+".r"+i+".range", null);
@@ -63,6 +66,7 @@ public class BoltArm implements LCMSubscriber
             String axis = config.getString("arm."+name+".r"+i+".axis", null);
             double speed = config.getDouble("arm."+name+".r"+i+".speed", 0);
             double torque = config.getDouble("arm."+name+".r"+i+".torque", 0);
+            double width = config.getDouble("arm."+name+".r"+i+".width", 0);
             if (range == null)
                 break;
 
@@ -86,6 +90,7 @@ public class BoltArm implements LCMSubscriber
             params.torque = torque;
 
             joints.add(new RevoluteJoint(params));
+            armWidths.add(width);
         }
 
         // XXX Old hardcoded values
@@ -130,6 +135,8 @@ public class BoltArm implements LCMSubscriber
         j4 = new RevoluteJoint(p4);
         */
         joints.add(new HandJoint(new HandJoint.Parameters()));
+        armWidths.add(.08);
+        armWidths.add(.08);
     }
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
@@ -167,6 +174,12 @@ public class BoltArm implements LCMSubscriber
     public ArrayList<Joint> getJoints()
     {
         return joints;
+    }
+
+    /** Return a list of the widths of each arm segment.**/
+    public ArrayList<Double> getArmWidths()
+    {
+        return armWidths;
     }
 
     /** Get the position of the gripper */
