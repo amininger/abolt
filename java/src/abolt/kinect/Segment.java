@@ -214,14 +214,8 @@ public class Segment
 //            System.out.printf("%d: (%.4f, %.4f, %.4f) --> (%.4f, %.4f, %.4f)   %.2f\n",
 //                              i, p1[0], p1[1], p1[2],p2[0], p2[1], p2[2], ARM_WIDTH.get(i-1));
         }
-//        System.out.println(armLines.size()+" arm lines, and "+ARM_WIDTH.size()+" arm widths.");
 
-/*        vb.addBack(new VisChain(LinAlg.translate(0,0,snowmanShoulders + headRadius),
-                                LinAlg.translate(headRadius,0,0),
-                                LinAlg.rotateY(Math.PI/2),
-                                new VzCone(0.05,.25,new VzMesh.Style(Color.orange))));*/
-
-
+/*
         VzMesh.Style[] meshes = new VzMesh.Style[]{
             new VzMesh.Style(Color.red),
             new VzMesh.Style(Color.orange),
@@ -246,7 +240,7 @@ public class Segment
                                     cyl));
         }
         vb.swap();
-
+*/
 
         /* Draw lines corresponding to the segments of the arm.
         vb.addBack(new VzLines(new VisVertexData(armPoints), 4, new VzLines.Style(Color.red, 1)));
