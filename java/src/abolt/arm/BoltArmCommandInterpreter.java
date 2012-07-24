@@ -39,8 +39,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     DebugThread dthread;
 
     // Height values for arbitrary commands
+    double defaultPointHeight = 0.08;   // Default height above object to point [m]
     double pointOffset = 0.06;  // How many [m] to point at above the target
-    double grabOffset  = 0.05;  // Max # [m] to reach down through the object
+    double grabOffset  = 0.03;  // Max # [m] to reach down through the object
     //double dropOffset  = 0.06;  // How many [m] above the table to drop objects
     double dropOffset  = 0.12;
 
@@ -236,6 +237,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         if (objIDstr == null) {
             // No ID
             bcmd.xyz = LinAlg.resize(cmd.dest, 3);
+            if (bcmd.xyz[2] <= 0) {
+                bcmd.xyz[2] = defaultPointHeight;
+            }
         } else {
             // Found ID
             int objID = Integer.valueOf(objIDstr);

@@ -229,7 +229,7 @@ public class BoltArmDemo implements LCMSubscriber
 
         public boolean mousePressed(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e)
         {
-            double[] xyz = ray.intersectPlaneXY();
+            double[] xy = LinAlg.resize(ray.intersectPlaneXY(), 2);
             int mods = e.getModifiersEx();
             boolean shift = (mods & MouseEvent.SHIFT_DOWN_MASK) > 0;
             boolean ctrl = (mods & MouseEvent.CTRL_DOWN_MASK) > 0;
@@ -240,8 +240,8 @@ public class BoltArmDemo implements LCMSubscriber
             double[] objPos = null;
             if (obs != null) {
                 for (object_data_t obj_dat : obs.observations) {
-                    double[] pos = LinAlg.resize(obj_dat.pos, 3);
-                    double mag = LinAlg.distance(pos, xyz);
+                    double[] pos = LinAlg.resize(obj_dat.pos, 2);
+                    double mag = LinAlg.distance(pos, xy);
                     if (mag < minDist && mag < maxSelectionDistance) {
                         minDist = mag;
                         id = obj_dat.id;
@@ -255,13 +255,13 @@ public class BoltArmDemo implements LCMSubscriber
                     lcm.publish("ROBOT_COMMAND", getRobotCommand(id, ActionState.POINT));
                     rt.setGoal(objPos);
                 } else {
-                    lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.POINT));
-                    rt.setGoal(xyz);
+                    lcm.publish("ROBOT_COMMAND", getRobotCommand(xy, ActionState.POINT));
+                    rt.setGoal(xy);
                 }
                 return true;
             } else if (!shift && ctrl) {
-                lcm.publish("ROBOT_COMMAND", getRobotCommand(xyz, ActionState.DROP));
-                rt.setGoal(xyz);
+                lcm.publish("ROBOT_COMMAND", getRobotCommand(xy, ActionState.DROP));
+                rt.setGoal(xy);
                 return true;
             } else if (shift && ctrl) {
                 if (minDist != Double.MAX_VALUE) {

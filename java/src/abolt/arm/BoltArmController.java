@@ -78,14 +78,9 @@ public class BoltArmController implements LCMSubscriber
         dynamixel_command_list_t last_cmds;
 
         // Pointing
-        double goalHeight   = 0.08;     // Goal height of end effector
-        double transHeight  = 0.20;     // Transition height of end effector
-
-        // Grabbing & sweeping
-        double sweepHeight  = 0.025;    // Height at which we sweep objects along
-        double preGrabHeight = 0.06;   // Height at which we pause before final grabbing motion
-        //double grabHeight   = 0.015;    // Height at which we try to grab objects
-        double grabHeight = 0.020;
+        double goalHeight   = 0.0;      // Goal height of end effector
+        double preGrabOffset = 0.03;
+        double transOffset  = 0.20;     // Height above goal height to transition at
 
         // Defaults
         double defGrip      = Math.toRadians(30.0); // Keep the hand partially closed when possible
@@ -110,6 +105,7 @@ public class BoltArmController implements LCMSubscriber
                 {
                     last_cmd = cmd;
                     prev = goal;
+                    goalHeight = cmd.xyz[2];    // XXX
                     goal = LinAlg.resize(cmd.xyz, 2);
                     //setState(0);
                     newAction = true;
@@ -261,14 +257,14 @@ public class BoltArmController implements LCMSubscriber
                     if (prev == null) {
                         setState(ActionState.POINT_UP_OVER);
                     }
-                    moveTo(prev, transHeight);
+                    moveTo(prev, goalHeight + transOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.POINT_UP_OVER);
                     }
                     break;
                 case POINT_UP_OVER:
-                    moveTo(goal, transHeight);
+                    moveTo(goal, goalHeight + transOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.POINT_AT);
@@ -349,7 +345,7 @@ public class BoltArmController implements LCMSubscriber
                         break;
                     }
 
-                    moveTo(prev, transHeight);
+                    moveTo(prev, goalHeight + transOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.GRAB_UP_BEHIND);
@@ -359,7 +355,7 @@ public class BoltArmController implements LCMSubscriber
                     // Open hand
                     arm.setPos(5, defGrip);
 
-                    moveTo(behind, transHeight);
+                    moveTo(behind, goalHeight + transOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.GRAB_APPROACH);
@@ -368,7 +364,7 @@ public class BoltArmController implements LCMSubscriber
                         grabbedObject = toGrab; // Lauren
                     break;
                 case GRAB_APPROACH:
-                    moveTo(behind, preGrabHeight);
+                    moveTo(behind, goalHeight + preGrabOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.GRAB_AT);
@@ -376,7 +372,7 @@ public class BoltArmController implements LCMSubscriber
                     break;
                 case GRAB_AT:
                     //moveTo(goal, grabHeight, grabHeight*1.8);   // Try to compensate for sagging arm
-                    moveTo(goal, grabHeight);
+                    moveTo(goal, goalHeight);
 
                     if (actionComplete()) {
                         setState(ActionState.GRAB_START_GRIP);
@@ -498,14 +494,14 @@ public class BoltArmController implements LCMSubscriber
                     if (prev == null) {
                         setState(ActionState.DROP_UP_OVER);
                     }
-                    moveTo(prev, transHeight);
+                    moveTo(prev, goalHeight + transOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.DROP_UP_OVER);
                     }
                     break;
                 case DROP_UP_OVER:
-                    moveTo(goal, transHeight);
+                    moveTo(goal, goalHeight + transOffset);
 
                     if (actionComplete()) {
                         setState(ActionState.DROP_AT);
