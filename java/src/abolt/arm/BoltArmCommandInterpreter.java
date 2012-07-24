@@ -38,6 +38,12 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     boolean debug;
     DebugThread dthread;
 
+    // Height values for arbitrary commands
+    double pointOffset = 0.06;  // How many [m] to point at above the target
+    double grabOffset  = 0.05;  // Max # [m] to reach down through the object
+    //double dropOffset  = 0.06;  // How many [m] above the table to drop objects
+    double dropOffset  = 0.12;
+
     class InterpreterThread extends Thread
     {
         // Rate at which we look for new commands as
@@ -246,8 +252,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 if (debug) {
                     dthread.render(info.points);
                 }
-                ArrayList<double[]> points = flattenPoints(k2wPointAlign(info.points));
-                bcmd.xyz = getCentroidXYZ(points);
+                ArrayList<double[]> points = k2wPointAlign(info.points);
+                bcmd.xyz = getCentroidXYZ(flattenPoints(points));
+                bcmd.xyz[2] = getMax(points, 2) + pointOffset;
             }
         }
 
@@ -285,6 +292,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 ArrayList<double[]> xyPoints = flattenPoints(wPoints);
                 double[] uxy = getMeanXY(xyPoints);
                 bcmd.xyz = LinAlg.resize(uxy, 3);
+                double zMax = getMax(wPoints, 2);
+                double zMid = getMid(wPoints, 2);
+                bcmd.xyz[2] = zMax - Math.min(zMax - zMid, grabOffset);
 
                 double minBoxRot = getMinimalRotation(xyPoints);
                 ArrayList<double[]> rorigin = rotateAtOrigin(minBoxRot, xyPoints);
@@ -354,6 +364,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
         bcmd.obj_id = 0; // XXX - not true
         bcmd.xyz = LinAlg.resize(cmd.dest, 3);
+        // XXX It'd be nice to have persistent object memory, but for now, drop at fixed height
+        bcmd.xyz[2] = dropOffset;
+
         bcmd.wrist = 0; // XXX
 
         return bcmd;
@@ -583,61 +596,43 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
     }
 
-    /** Return eigenvectors along the major and minor axes of the points */
-    private double[][] get22EigenVectors(ArrayList<double[]> points)
+    /** Return the maximum value of the supplied points for specified idx*/
+    private double getMax(ArrayList<double[]> points, int idx)
     {
-        double[][] A = getCovXY(points);
-
-        double a = A[0][0];
-        double b = A[0][1];
-        double c = A[1][0];
-        double d = A[1][1];
-
-        double tr = a + d;
-        double det = a*d - b*c;
-
-        // Eigenvalues
-        double l0 = tr/2 + Math.sqrt(tr*tr/4 - det);
-        double l1 = tr/2 - Math.sqrt(tr*tr/4 - det);
-
-        // Compute Eigenvectors
-        double[] e0 = new double[2];
-        double[] e1 = new double[2];
-        if (b != 0) {
-            e0[0] = 1.0;
-            e0[1] = e0[0]*(l0 - a)/b;
-
-            e1[0] = 1.0;
-            e1[1] = e1[0]*(l1 - a)/b;
-        } else if (c != 0) {
-            e0[1] = 1.0;
-            e0[0] = e0[1]*(l0 - d)/c;
-
-            e1[1] = 1.0;
-            e1[0] = e1[1]*(l1 - d)/c;
-        } else {
-            e0[0] = 1.0;
-            e0[1] = 0.0;
-            e1[0] = 0.0;
-            e1[1] = 1.0;
-        }
-        e0 = LinAlg.normalize(e0);
-        e1 = LinAlg.normalize(e1);
-
-        // Return "sorted" list of eigenvectors where first
-        // vector returned is the major axis of the object
-        // and the second is the minor
-        double[][] evec = new double[2][2];
-        evec[0][0] = e0[0];
-        evec[0][1] = e0[1];
-        evec[1][0] = e1[0];
-        evec[1][1] = e1[1];
-
-        if (debug) {
-            System.out.printf("[%f %f], [%f %f]\n", e0[0], e0[1], e1[0], e1[1]);
+        double max = Double.MIN_VALUE;
+        for (double[] p: points) {
+            max = Math.max(p[idx], max);
         }
 
-        return evec;
+        return max;
+    }
+
+    /** Return the average value of the supplied points at idx */
+    private double getAvg(ArrayList<double[]> points, int idx)
+    {
+        if (points.size() < 1)
+            return 0;
+
+        double avg = 0;
+        for (double[] p: points) {
+            avg += p[idx];
+        }
+
+        return avg/points.size();
+    }
+
+    /** Return the average value of the supplied points at idx */
+    private double getMid(ArrayList<double[]> points, int idx)
+    {
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+
+        for (double[] p: points) {
+            min = Math.min(min, p[idx]);
+            max = Math.max(max, p[idx]);
+        }
+
+        return (max - min)/2;
     }
 
     /** Return the ObjectInfo for a relevant ID */
