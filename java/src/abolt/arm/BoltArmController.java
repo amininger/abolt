@@ -39,14 +39,14 @@ public class BoltArmController implements LCMSubscriber
             GRAB_ADJUST_GRIP, GRAB_WAITING,
         DROP_UP_CURR, DROP_UP_OVER, DROP_AT, DROP_RELEASE,
             DROP_WAITING,
-        HOME,
+        HOME, HOMING,
     }
     private ActionState state = ActionState.HOME;
 
     // Track the current mode for LCM messages
     enum ActionMode
     {
-        WAIT, GRAB, POINT, DROP, FAILURE
+        WAIT, HOME, GRAB, POINT, DROP, FAILURE
     }
     private ActionMode curAction = ActionMode.WAIT;
     private int grabbedObject = -1;
@@ -122,7 +122,7 @@ public class BoltArmController implements LCMSubscriber
                         curAction = ActionMode.DROP;
                     } else if (cmd.action.contains("RESET") ||
                                cmd.action.contains("HOME")) {
-                        curAction = ActionMode.WAIT;
+                        curAction = ActionMode.HOME;
                     }
                 }
 
@@ -134,20 +134,24 @@ public class BoltArmController implements LCMSubscriber
                     } else if (last_cmd.action.contains("DROP")) {
                         dropStateMachine();
                     } else if (last_cmd.action.contains("RESET")) {
-                        resetArm();
-
-                        curAction = ActionMode.WAIT;
-                        grabbedObject = -1;
-                        toGrab = -1;
                         if (newAction) {
+                            resetArm();
+                            grabbedObject = -1;
+                            toGrab = -1;
+                            setState(ActionState.HOMING);
+                        } else if (actionComplete()) {
                             setState(ActionState.HOME);
+                            curAction = ActionMode.WAIT;
                         }
                     } else if (last_cmd.action.contains("HOME")) {
-                        homeArm();
-
-                        curAction = ActionMode.WAIT;
                         if (newAction) {
+                            homeArm();
+                            curAction = ActionMode.HOME;
+                            setState(ActionState.HOMING);
+
+                        } else if (actionComplete()) {
                             setState(ActionState.HOME);
+                            curAction = ActionMode.WAIT;
                         }
                     }
                 }
