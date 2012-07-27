@@ -93,7 +93,7 @@
   	ivec 3
 	128 0 255
 	1
-	door=open,closed
+	door=closed,open
 }
 "abolt.sim.SimLocation"
 {
@@ -104,11 +104,11 @@
 	255 128 0
 	0
 }
-"abolt.sim.SimScale"
+"abolt.sim.SimLocation"
 {
 	vec 2
 	-.2 -.2
-	scale
+	garbage
   	ivec 3
 	0 255 0
 	0

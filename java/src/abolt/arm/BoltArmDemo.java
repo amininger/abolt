@@ -44,8 +44,6 @@ public class BoltArmDemo implements LCMSubscriber
         // If we're simulating, we spoof our own ARM_STATUS messages. Otherwise,
         // we just run normally.
         if (opts != null && opts.getBoolean("sim")) {
-            BoltArmController controller = new BoltArmController();
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter();
             st = new SimulationThread();
             st.start();
         }
@@ -114,6 +112,9 @@ public class BoltArmDemo implements LCMSubscriber
                     }
                 }
             });
+
+            ArmStatusPanel statusPanel = new ArmStatusPanel();
+            jf.add(statusPanel, BorderLayout.EAST);
 
             // Grid
             VzGrid.addGrid(vw);
@@ -318,6 +319,10 @@ public class BoltArmDemo implements LCMSubscriber
                     // XXX Ignore the rest of the values we could set
                     // for now. Could later get clever and actually set
                     // these in a way that simulates movement
+                    /*status.error_flags = dynamixel_status_t.ERROR_VOLTAGE |
+                                         dynamixel_status_t.ERROR_OVERLOAD |
+                                         dynamixel_status_t.ERROR_ANGLE_LIMIT |
+                                         dynamixel_status_t.ERROR_OVERHEAT;*/
 
                     dsl.statuses[i] = status;
                 }
@@ -387,10 +392,9 @@ public class BoltArmDemo implements LCMSubscriber
     static public void main(String[] args)
     {
         GetOpt opts = new GetOpt();
+        opts.addString('c',"config",null,"Config file");
         opts.addBoolean('s',"sim",false,"Run in simulation mode");
         opts.addBoolean('h',"help",false,"Display this help screen");
-        opts.addBoolean('l',"lcm",false,"Emit LCM");
-        opts.addString('k',"kconfig",null,"Kinect calibration config file");
 
         if (!opts.parse(args)) {
             System.err.println("ERR: Option error - "+opts.getReason());
@@ -402,6 +406,29 @@ public class BoltArmDemo implements LCMSubscriber
             return;
         }
 
+        if (opts.getString("config") == null) {
+            System.err.println("ERR: Need to supply config file");
+            return;
+        }
+
+        Config config;
+        try {
+            config = new ConfigFile(opts.getString("config"));
+        } catch (IOException ioex) {
+            System.err.println("ERR: Unable to open config file");
+            ioex.printStackTrace();
+            return;
+        }
+
+        // Initialize the arm
+        BoltArm.getSingleton().initArm(config);
+
+        if (!opts.getBoolean("sim")) {
+            ArmDriver driver = new ArmDriver(config);
+            (new Thread(driver)).start();
+        }
+        BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(false);
+        BoltArmController controller = new BoltArmController();
         BoltArmDemo bd = new BoltArmDemo(opts);
     }
 }

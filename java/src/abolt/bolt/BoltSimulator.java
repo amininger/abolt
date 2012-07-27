@@ -72,6 +72,10 @@ public class BoltSimulator implements VisConsole.Listener{
 
 	}
 
+    public VisWorld.Buffer getVisWorld(){
+        return vw.getBuffer("arm_cylinders");
+    }
+
     public SimWorld getWorld(){
     	return world;
     }
@@ -114,14 +118,14 @@ public class BoltSimulator implements VisConsole.Listener{
     	addViewTypeMenu(simMenu);
     	simMenu.addSeparator();
     	addClickTypeMenu(simMenu);
-    	
+
     	menuBar.add(simMenu);
     }
-    
+
     private void addClickTypeMenu(JMenu menu){
     	menu.add(new JLabel("Change Selection Mode"));
     	ButtonGroup clickGroup = new ButtonGroup();
-    	
+
     	JRadioButtonMenuItem select = new JRadioButtonMenuItem("Select Object");
     	select.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent arg0) {
@@ -139,7 +143,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	clickGroup.add(visiblity);
     	menu.add(visiblity);
-    	
+
 
     	JRadioButtonMenuItem changeId = new JRadioButtonMenuItem("Change Id");
     	changeId.addActionListener(new ActionListener(){
@@ -150,7 +154,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	clickGroup.add(changeId);
     	menu.add(changeId);
     }
-    
+
     private void addViewTypeMenu(JMenu menu){
     	menu.add(new JLabel("Change Simulator View"));
     	ButtonGroup viewGroup = new ButtonGroup();
@@ -173,7 +177,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	viewGroup.add(soarView);
     	menu.add(soarView);
     }
-    
+
 	public boolean consoleCommand(VisConsole console, PrintStream out, String command)
     {
         return false;
@@ -238,7 +242,7 @@ public class BoltSimulator implements VisConsole.Listener{
 	                }
                 }
             }
-            
+
             return false;
         }
     }
@@ -260,7 +264,7 @@ public class BoltSimulator implements VisConsole.Listener{
         {
             Tic tic = new Tic();
             while (true) {
-            	double dt = tic.toctic();
+                double dt = tic.toctic();
 
                 // Object drawing
             	VisWorld.Buffer objBuffer = vw.getBuffer("objects");
@@ -342,7 +346,7 @@ public class BoltSimulator implements VisConsole.Listener{
             }
         }
 	}
-	
+
     public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
     	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
     	for(VisObject obj : objects){

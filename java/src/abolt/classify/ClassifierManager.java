@@ -1,7 +1,7 @@
 package abolt.classify;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
+import java.io.*;
 
 import april.config.*;
 import april.util.*;
@@ -15,6 +15,8 @@ import abolt.lcmtypes.*;
  * Creates the classifiers used in the system and acts as a point of contact to them
  */
 public class ClassifierManager {
+
+    // Singleton handling
     private static ClassifierManager singleton = null;
     public static ClassifierManager getSingleton()
     {
@@ -24,6 +26,50 @@ public class ClassifierManager {
         return singleton;
     }
 
+    // Undo/redo functionality
+    Object stateLock = new Object();
+    private LinkedList<StackEntry> undoStack = new LinkedList<StackEntry>();
+    private LinkedList<StackEntry> redoStack = new LinkedList<StackEntry>();
+    private class StackEntry
+    {
+        public CPoint point;
+        public FeatureCategory cat;
+        public String action;
+
+        // Only used when reading in
+        public StackEntry()
+        {
+
+        }
+
+        public StackEntry(CPoint point_, FeatureCategory cat_, String action_)
+        {
+            point = point_;
+            cat = cat_;
+            action = action_;
+        }
+
+        public void write(StructureWriter outs) throws IOException
+        {
+            outs.writeString(point.label);
+            outs.writeDoubles(point.coords);
+            outs.writeString(cat.name());
+            outs.writeString(action);
+        }
+
+        public void read(StructureReader ins) throws IOException
+        {
+            String label = ins.readString();
+            double[] coords = ins.readDoubles();
+            point = new CPoint(label, coords);
+
+            cat = FeatureCategory.valueOf(ins.readString());
+
+            action = ins.readString();
+        }
+    }
+
+    // The classfiers
 	private HashMap<FeatureCategory, IClassifier> classifiers;
 
     public ClassifierManager()
@@ -43,13 +89,9 @@ public class ClassifierManager {
         sizeDataFile = config.getString("training.size_data");
 
 		classifiers = new HashMap<FeatureCategory, IClassifier>();
-        //classifiers.put(FeatureCategory.COLOR, new KNN(1, 6, colorDataFile, 0.2));
-        //classifiers.put(FeatureCategory.SHAPE, new ShapeKNN(10, 15, shapeDataFile, 1));
-        //classifiers.put(FeatureCategory.SIZE, new KNN(5, 2, sizeDataFile, 1));
 
         // New classification code
         // For now, manually specified parameters on weight
-
         GKNN colorKNN = new GKNN(10, 0.1);
         colorKNN.setDataFile(colorDataFile);
         classifiers.put(FeatureCategory.COLOR, colorKNN);
@@ -76,8 +118,8 @@ public class ClassifierManager {
 		if(features == null || classifier == null){
 			return null;
 		}
-        Classifications classifications;
-		synchronized(classifier){
+        	Classifications classifications;
+		synchronized (stateLock) {
 			classifications = classifier.classify(features);
 		}
 		return classifications;
@@ -85,14 +127,17 @@ public class ClassifierManager {
 
 	public void addDataPoint(FeatureCategory cat, ArrayList<Double> features, String label){
 		IClassifier classifier = classifiers.get(cat);
-		synchronized(classifier){
-			classifier.add(features, label);
+		synchronized(stateLock){
+            CPoint point = new CPoint(label, features);
+            StackEntry entry = new StackEntry(point, cat, "ADD");
+			classifier.add(point);
+            undoStack.add(entry);
 		}
 	}
 
 	public void clearData(){
 		for(IClassifier classifier : classifiers.values()){
-			synchronized(classifier){
+			synchronized(stateLock){
 				classifier.clearData();
 			}
 		}
@@ -100,12 +145,142 @@ public class ClassifierManager {
 
 	public void reloadData(){
 		for(IClassifier classifier : classifiers.values()){
-			synchronized(classifier){
+			synchronized(stateLock){
 				classifier.clearData();
 				classifier.loadData();
 			}
 		}
 	}
+
+    public boolean hasUndo()
+    {
+        return undoStack.size() > 0;
+    }
+
+    public boolean hasRedo()
+    {
+        return redoStack.size() > 0;
+    }
+
+    /** Undo function. Undoes the last action taken by the user */
+    public void undo()
+    {
+        synchronized (stateLock) {
+            if (undoStack.size() < 1)
+                return;
+            StackEntry entry = undoStack.pollLast();
+
+            if (entry.action.equals("ADD")) {
+                classifiers.get(entry.cat).removeLast();
+                redoStack.add(entry);
+            } else {
+                System.err.println("ERR: Unhandled undo case - "+entry.action);
+            }
+        }
+    }
+
+    /** Redo function. Takes the last undone action and redoes it */
+    public void redo()
+    {
+        synchronized (stateLock) {
+            if (redoStack.size() < 1)
+                return;
+            StackEntry entry = redoStack.pollLast();
+
+            if (entry.action.equals("ADD")) {
+                classifiers.get(entry.cat).add(entry.point);
+                undoStack.add(entry);
+            } else {
+                System.err.println("ERR: Unhandled redo case - "+entry.action);
+            }
+        }
+    }
+
+    // XXX Might want to spawn a backup thread to do this...
+    /** Write out a backup file of our current state. */
+    public void writeState(String filename) throws IOException
+    {
+        synchronized (stateLock) {
+            // As it stands, the undo/redo stacks possess all of the
+            // information necessary to back up the entire system
+            // state. Thus, the implementation of undo and redo
+            // are directly connected with our ability to load from
+            // this state
+            StructureWriter outs = new TextStructureWriter(new BufferedWriter(new FileWriter(filename)));
+
+            outs.writeString("undo");
+            outs.writeInt(undoStack.size());
+            outs.blockBegin();
+            for (StackEntry entry: undoStack) {
+                outs.blockBegin();
+                entry.write(outs);
+                outs.blockEnd();
+            }
+            outs.blockEnd();
+
+            outs.writeString("redo");
+            outs.writeInt(redoStack.size());
+            outs.blockBegin();
+            for (StackEntry entry: redoStack) {
+                outs.blockBegin();
+                entry.write(outs);
+                outs.blockEnd();
+            }
+            outs.blockEnd();
+
+            outs.close();
+        }
+    }
+
+    /** Read in a backup file of our current state,
+     *  resetting all state to match that of the file
+     */
+    public void readState(String filename) throws IOException
+    {
+        synchronized (stateLock) {
+            // Reset state
+            clearData();
+
+            // Again, based on the premise than undo and redo work a certain way
+            StructureReader ins = new TextStructureReader(new BufferedReader(new FileReader(filename)));
+
+            String undoString = ins.readString();
+            assert (undoString.equals("undo"));
+            int undoSize = ins.readInt();
+            ins.blockBegin();
+            for (int i = 0; i < undoSize; i++) {
+                ins.blockBegin();
+                StackEntry entry = new StackEntry();
+                entry.read(ins);
+
+                if (entry.action.equals("ADD")) {
+                    classifiers.get(entry.cat).add(entry.point);
+                }
+
+                undoStack.add(entry);
+
+                ins.blockEnd();
+            }
+            ins.blockEnd();
+
+            String redoString = ins.readString();
+            assert (redoString.equals("redo"));
+            int redoSize = ins.readInt();
+            ins.blockBegin();
+            for (int i = 0; i < redoSize; i++) {
+                ins.blockBegin();
+                StackEntry entry = new StackEntry();
+                entry.read(ins);
+
+                redoStack.add(entry);
+
+                ins.blockEnd();
+            }
+            ins.blockEnd();
+
+            ins.close();
+        }
+    }
 
     /** Build up the object_data_t describing the observed objects
      *  in the world. Runs classifiers on the objects and builds
