@@ -35,9 +35,10 @@ public class ArmSimulator implements LCMSubscriber{
 	private static LCM lcm = LCM.getSingleton();
 
 	private static final int UPDATE_RATE = 10;	// # updates per second
-	private static final int GRABBING_TIME = UPDATE_RATE*3;
-	private static final int POINTING_TIME = UPDATE_RATE*2;
+	private static final int GRABBING_TIME = UPDATE_RATE*2;
+	private static final int POINTING_TIME = UPDATE_RATE;
 	private static final int DROPPING_TIME = UPDATE_RATE;
+	private static final int HOMING_TIME = UPDATE_RATE;
 	private Timer updateTimer;
 
     Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();
@@ -71,11 +72,14 @@ public class ArmSimulator implements LCMSubscriber{
 
 	public void update(){
 		if(curState == ActionMode.WAIT){
+			// If waiting, execute the next command in the queue
 			if(!cmds.isEmpty()){
 				executeCommand(cmds.poll());
 			}
 		} else {
+			// Performing an action, take another step
 			if(--stepsLeft == 0){
+				// Finished with the current action, start waiting
 				if(curState == ActionMode.DROP){
 					grabbedID = -1;
 				}
@@ -86,6 +90,7 @@ public class ArmSimulator implements LCMSubscriber{
 			}
 		}
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
+			// we are holding an object, so set its position to where the arm is
 			BoltObjectManager objManager = BoltObjectManager.getSingleton();
 			BoltObject obj;
 			synchronized(objManager.objects){
@@ -146,6 +151,12 @@ public class ArmSimulator implements LCMSubscriber{
 			goal[1] = 0;
 			grabbedID = -1;
 			stepsLeft = POINTING_TIME;
+		} else if(action.contains("HOME")){
+			curState = ActionMode.HOME;
+			goal[0] = 0;
+			goal[1] = 0;
+			grabbedID = -1;
+			stepsLeft = HOMING_TIME;
 		}
 	}
 
@@ -174,6 +185,9 @@ public class ArmSimulator implements LCMSubscriber{
 			break;
 		case DROP:
 			status.action = "DROP";
+			break;
+		case HOME:
+			status.action = "HOME";
 			break;
 		default:
 			status.action = "WAIT";

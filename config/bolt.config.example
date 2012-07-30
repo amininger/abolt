@@ -18,6 +18,8 @@ arm {
     big_arm {
         calib_offset = 0.0525;
         base_height = 0.052;
+	wrist_height = .6;
+
         r# {
             range = [-180, 180];    // [deg]
             length = 0.051;         // [m]
@@ -79,6 +81,8 @@ arm {
     small_arm {
         calib_offset = 0.061;
         base_height = 0.075;
+	wrist_height = .38;
+
         r# {
             range = [-180, 180];
             length = 0.04;
@@ -130,7 +134,7 @@ arm {
             speed = 0.25;
             torque = 0.9;
             
-            wodth = 0.06;
+            width = 0.06;
         }
         // XXX Hand joint currently hardcoded
     }

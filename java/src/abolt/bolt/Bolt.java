@@ -53,7 +53,7 @@ public class Bolt extends JFrame implements LCMSubscriber
     // LCM
     static LCM lcm = LCM.getSingleton();
     private Timer sendObservationTimer;
-    private static final int OBSERVATION_RATE = 2; // # sent per second
+    private static final int OBSERVATION_RATE = 4; // # sent per second
 
     // Periodic tasks
     PeriodicTasks tasks = new PeriodicTasks(2);   // Only one thread for now
