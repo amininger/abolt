@@ -39,14 +39,14 @@ public class BoltArmController implements LCMSubscriber
             GRAB_ADJUST_GRIP, GRAB_WAITING,
         DROP_UP_CURR, DROP_UP_OVER, DROP_AT, DROP_RELEASE,
             DROP_WAITING,
-        HOME,
+        HOME, HOMING,
     }
     private ActionState state = ActionState.HOME;
 
     // Track the current mode for LCM messages
     enum ActionMode
     {
-        WAIT, GRAB, POINT, DROP, FAILURE
+        WAIT, HOME, GRAB, POINT, DROP, FAILURE
     }
     private ActionMode curAction = ActionMode.WAIT;
     private int grabbedObject = -1;
@@ -60,7 +60,7 @@ public class BoltArmController implements LCMSubscriber
     	}
     }
     public static BoltArmController Singleton = null;
-    
+
     // A simple elbow-up controller
     class ControlThread extends Thread
     {
@@ -77,9 +77,6 @@ public class BoltArmController implements LCMSubscriber
         // previous command/status state
         dynamixel_command_list_t last_cmds;
 
-        // General planning
-        double minR         = 0.10;     // Minimum distance away from arm center at which we plan
-
         // Pointing
         double goalHeight   = 0.08;     // Goal height of end effector
         double transHeight  = 0.20;     // Transition height of end effector
@@ -87,7 +84,8 @@ public class BoltArmController implements LCMSubscriber
         // Grabbing & sweeping
         double sweepHeight  = 0.025;    // Height at which we sweep objects along
         double preGrabHeight = 0.06;   // Height at which we pause before final grabbing motion
-        double grabHeight   = 0.015;    // Height at which we try to grab objects
+        //double grabHeight   = 0.015;    // Height at which we try to grab objects
+        double grabHeight = 0.020;
 
         // Defaults
         double defGrip      = Math.toRadians(30.0); // Keep the hand partially closed when possible
@@ -124,7 +122,7 @@ public class BoltArmController implements LCMSubscriber
                         curAction = ActionMode.DROP;
                     } else if (cmd.action.contains("RESET") ||
                                cmd.action.contains("HOME")) {
-                        curAction = ActionMode.WAIT;
+                        curAction = ActionMode.HOME;
                     }
                 }
 
@@ -136,20 +134,24 @@ public class BoltArmController implements LCMSubscriber
                     } else if (last_cmd.action.contains("DROP")) {
                         dropStateMachine();
                     } else if (last_cmd.action.contains("RESET")) {
-                        resetArm();
-
-                        curAction = ActionMode.WAIT;
-                        grabbedObject = -1;
-                        toGrab = -1;
                         if (newAction) {
+                            resetArm();
+                            grabbedObject = -1;
+                            toGrab = -1;
+                            setState(ActionState.HOMING);
+                        } else if (actionComplete()) {
                             setState(ActionState.HOME);
+                            curAction = ActionMode.WAIT;
                         }
                     } else if (last_cmd.action.contains("HOME")) {
-                        homeArm();
-
-                        curAction = ActionMode.WAIT;
                         if (newAction) {
+                            homeArm();
+                            curAction = ActionMode.HOME;
+                            setState(ActionState.HOMING);
+
+                        } else if (actionComplete()) {
                             setState(ActionState.HOME);
+                            curAction = ActionMode.WAIT;
                         }
                     }
                 }
@@ -338,9 +340,9 @@ public class BoltArmController implements LCMSubscriber
             //      6: Adjust grip so we grab tightly, but don't break hand
             //      7: Switch action state back to waiting
             dynamixel_status_t gripper_status;
-            double maxLoad = 0.425;
+            double maxLoad = 0.400;
             double minLoad = 0.275;
-            double gripIncr = Math.toRadians(3.0);
+            double gripIncr = Math.toRadians(2.5);
             switch (state) {
                 case GRAB_UP_CURR:
                     // Open hand
@@ -377,7 +379,8 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case GRAB_AT:
-                    moveTo(goal, grabHeight, grabHeight*1.8);   // Try to compensate for sagging arm
+                    //moveTo(goal, grabHeight, grabHeight*1.8);   // Try to compensate for sagging arm
+                    moveTo(goal, grabHeight);
 
                     if (actionComplete()) {
                         setState(ActionState.GRAB_START_GRIP);
@@ -572,7 +575,7 @@ public class BoltArmController implements LCMSubscriber
         private void moveTo(double[] goal, double heightS, double heightC)
         {
             // Compute gripping ranges on the fly
-            double minR = 0.05;
+            double minR = 0.010;
             double maxSR;
             double maxCR;
 

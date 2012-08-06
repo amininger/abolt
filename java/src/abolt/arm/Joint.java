@@ -11,7 +11,7 @@ import abolt.lcmtypes.*;
  *  joints clean and to make such tasks as rendering
  *  a long chain of arm segments a short, simple loop
  */
-interface Joint
+public interface Joint
 {
     /** Render the joint in question */
     public VisObject getVis();
