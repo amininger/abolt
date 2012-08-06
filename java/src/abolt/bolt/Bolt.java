@@ -352,12 +352,13 @@ public class Bolt extends JFrame implements LCMSubscriber
 
         KUtils.createDepthMap();
         Bolt bolt = new Bolt(opts);
+
+        // Initialize the arm
+        BoltArm.getSingleton().initArm(config);
+
         BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
         BoltArmController controller = new BoltArmController();
         if (opts.getBoolean("arm")) {
-            // Initialize the arm
-            BoltArm.getSingleton().initArm(config);
-
             ArmDriver armDriver = new ArmDriver(config);
             (new Thread(armDriver)).start();
             if (opts.getBoolean("debug")) {

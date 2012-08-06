@@ -139,7 +139,7 @@ public class BoltArmController implements LCMSubscriber
                             grabbedObject = -1;
                             toGrab = -1;
                             setState(ActionState.HOMING);
-                        } else if (actionComplete()) {
+                        } else if (actionComplete() && !state.equals(ActionState.HOME)) {
                             setState(ActionState.HOME);
                             curAction = ActionMode.WAIT;
                         }
@@ -149,7 +149,7 @@ public class BoltArmController implements LCMSubscriber
                             curAction = ActionMode.HOME;
                             setState(ActionState.HOMING);
 
-                        } else if (actionComplete()) {
+                        } else if (actionComplete() && !state.equals(ActionState.HOME)) {
                             setState(ActionState.HOME);
                             curAction = ActionMode.WAIT;
                         }
