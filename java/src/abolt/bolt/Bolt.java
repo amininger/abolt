@@ -351,10 +351,11 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
 
         KUtils.createDepthMap();
-        Bolt bolt = new Bolt(opts);
 
         // Initialize the arm
         BoltArm.getSingleton().initArm(config);
+
+        Bolt bolt = new Bolt(opts);
 
         BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
         BoltArmController controller = new BoltArmController();
