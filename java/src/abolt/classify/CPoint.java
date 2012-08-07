@@ -15,7 +15,7 @@ public class CPoint
 
     public CPoint(String label_, ArrayList<Double> coords_)
     {
-        this(label_, BoltMath.toArray(coords_));
+        this(label_, BoltMath.toArray(coords_, new double[coords_.size()]));
     }
 
     public CPoint(String label_, double[] coords_)

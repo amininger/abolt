@@ -351,17 +351,23 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
 
         KUtils.createDepthMap();
-        Bolt bolt = new Bolt(opts);
-        if (opts.getBoolean("arm")) {
-            // Initialize the arm
-            BoltArm.getSingleton().initArm(config);
 
+        // Initialize the arm
+        BoltArm.getSingleton().initArm(config);
+
+        Bolt bolt = new Bolt(opts);
+
+        BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
+        BoltArmController controller = new BoltArmController();
+        if (opts.getBoolean("arm")) {
             ArmDriver armDriver = new ArmDriver(config);
             (new Thread(armDriver)).start();
-            BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
-            BoltArmController controller = new BoltArmController();
             if (opts.getBoolean("debug")) {
-                BoltArmDemo demo = new BoltArmDemo(null); // XXX This won't quite make sense
+                BoltArmDemo demo = new BoltArmDemo(false);
+            }
+        } else {
+            if (opts.getBoolean("debug")) {
+                BoltArmDemo demo = new BoltArmDemo(true);
             }
         }
 

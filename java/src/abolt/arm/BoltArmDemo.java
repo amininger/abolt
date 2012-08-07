@@ -34,16 +34,11 @@ public class BoltArmDemo implements LCMSubscriber
     // XXX Do we even use cmds anymore?
     ExpiringMessageCache<observations_t> observations = new ExpiringMessageCache<observations_t>(2.5, true);
 
-    // Command line flags/options
-    GetOpt opts;
-
-    public BoltArmDemo(GetOpt opts_)
+    public BoltArmDemo(boolean sim)
     {
-        opts = opts_;
-
         // If we're simulating, we spoof our own ARM_STATUS messages. Otherwise,
         // we just run normally.
-        if (opts != null && opts.getBoolean("sim")) {
+        if (sim) {
             st = new SimulationThread();
             st.start();
         }
@@ -429,6 +424,6 @@ public class BoltArmDemo implements LCMSubscriber
         }
         BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(false);
         BoltArmController controller = new BoltArmController();
-        BoltArmDemo bd = new BoltArmDemo(opts);
+        BoltArmDemo bd = new BoltArmDemo(opts.getBoolean("sim"));
     }
 }

@@ -1,11 +1,13 @@
 package abolt.classify;
 
-import java.util.ArrayList;
+import java.util.*;
 
-import abolt.bolt.Bolt;
-import abolt.kinect.KUtils;
-import abolt.kinect.ObjectInfo;
-import april.jmat.LinAlg;
+import april.jmat.*;
+
+import abolt.bolt.*;
+import abolt.kinect.*;
+import abolt.util.*;
+
 /**
  * @author Aaron
  * Contains methods for extracting size features from an object or point cloud
@@ -16,7 +18,8 @@ public class SizeFeatureExtractor{
 		return getFeatures(object.points);
 	}
 
-	public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
+    // XXX Original size features
+	/*public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
     {
 		ArrayList<Double> features = new ArrayList<Double>();
 		if(points.size() == 0){
@@ -47,7 +50,42 @@ public class SizeFeatureExtractor{
 		features.add(distSum);
 
 		return features;
-	}
+	}*/
+
+    // Slightly improved (???) size features
+    public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
+    {
+        // Now extract the appropriate values
+        ArrayList<Double> features = new ArrayList<Double>();
+		if(points.size() == 0){
+			//features.add(0.0);
+			features.add(0.0);
+			return features;
+		}
+
+        // First, put the points into a canonical orientation
+        // XXX Where does this conversion happen?
+        ArrayList<double[]> worldPoints = KUtils.k2wConvert(points);
+        ArrayList<double[]> canonical = BoltUtil.getCanonical(worldPoints);
+
+		// Feature: Length of bbox diagonal
+		//double[] bbox = boundingBox(canonical);
+		//features.add(Math.sqrt(LinAlg.normF(new double[]{bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2]})));
+
+        // Feature: average distance from the mean
+        double[] mean = BoltUtil.getCentroid(canonical);
+
+		double distSum = 0;
+		for(double[] pt : canonical){
+			distSum += LinAlg.distance(pt, mean);
+		}
+		distSum /= points.size();
+
+		features.add(distSum);
+
+		return features;
+
+    }
 
 	/**
 	 * Find the bounding box for a group of pixels by finding the extreme values
