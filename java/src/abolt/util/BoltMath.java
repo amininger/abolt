@@ -9,9 +9,11 @@ public class BoltMath
         return Math.abs(a-b) < thresh;
     }
 
-    public static double[] toArray(Collection<Double> collection)
+    public static double[] toArray(Collection<Double> collection, double[] da)
     {
-        double[] da = new double[collection.size()];
+        if (da == null || da.length < collection.size()) {
+            da = new double[collection.size()];
+        }
         int i = 0;
         for (Double d: collection) {
             da[i++] = d;
@@ -20,9 +22,11 @@ public class BoltMath
         return da;
     }
 
-    public static int[] toArray(Collection<Integer> collection)
+    public static int[] toArray(Collection<Integer> collection, int[] ia)
     {
-        int[] ia = new int[collection.size()];
+        if (ia == null || ia.length < collection.size()) {
+            ia = new int[collection.size()];
+        }
         int j = 0;
         for (Integer i: collection) {
             ia[j++] = i;

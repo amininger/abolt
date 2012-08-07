@@ -3,6 +3,7 @@ package abolt.kinect;
 import java.util.*;
 
 import april.jmat.*;
+import april.jmat.geom.*;
 import april.util.*;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.arm.*;
@@ -12,13 +13,14 @@ public class ObjectTracking
     final double MAX_TRAVEL_DIST = 0.07;//.1;
     final double MAX_COLOR_CHANGE = 60;//40;
     final int MAX_HISTORY = 10;
-    private final static double DARK_THRESHOLD = .4;
+    final int MAX_JUST_DROPPED = 5;
 
-    private BoltArm arm;
+    public BoltArm arm; //XXXXXXXXXXXXXXXXXXXx
     private HashMap<Integer, ObjectInfo> lastFrame;
     private HashMap<Integer, ObjectInfo> lostObjects;
     private HashMap<Integer, Long> lostTime;
     private ObjectInfo heldObject;
+    private int justDroppedCount;
 
     enum ArmState
     {  GRABBING_OBJECT, HOLDING_OBJECT, DROPPING_OBJECT,
@@ -59,8 +61,8 @@ public class ObjectTracking
             heldObject = lastFrame.get(hashID);
             if(heldObject != null){
                 armState = ArmState.GRABBING_OBJECT;
-		removeRepIDFromHistory(heldObject.repID);
-	    }
+                removeRepIDFromHistory(heldObject.repID);
+            }
         }
     }
 
@@ -87,9 +89,17 @@ public class ObjectTracking
             armState = ArmState.HOLDING_OBJECT;
             removeRepIDFromHistory(heldObject.repID);
         }
-        else if(armState == ArmState.DROPPING_OBJECT
-                || armState == ArmState.JUST_DROPPED_OBJECT){
+        else if(armState == ArmState.DROPPING_OBJECT){
             armState = ArmState.JUST_DROPPED_OBJECT;
+            justDroppedCount = 0;
+        }
+        else if (armState == ArmState.JUST_DROPPED_OBJECT){
+            if(justDroppedCount < MAX_JUST_DROPPED)
+                armState = ArmState.JUST_DROPPED_OBJECT;
+            else{
+                armState = ArmState.WAITING;
+                heldObject = null;
+            }
         }
         else
             armState = ArmState.WAITING;
@@ -154,7 +164,7 @@ public class ObjectTracking
         // Remove held object from the last frame
         Set objects = lastFrame.keySet();
         ArrayList<Integer> toRemove = new ArrayList<Integer>();
-	ObjectInfo last;
+        ObjectInfo last;
         for(Object obj : objects){
 	    last = lastFrame.get((Integer)obj);
             if(last != null && last.repID == id){
@@ -167,7 +177,7 @@ public class ObjectTracking
         // Remove held object from the lost object list
         objects = lostObjects.keySet();
         toRemove = new ArrayList<Integer>();
-	ObjectInfo lost;
+        ObjectInfo lost;
         for(Object obj : objects){
 	    lost = lostObjects.get((Integer)id);
             if(lost != null && lost.repID == id){
@@ -180,24 +190,6 @@ public class ObjectTracking
         }
     }
 
-    public HashMap<Integer, ObjectInfo> removeDark(HashMap<Integer, ObjectInfo> objects)
-    {
-	ArrayList<Integer> toRemove = new ArrayList<Integer>();
-	for(ObjectInfo info : objects.values()){
-	    ArrayList<Double> colorFeatures = ColorFeatureExtractor.getFeatures(info);
-	    if(colorFeatures.get(0) <= DARK_THRESHOLD && 
-	       colorFeatures.get(1) <= DARK_THRESHOLD &&
-	       colorFeatures.get(2) <= DARK_THRESHOLD){
-		toRemove.add(info.ufsID);
-	    }
-	}
-	for(Integer i : toRemove)
-	    objects.remove(i);
-
-	return objects;
-    }
-
-
 
     /** When we get a new frame of objects, we want to try to match them
      *  to the objects from the most recent frame. If there are no matches
@@ -208,8 +200,10 @@ public class ObjectTracking
     public HashMap<Integer, ObjectInfo> newObjects(HashMap<Integer,
                                                    ObjectInfo> currentFrame)
     {
-	//        System.out.println(armState+", holdingObject="+(heldObject!=null));
-	currentFrame = removeDark(currentFrame);
+        //System.out.println("==========="+armState+"============"+(heldObject!=null));
+
+        if(armState == ArmState.JUST_DROPPED_OBJECT)
+            justDroppedCount ++;
 
         // Make sure there are previous objects
         if(lastFrame.size() <= 0){
@@ -218,9 +212,10 @@ public class ObjectTracking
                 oi.createRepID();
             }
             lastFrame = currentFrame;
-            if(heldObject != null)
+            if(heldObject != null){
+                heldObject.resetCenter(arm.getGripperXYZRPY());
                 currentFrame.put(heldObject.ufsID, heldObject);
-
+            }
             return currentFrame;
         }
 
@@ -231,24 +226,18 @@ public class ObjectTracking
         Set oldIDs = lastFrame.keySet();
         for(Object idNew : currentIDs)
             unusedNew.put((Integer)idNew, (Integer)idNew);
-        //System.out.println("Old IDs:");
-        for(Object idOld : oldIDs ){
+        for(Object idOld : oldIDs )
             unusedOld.put((Integer)idOld, (Integer) idOld);
-            /*double[] c = lastFrame.get(idOld).getCenter();
-            System.out.printf("%d(%d): (%.5f, %.5f, %.5f)\n",
-                              lastFrame.get(idOld).repID, idOld,
-                              c[0], c[1], c[2]);*/
-        }
-
 
         // if we just dropped an object, Widen the range of the match area,
         // try to match it before anything else.
         boolean unmatchedDroppedObject = false;
         if(heldObject != null ){
+            double[] pos = heldObject.getCenter();
+            //System.out.printf("%.4f, %.4f, %.4f\n", pos[0], pos[1], pos[2]);
             double bestMatch = 100000;
             int bestID = -1;
 
-            //System.out.println("COMPARE FOR DROPPED");
             Set cNew = unusedNew.keySet();
             for(Object currentID : cNew){
                 ObjectInfo objNew = currentFrame.get((Integer)currentID);
@@ -256,12 +245,6 @@ public class ObjectTracking
                                          heldObject.getCenter());
                 double color = LinAlg.distance(objNew.avgColor(),
                                                heldObject.avgColor());
-
-                double[] c = objNew.getCenter();
-                //System.out.printf("Comparing (%.5f, %.5f, %.5f) to %d: %f, %f\n",
-                //                  c[0], c[1], c[2], heldObject.repID, dist, color);
-
-
                 if(dist < bestMatch
                    && dist < MAX_TRAVEL_DIST
                    && color < MAX_COLOR_CHANGE){
@@ -272,28 +255,30 @@ public class ObjectTracking
 
             // Equate the best pair
             if(bestID > -1){
-		unusedNew.remove(bestID);
+                unusedNew.remove(bestID);
                 ObjectInfo obj = currentFrame.get(bestID);
                 obj.equateObject(heldObject.repID, heldObject.avgColor());
                 Integer toRemove = -1;
-		for(Object id : unusedOld.keySet()){
-		    if(lastFrame.get((Integer)id).repID == heldObject.repID)
-			toRemove = (Integer) id;
-		}
-		if(toRemove > -1)
-		    unusedOld.remove(toRemove);
-		    
-		removeRepIDFromHistory(heldObject.repID);
-	
+                for(Object id : unusedOld.keySet()){
+                    if(lastFrame.get((Integer)id).repID == heldObject.repID)
+                        toRemove = (Integer) id;
+                }
+                if(toRemove > -1)
+                    unusedOld.remove(toRemove);
+
+                removeRepIDFromHistory(heldObject.repID);
+                //System.out.println("Found a match!");
+                if(armState == ArmState.JUST_DROPPED_OBJECT){
+                    //System.out.println("Setting held object to null");
+                    heldObject = null;
+                }
             }
             else
                 unmatchedDroppedObject = true;
         }
 
-
         // Greedy search to match objects between current and last frame
         ObjectInfo objNew, objOld;
-        //System.out.println("COMPARISON FOR GENERAL");
         for(int i=0; i<currentFrame.size(); i++){
             Set cNew = unusedNew.keySet();
             Set cOld = unusedOld.keySet();
@@ -308,26 +293,21 @@ public class ObjectTracking
                 for(Object oldObj : cOld){
                     Integer pastID = (Integer) oldObj;
                     objOld = lastFrame.get(pastID);
-		    if(objNew != null && objOld != null){
-			double dist = xydistance(objNew.getCenter(),
-						 objOld.getCenter());
-			double color = LinAlg.distance(objNew.avgColor(),
-						       objOld.avgColor());
-			double score = color + dist;
-			
+                    if(objNew != null && objOld != null){
+                        double dist = xydistance(objNew.getCenter(),
+                                                 objOld.getCenter());
+                        double color = LinAlg.distance(objNew.avgColor(),
+                                                       objOld.avgColor());
+                        double score = color + dist;
 
-			//double[] c = objNew.getCenter();
-			//System.out.printf("Comparing (%.5f, %.5f, %.5f) to %d: %f, %f\n",
-			//                  c[0], c[1], c[2], objOld.repID, dist, color);
-
-			if(dist < bestMatch //&& dist < MAX_TRAVEL_DIST){
-			   && dist < MAX_TRAVEL_DIST
-			   && color < MAX_COLOR_CHANGE){
-			    newID = currentID;
-			    oldID = pastID;
-			    bestMatch = dist;
-			}
-		    }
+                        if(dist < bestMatch
+                           && dist < MAX_TRAVEL_DIST
+                           && color < MAX_COLOR_CHANGE){
+                            newID = currentID;
+                            oldID = pastID;
+                            bestMatch = dist;
+                        }
+                    }
                 }
             }
 
@@ -342,7 +322,6 @@ public class ObjectTracking
 
         // See if any of the unmatched objects match lost objects
         if(unusedNew.size() > 0){
-            //System.out.println(unusedNew.size()+" unused objects.");
             Set unusedSet = unusedNew.keySet();
             Set lostSet = lostObjects.keySet();
             for(Object unused : unusedSet){
@@ -352,15 +331,15 @@ public class ObjectTracking
                 Integer bestID = -1;
                 for(Object lost : lostSet){
                     Integer lostID = (Integer) lost;
-		    ObjectInfo lostObj = lostObjects.get(lostID);
-		    if(lostObj != null && unusedObj != null){
+                    ObjectInfo lostObj = lostObjects.get(lostID);
+                    if(lostObj != null && unusedObj != null){
 
-			double dist = xydistance(unusedObj.getCenter(),
-						 lostObj.getCenter());
+                        double dist = xydistance(unusedObj.getCenter(),
+                                                 lostObj.getCenter());
                         double color = LinAlg.distance(unusedObj.avgColor(),
                                                        lostObj.avgColor());
                         double score = color/441 + dist;
-                        if(dist < bestMatch //&& dist < MAX_TRAVEL_DIST*1.5){
+                        if(dist < bestMatch
                            && dist < MAX_TRAVEL_DIST
                            && color < MAX_COLOR_CHANGE){
                             bestID = lostID;
@@ -377,56 +356,35 @@ public class ObjectTracking
                     lostObjects.remove(bestID);
                     lostTime.remove(bestID);
                 }
-                else{
+                else
                     unusedObj.createRepID();
-                    //System.out.println("Making new ID "+unusedObj.repID);
-                }
             }
         }
 
         updateHistory(unusedOld);
         lastFrame = currentFrame;
 
-        /*boolean unmatchedObjectGrabbing = true;
-        if(armState == ArmState.GRABBING_OBJECT && heldObject != null){
-            Set current = currentFrame.keySet();
-            for(Object obj : current){
-                ObjectInfo oi = currentFrame.get((Integer) obj);
-                if(oi.repID == heldObject.repID){
-                    unmatchedObjectGrabbing = false;
-                    break;
-                }
-            }
-	    }*/
-
         // Add in held object, if there is one.
         if((heldObject != null && armState == ArmState.HOLDING_OBJECT)
            || unmatchedDroppedObject){
-	   // || !unmatchedObjectGrabbing){
-            //System.out.print(currentFrame.size()+"-->");
             if(armState == ArmState.HOLDING_OBJECT)
                 heldObject.resetCenter(arm.getGripperXYZRPY());
 
             currentFrame.put(heldObject.ufsID, heldObject);
-            //System.out.println("Object added to current frame-->"+currentFrame.size());
         }
 
-	/*
-        System.out.println("Current IDs:");
-        Set current = currentFrame.keySet();
-        for(Object id : current){
-            ObjectInfo obj = currentFrame.get((Integer)id);
-            double[] center = obj.getCenter();
-            int[] color = obj.avgColor();
-
-            System.out.printf("%d(%d): (%d, %d, %d)\t(%.4f, %.4f, %.4f)\n",
-                              obj.repID, obj.ufsID,
-                              color[0], color[1], color[2],
-                              center[0], center[1], center[2]);
+/*
+        System.out.println("Current Objects:");
+        for(ObjectInfo info : currentFrame.values()){
+            double[] c = info.getCenter();
+            System.out.printf("\t%d: (%.4f, %.4f, %.4f)\n", info.repID, c[0], c[1], c[2]);
         }
-        System.out.println("--------------------------------------------");
-        */
-
+        System.out.println("Lost Objects:");
+        for(ObjectInfo info : .values()){
+            double[] c = info.getCenter();
+            System.out.printf("\t%d: (%.4f, %.4f, %.4f)\n", info.repID, c[0], c[1], c[2]);
+        }
+*/
         return currentFrame;
     }
 }

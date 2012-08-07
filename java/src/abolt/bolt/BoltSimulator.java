@@ -77,6 +77,10 @@ public class BoltSimulator implements VisConsole.Listener{
 
 	}
 
+    public VisWorld.Buffer getVisWorld(){
+        return vw.getBuffer("arm_cylinders");
+    }
+
     public SimWorld getWorld(){
     	return world;
     }
@@ -119,14 +123,14 @@ public class BoltSimulator implements VisConsole.Listener{
     	addViewTypeMenu(simMenu);
     	simMenu.addSeparator();
     	addClickTypeMenu(simMenu);
-    	
+
     	menuBar.add(simMenu);
     }
-    
+
     private void addClickTypeMenu(JMenu menu){
     	menu.add(new JLabel("Change Selection Mode"));
     	ButtonGroup clickGroup = new ButtonGroup();
-    	
+
     	JRadioButtonMenuItem select = new JRadioButtonMenuItem("Select Object");
     	select.addActionListener(new ActionListener(){
 			@Override
@@ -146,7 +150,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	});
     	clickGroup.add(visiblity);
     	menu.add(visiblity);
-    	
+
 
     	JRadioButtonMenuItem changeId = new JRadioButtonMenuItem("Change Id");
     	changeId.addActionListener(new ActionListener(){
@@ -158,7 +162,7 @@ public class BoltSimulator implements VisConsole.Listener{
     	clickGroup.add(changeId);
     	menu.add(changeId);
     }
-    
+
     private void addViewTypeMenu(JMenu menu){
     	menu.add(new JLabel("Change Simulator View"));
     	ButtonGroup viewGroup = new ButtonGroup();
@@ -188,7 +192,7 @@ public class BoltSimulator implements VisConsole.Listener{
         System.out.println("Set view: "+view);
     	this.viewType = view;
     }
-    
+
     private void setClickType(ClickType click){
     	this.clickType = click;
     }
@@ -278,7 +282,7 @@ public class BoltSimulator implements VisConsole.Listener{
                 	}
                 }
             }
-            
+
             return false;
         }
     }
@@ -292,7 +296,7 @@ public class BoltSimulator implements VisConsole.Listener{
         {
             Tic tic = new Tic();
             while (true) {
-            	
+
                 double dt = tic.toctic();
                 if (animation != null) {
                     VisWorld.Buffer vb = vw.getBuffer("selection");
@@ -336,7 +340,7 @@ public class BoltSimulator implements VisConsole.Listener{
                 	} else {
                 		animation = null;
                 	}
-                	
+
                     for(BoltObject obj : objManager.objects.values()){
                     	String labelString = "";
                 		String tf="<<monospaced,black,dropshadow=false>>";
@@ -412,7 +416,7 @@ public class BoltSimulator implements VisConsole.Listener{
 	    	}
     	}
 	}
-	
+
     public void drawVisObjects(String bufferName, ArrayList<VisObject> objects){
     	VisWorld.Buffer buffer = vw.getBuffer(bufferName);
     	for(VisObject obj : objects){

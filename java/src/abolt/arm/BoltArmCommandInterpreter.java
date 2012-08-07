@@ -124,9 +124,11 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         public void render(ArrayList<double[]> points)
         {
             System.out.println("Render object");
-            ArrayList<double[]> flat = flattenPoints(k2wPointAlign(points));
+            //ArrayList<double[]> flat = flattenPoints(k2wPointAlign(points));
+            ArrayList<double[]> alignedPoints = k2wPointAlign(points);
 
-            double[] cxy = getMeanXY(flat);
+            //double[] cxy = getMeanXY(flat);
+            double[] cxy = BoltUtil.getCentroidXY(alignedPoints);
             // Render the XY centroid
             {
                 VisWorld.Buffer vb = vw.getBuffer("centroid");
@@ -135,18 +137,26 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 vb.swap();
             }
 
+            /*
             double theta = getMinimalRotation(flat);
             ArrayList<double[]> rorigin = rotateAtOrigin(theta, flat);
+            */
+            double theta = BoltUtil.getBBoxTheta(alignedPoints);
+            ArrayList<double[]> flat = BoltUtil.isolateTopFace(alignedPoints);
+            ArrayList<double[]> rorigin = BoltUtil.rotateAtOrigin(flat,
+                                                                  theta);
 
             // Render the flattened points
             {
                 VisWorld.Buffer vb = vw.getBuffer("points");
                 vb.addBack(new VzPoints(new VisVertexData(flat),
                                         new VzPoints.Style(Color.red, 2)));
+                vb.addBack(new VzPoints(new VisVertexData(alignedPoints),
+                                        new VzPoints.Style(Color.green, 1)));
                 vb.swap();
             }
 
-            double[][] evec = getGripAxes(rorigin);//get22EigenVectors(rorigin);
+            double[][] evec = getGripAxes(rorigin);
             evec = rotateGripAxes(-theta, evec);
             // Render the major and minor axis
             {

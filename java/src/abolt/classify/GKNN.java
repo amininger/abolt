@@ -64,7 +64,7 @@ public class GKNN implements IClassifier
     {
         if (label == null)
             return;
-        double[] dfeatures = BoltMath.toArray(features);
+        double[] dfeatures = BoltMath.toArray(features, new double[features.size()]);
         add(dfeatures, label);
     }
 
@@ -96,7 +96,7 @@ public class GKNN implements IClassifier
     @Override
     synchronized public Classifications classify(ArrayList<Double> features)
     {
-        return classify(BoltMath.toArray(features));
+        return classify(BoltMath.toArray(features, new double[features.size()]));
     }
 
     /** Return a list of classifications ordered by the

@@ -1,9 +1,8 @@
 package abolt.kinect;
 
-import java.awt.Rectangle;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.*;
+import java.awt.*;
+import java.io.*;
 
 import abolt.lcmtypes.*;
 
@@ -44,24 +43,9 @@ public class KUtils
      {0,0,0,1}};
 
     public static float[] depthLookup;          //holds depth conversions so we only have to calculate them once
-
     public static Rectangle viewRegion = new Rectangle(0, 0, kinect_status_t.WIDTH, kinect_status_t.HEIGHT);
-
     public static double[][] kinectToWorldXForm = null;
-    /*static{
-    	try{
-    		BufferedReader in = new BufferedReader(new FileReader("/home/rgoeddel/class/EECS545-Doc/code/java/kinect.calib"));
-        	kinectToWorldXForm = new double[4][4];
-    		for(int i = 0; i < 4; i++){
-    			for(int j = 0; j < 4; j++){
-    				kinectToWorldXForm[i][j] = Double.parseDouble(in.readLine());
-    			}
-    		}
-    		in.close();
-    	} catch (IOException e){
-    		kinectToWorldXForm = new double[][]{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
-    	}
-    }*/
+
     public static void loadCalibFromConfig(Config config)
     {
         if(config.hasKey("calibration.xform")){
@@ -76,7 +60,7 @@ public class KUtils
         } else {
         	kinectToWorldXForm = LinAlg.identity(4);
         }
-        
+
         if(config.hasKey("calibration.borders")){
             int[] borders = config.getInts("calibration.borders");
             assert(borders.length == 4);
@@ -90,6 +74,15 @@ public class KUtils
     	double[] pt = new double[]{kinectCoordinates[0], kinectCoordinates[1], kinectCoordinates[2], 1};
     	double[] wc = LinAlg.matrixAB(pt, kinectToWorldXForm);
     	return new double[]{wc[0], wc[1], wc[2]};
+    }
+
+    public static ArrayList<double[]> k2wConvert(ArrayList<double[]> points)
+    {
+        ArrayList<double[]> k2wPoints = new ArrayList<double[]>();
+        for (double[] p: points) {
+            k2wPoints.add(getWorldCoordinates(p));
+        }
+        return k2wPoints;
     }
 
 
