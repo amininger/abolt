@@ -69,7 +69,7 @@ public class SizeFeatureExtractor{
         ArrayList<double[]> canonical = BoltUtil.getCanonical(worldPoints);
 
 		// Feature: Length of bbox diagonal
-		double[] bbox = boundingBox(canonical);
+		//double[] bbox = boundingBox(canonical);
 		//features.add(Math.sqrt(LinAlg.normF(new double[]{bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2]})));
 
         // Feature: average distance from the mean
