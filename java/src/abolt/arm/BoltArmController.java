@@ -38,7 +38,7 @@ public class BoltArmController implements LCMSubscriber
             GRAB_AT, GRAB_START_GRIP, GRAB_GRIPPING,
             GRAB_ADJUST_GRIP, GRAB_WAITING,
         DROP_UP_CURR, DROP_UP_OVER, DROP_AT, DROP_RELEASE,
-            DROP_WAITING,
+            DROP_RETREAT, DROP_WAITING,
         HOME, HOMING,
     }
     private ActionState state = ActionState.HOME;
@@ -523,6 +523,13 @@ public class BoltArmController implements LCMSubscriber
                     arm.setPos(5, defGrip);
 
                     // Transition the state once the gripper is definitively open
+                    if (actionComplete()) {
+                        setState(ActionState.DROP_RETREAT);
+                    }
+                    break;
+                case DROP_RETREAT:
+                    moveTo(goal, goalHeight + transOffset);
+
                     if (actionComplete()) {
                         setState(ActionState.HOME);
                     }
