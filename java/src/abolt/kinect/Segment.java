@@ -160,7 +160,6 @@ public class Segment
                 coloredPoints.add(point);
             }
         }
-
         objects = tracker.newObjects(objects);
     }
 

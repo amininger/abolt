@@ -1,6 +1,8 @@
 struct categorized_data_t
 {
     category_t cat;
+		int32_t num_features;	// AM: so some categories can include actual feature values
+		double features[num_features];	
 
     int32_t len;
     string label[len]; // E..g {"Red2","Blue1"}

@@ -105,6 +105,10 @@ public class BoltObject{
 	public VisObject getVisObject() {
 		return model;
 	}
+	
+	public void addFeatures(FeatureCategory cat, ArrayList<Double> features){
+		info.addFeatures(cat, features);
+	}
 
 	public void updateObject(ObjectInfo info){
 		if(BoltArmController.Singleton != null && 

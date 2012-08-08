@@ -4,7 +4,7 @@
 	.2 .2
 	stove
   	ivec 3
-	0 0 255
+	255 0 0
 	2
 	door=closed,open
 	heat=off,on
@@ -15,9 +15,9 @@
 	-.2 .2
 	pantry
   	ivec 3
-	255 0 0
+	0 0 255
 	1
-	door=open,closed
+	door=closed,open
 }
 "abolt.sim.SimLocation"
 {

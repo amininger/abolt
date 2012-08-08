@@ -35,9 +35,10 @@ public class ArmSimulator implements LCMSubscriber{
 	private static LCM lcm = LCM.getSingleton();
 
 	private static final int UPDATE_RATE = 10;	// # updates per second
-	private static final int GRABBING_TIME = UPDATE_RATE*3;
-	private static final int POINTING_TIME = UPDATE_RATE*2;
+	private static final int GRABBING_TIME = UPDATE_RATE*2;
+	private static final int POINTING_TIME = UPDATE_RATE;
 	private static final int DROPPING_TIME = UPDATE_RATE;
+	private static final int HOMING_TIME = UPDATE_RATE;
 	private Timer updateTimer;
 
     Queue<robot_command_t> cmds = new LinkedList<robot_command_t>();
@@ -57,7 +58,7 @@ public class ArmSimulator implements LCMSubscriber{
 
         this.boltSim = boltSim;
 
-        pos = new double[]{0, 0, 0.001};
+        pos = new double[]{0, 0, 0.05};
         goal = new double[]{0, 0};
 
 		class UpdateTask extends TimerTask{
@@ -71,21 +72,25 @@ public class ArmSimulator implements LCMSubscriber{
 
 	public void update(){
 		if(curState == ActionMode.WAIT){
+			// If waiting, execute the next command in the queue
 			if(!cmds.isEmpty()){
 				executeCommand(cmds.poll());
 			}
 		} else {
+			// Performing an action, take another step
 			if(--stepsLeft == 0){
-				curState = ActionMode.WAIT;
+				// Finished with the current action, start waiting
 				if(curState == ActionMode.DROP){
 					grabbedID = -1;
 				}
+				curState = ActionMode.WAIT;
 			} else {
 				pos[0] += (goal[0] - pos[0])/stepsLeft;
 				pos[1] += (goal[1] - pos[1])/stepsLeft;
 			}
 		}
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
+			// we are holding an object, so set its position to where the arm is
 			BoltObjectManager objManager = BoltObjectManager.getSingleton();
 			BoltObject obj;
 			synchronized(objManager.objects){
@@ -108,7 +113,7 @@ public class ArmSimulator implements LCMSubscriber{
 		ArrayList<VisObject> visObjs = new ArrayList<VisObject>();
 		visObjs.add(new VisChain(LinAlg.translate(pos), LinAlg.scale(.1), new VzCircle(new VzMesh.Style(Color.black))));
 		if(grabbedID != -1 && curState != ActionMode.GRAB){
-			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .001}), LinAlg.scale(.05), new VzCircle(new VzMesh.Style(Color.cyan))));
+			visObjs.add(new VisChain(LinAlg.translate(new double[]{pos[0], pos[1], .051}), LinAlg.scale(.05), new VzCircle(new VzMesh.Style(Color.cyan))));
 		}
 		boltSim.drawVisObjects("arm", visObjs);
 	}
@@ -146,6 +151,12 @@ public class ArmSimulator implements LCMSubscriber{
 			goal[1] = 0;
 			grabbedID = -1;
 			stepsLeft = POINTING_TIME;
+		} else if(action.contains("HOME")){
+			curState = ActionMode.HOME;
+			goal[0] = 0;
+			goal[1] = 0;
+			grabbedID = -1;
+			stepsLeft = HOMING_TIME;
 		}
 	}
 
@@ -174,6 +185,9 @@ public class ArmSimulator implements LCMSubscriber{
 			break;
 		case DROP:
 			status.action = "DROP";
+			break;
+		case HOME:
+			status.action = "HOME";
 			break;
 		default:
 			status.action = "WAIT";

@@ -3,6 +3,7 @@ package abolt.objects;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import abolt.classify.ClassifierManager;
 import abolt.lcmtypes.object_data_t;
 import abolt.sim.SimActionable;
 import abolt.sim.SimSensable;
@@ -48,6 +49,10 @@ public class SensableManager
 	}
 
 	public void performAction(String action){
+		if(action.toUpperCase().contains("CLEAR")){
+			ClassifierManager.getSingleton().clearData();
+			return;
+		}
 		// Expecting the form 'ID=234,DOOR=OPEN'
 		String[] args = action.toUpperCase().split(",");
 		if(args.length < 2){

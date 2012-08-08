@@ -17,7 +17,12 @@ import abolt.lcmtypes.category_t;
  */
 public class Features {
 	public enum FeatureCategory {
-		COLOR, SHAPE, SIZE
+		COLOR, SHAPE, SIZE, WEIGHT
+	}
+	
+	public static void addFeaturePair(FeatureCategory fcat, Integer lcmcat){
+		featureToLCMCat.put(fcat, lcmcat);
+		lcmToFeatureCat.put(lcmcat, fcat);
 	}
 
 	// Mapping from a FeatureCategory to the category_t enum
