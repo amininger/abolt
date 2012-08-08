@@ -11,11 +11,13 @@ import lcm.lcm.LCM;
 import lcm.lcm.LCMDataInputStream;
 import lcm.lcm.LCMSubscriber;
 
-import abolt.bolt.Bolt;
+import april.vis.*;
+
+import abolt.bolt.*;
 import abolt.classify.ColorFeatureExtractor;
 import abolt.lcmtypes.*;
-import april.vis.*;
 import abolt.objects.*;
+import abolt.util.*;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
@@ -187,4 +189,12 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 	public double[] getWorldCoords(double[] cameraPt) {
 		return KUtils.getWorldCoordinates(cameraPt);
 	}
+
+    @Override
+    public double getHeight(double[] xy)
+    {
+        if (pointCloudData == null)
+            return 0;
+        return BoltUtil.getZAt(KUtils.k2wConvert(pointCloudData), xy);
+    }
 }

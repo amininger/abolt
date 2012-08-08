@@ -14,6 +14,7 @@ import april.vis.*;
 //import abolt.kinect.*;
 import abolt.lcmtypes.*;
 import abolt.util.*;
+import abolt.bolt.*;
 
 import abolt.kinect.Segment;
 import abolt.kinect.ObjectInfo;
@@ -38,12 +39,15 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
     boolean debug;
     DebugThread dthread;
 
-    // Height values for arbitrary commands
+    // Height values for commands
     double defaultPointHeight = 0.08;   // Default height above object to point [m]
     double pointOffset = 0.06;  // How many [m] to point at above the target
     double grabOffset  = 0.03;  // Max # [m] to reach down through the object
     //double dropOffset  = 0.06;  // How many [m] above the table to drop objects
-    double dropOffset  = 0.12;
+    double dropOffset  = 0.02;
+
+    // State on held object
+    double heldHeight = 0;
 
     class InterpreterThread extends Thread
     {
@@ -308,7 +312,10 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 bcmd.xyz = LinAlg.resize(uxy, 3);
                 double zMax = getMax(wPoints, 2);
                 double zMid = getMid(wPoints, 2);
+                double zMin = getMin(wPoints, 2);
                 bcmd.xyz[2] = zMax - Math.min(zMax - zMid, grabOffset);
+
+                heldHeight = bcmd.xyz[2] - zMin; // Height above the ground we grabbed at
 
                 double minBoxRot = getMinimalRotation(xyPoints);
                 ArrayList<double[]> rorigin = rotateAtOrigin(minBoxRot, xyPoints);
@@ -378,8 +385,15 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
 
         bcmd.obj_id = 0; // XXX - not true
         bcmd.xyz = LinAlg.resize(cmd.dest, 3);
-        // XXX It'd be nice to have persistent object memory, but for now, drop at fixed height
-        bcmd.xyz[2] = dropOffset;
+
+        // Find height of place we're putting down object.
+        // This is our naive attempt to stack reasonably.
+        // In practice, should check along the whole
+        // profile of the object as held to see what collisions
+        // will occur
+        double zHeight = Bolt.getCamera().getHeight(bcmd.xyz);
+
+        bcmd.xyz[2] = zHeight + heldHeight + dropOffset;
 
         bcmd.wrist = 0; // XXX
 
@@ -619,6 +633,18 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         }
 
         return max;
+    }
+
+    /** Return the minimum value of the supplied points for specified idx*/
+
+    private double getMin(ArrayList<double[]> points, int idx)
+    {
+        double min = Double.MAX_VALUE;
+        for (double[] p: points) {
+            min = Math.min(p[idx], min);
+        }
+
+        return min;
     }
 
     /** Return the average value of the supplied points at idx */

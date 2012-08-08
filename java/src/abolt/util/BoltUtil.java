@@ -186,6 +186,31 @@ public class BoltUtil
         return getCentroid(isolateTopFace(points));
     }
 
+    static public double getZAt(ArrayList<double[]> points, double x, double y)
+    {
+        return getZAt(points, new double[] {x,y});
+    }
+
+    static public double getZAt(ArrayList<double[]> points, double[] xy)
+    {
+        double[] nearest = null;
+        double minDist = Double.MAX_VALUE;
+        double MAX_DIST = 0.02; // Point should be within 2 cm of sample request
+
+        for (double[] p: points) {
+            double dist = Math.sqrt(LinAlg.sq(xy[0]-p[0]) + LinAlg.sq(xy[1]-p[1]));
+            if (dist < MAX_DIST && dist < minDist) {
+                minDist = dist;
+                nearest = p;
+            }
+        }
+
+        if (nearest != null)
+            return nearest[2];
+
+        return 0;
+    }
+
     static public ArrayList<double[]> isolateTopFace(ArrayList<double[]> points)
     {
         return isolateTopFace(points, 0.005);
