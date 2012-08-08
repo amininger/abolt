@@ -23,7 +23,7 @@ public class Segment
     }
 
 
-    final static double COLOR_THRESH = .01;//20;
+    final static double COLOR_THRESH = .02;//30;
     final static double DISTANCE_THRESH = 0.01;
     final static double RANSAC_THRESH = .015;
     final static double RANSAC_PERCENT = .2;
@@ -116,7 +116,7 @@ public class Segment
                     if (loc2>=0 && loc2<points.size() && (x+1)<width){
                         double[] p2 = points.get(loc2);
                         if(!almostZero(p2)
-                           || (dist(p1, p2) < DISTANCE_THRESH
+                           && (dist(p1, p2) < DISTANCE_THRESH
                                && colorDiff(p1[3], p2[3]) < COLOR_THRESH)){
                             ufs.connectNodes(loc1, loc2);
                         }
@@ -125,7 +125,7 @@ public class Segment
                     if (loc3>=0 && loc3<points.size() && (y+1)<height){
                         double[] p2 = points.get(loc3);
                         if(!almostZero(p2)
-                           || (dist(p1, p2) < DISTANCE_THRESH
+                           && (dist(p1, p2) < DISTANCE_THRESH
                                && colorDiff(p1[3], p2[3]) < COLOR_THRESH)){
                             ufs.connectNodes(loc1, loc3);
                         }
@@ -344,14 +344,14 @@ public class Segment
         Color c1 = new Color((int)color1);
         Color c2 = new Color((int)color2);
 
-        int rDiff = c1.getRed() - c2.getRed();
-        int gDiff = c1.getGreen() - c2.getGreen();
-        int bDiff = c1.getBlue() - c2.getBlue();
-        double diff = Math.sqrt(rDiff*rDiff + bDiff*bDiff + gDiff*gDiff);
+        //int rDiff = c1.getRed() - c2.getRed();
+        //int gDiff = c1.getGreen() - c2.getGreen();
+        //int bDiff = c1.getBlue() - c2.getBlue();
+        //double diff = Math.sqrt(rDiff*rDiff + bDiff*bDiff + gDiff*gDiff);
 
         float[] hsv1 = Color.RGBtoHSB(c1.getRed(), c1.getGreen(), c1.getBlue(), null);
         float[] hsv2 = Color.RGBtoHSB(c2.getRed(), c2.getGreen(), c2.getBlue(), null);
-        diff = Math.abs((double)hsv1[0] - (double)hsv2[0]);
+        double diff = Math.abs((double)hsv1[0] - (double)hsv2[0]);
 
         return diff;
     }
