@@ -395,7 +395,9 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         // will occur
         double zHeight = Bolt.getCamera().getHeight(bcmd.xyz);
 
-        bcmd.xyz[2] = zHeight + heldHeight + dropOffset;
+        // Drop height cannot be less than the drop offset. This prevents us
+        // from trying to move the arm below the ground plane
+        bcmd.xyz[2] = Math.max(zHeight + heldHeight + dropOffset, dropOffset);
 
         bcmd.wrist = 0; // XXX
 
