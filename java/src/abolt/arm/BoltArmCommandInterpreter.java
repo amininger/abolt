@@ -310,8 +310,10 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 ArrayList<double[]> xyPoints = flattenPoints(wPoints);
                 double[] uxy = getMeanXY(xyPoints);
                 bcmd.xyz = LinAlg.resize(uxy, 3);
-                double zMax = getMax(wPoints, 2);
-                double zMid = getMid(wPoints, 2);
+                //double zMax = getMax(wPoints, 2);
+                //double zMid = getMid(wPoints, 2);
+                double zMax = BoltUtil.getZAt(wPoints, uxy);
+                double zMid = zMax/2;
                 double zMin = getMin(wPoints, 2);
                 bcmd.xyz[2] = zMax - Math.min(zMax - zMid, grabOffset);
 
