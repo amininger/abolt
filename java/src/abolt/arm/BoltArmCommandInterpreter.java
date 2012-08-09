@@ -252,7 +252,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
             // No ID
             bcmd.xyz = LinAlg.resize(cmd.dest, 3);
             if (bcmd.xyz[2] <= 0) {
-                bcmd.xyz[2] = defaultPointHeight;
+                bcmd.xyz[2] = Bolt.getCamera().getHeight(bcmd.xyz) + defaultPointHeight;
             }
         } else {
             // Found ID
@@ -272,7 +272,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                 }
                 ArrayList<double[]> points = k2wPointAlign(info.points);
                 bcmd.xyz = getCentroidXYZ(flattenPoints(points));
-                bcmd.xyz[2] = getMax(points, 2) + pointOffset;
+                bcmd.xyz[2] = BoltUtil.getZAt(points, bcmd.xyz) + pointOffset;//getMax(points, 2) + pointOffset;
             }
         }
 
