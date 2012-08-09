@@ -251,9 +251,7 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
         if (objIDstr == null) {
             // No ID
             bcmd.xyz = LinAlg.resize(cmd.dest, 3);
-            if (bcmd.xyz[2] <= 0) {
-                bcmd.xyz[2] = Bolt.getCamera().getHeight(bcmd.xyz) + defaultPointHeight;
-            }
+            bcmd.xyz[2] = Bolt.getCamera().getHeight(bcmd.xyz) + defaultPointHeight;
         } else {
             // Found ID
             int objID = Integer.valueOf(objIDstr);
