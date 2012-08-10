@@ -248,7 +248,7 @@ public class BoltSimulator implements VisConsole.Listener{
     }
     
     private void changeSelected(int id){
-    	if(id == -1 || id == selectedId){
+    	if(id == -1){
     		return;
     	}
     	selectedId = id;

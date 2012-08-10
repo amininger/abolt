@@ -23,7 +23,7 @@ public class Segment
     }
 
 
-    final static double COLOR_THRESH = .02;//30;
+    final static double COLOR_THRESH = .25;//30;
     final static double DISTANCE_THRESH = 0.01;
     final static double RANSAC_THRESH = .015;
     final static double RANSAC_PERCENT = .2;
