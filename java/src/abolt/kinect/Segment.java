@@ -23,7 +23,7 @@ public class Segment
     }
 
 
-    final static double COLOR_THRESH = .01;//20;
+    final static double COLOR_THRESH = .02;//30;
     final static double DISTANCE_THRESH = 0.01;
     final static double RANSAC_THRESH = .015;
     final static double RANSAC_PERCENT = .2;
@@ -32,8 +32,8 @@ public class Segment
 
     static BoltArm ba;
     static Config config;
-    ArrayList<Double> ARM_WIDTH;// = new double[]{.08, .08, .08, .08, .08, .09, .09};
-    double MAX_HEIGHT;// = .56;//.38;
+    ArrayList<Double> ARM_WIDTH;
+    double MAX_HEIGHT;
 
     int width, height;
 
@@ -65,23 +65,8 @@ public class Segment
         map = new HashMap<Integer, Integer>();
         coloredPoints = new ArrayList<double[]>();
         ba = BoltArm.getSingleton();
-//        MAX_HEIGHT = ba.wristHeight;
     }
 
-/*    public void init(Config config){
-        // Set up parameters based on the arm we're using
-        this.config = config;
-        String name = config.getString("arm.arm_version", null);
-        max_height = config.getDouble("arm."+name+".wrist_height", 0);
-        for (int i = 0;; i++) {
-            if (config.getString("arm."+name+".r"+i+".axis", null) == null)
-                break;
-            else{
-                double width = config.getDouble("arm."+name+".r"+i+".width", 0);
-                ARM_WIDTH.add(width);
-            }
-        }
-        }*/
 
     /** First segment the frame into objects and then get the features
      ** for each object. **/
@@ -116,7 +101,7 @@ public class Segment
                     if (loc2>=0 && loc2<points.size() && (x+1)<width){
                         double[] p2 = points.get(loc2);
                         if(!almostZero(p2)
-                           || (dist(p1, p2) < DISTANCE_THRESH
+                           && (dist(p1, p2) < DISTANCE_THRESH
                                && colorDiff(p1[3], p2[3]) < COLOR_THRESH)){
                             ufs.connectNodes(loc1, loc2);
                         }
@@ -125,7 +110,7 @@ public class Segment
                     if (loc3>=0 && loc3<points.size() && (y+1)<height){
                         double[] p2 = points.get(loc3);
                         if(!almostZero(p2)
-                           || (dist(p1, p2) < DISTANCE_THRESH
+                           && (dist(p1, p2) < DISTANCE_THRESH
                                && colorDiff(p1[3], p2[3]) < COLOR_THRESH)){
                             ufs.connectNodes(loc1, loc3);
                         }
@@ -211,41 +196,48 @@ public class Segment
             armLines.add(new GLineSegment2D(armPoints.get(i-1), armPoints.get(i)));
             double[] p1 = armPoints.get(i-1);
             double[] p2 = armPoints.get(i);
+
 //            System.out.printf("%d: (%.4f, %.4f, %.4f) --> (%.4f, %.4f, %.4f)   %.2f\n",
 //                              i, p1[0], p1[1], p1[2],p2[0], p2[1], p2[2], ARM_WIDTH.get(i-1));
         }
 
-/*
-        VzMesh.Style[] meshes = new VzMesh.Style[]{
-            new VzMesh.Style(Color.red),
-            new VzMesh.Style(Color.orange),
-            new VzMesh.Style(Color.yellow),
-            new VzMesh.Style(Color.green),
-            new VzMesh.Style(Color.blue),
-            new VzMesh.Style(Color.red),
-            new VzMesh.Style(Color.orange),
-            new VzMesh.Style(Color.yellow),
-            new VzMesh.Style(Color.green)};
+        // Draw cylinders
+        /*      xform = LinAlg.translate(0,0,ba.baseHeight);
+        for (int i=0; i<joints.size(); i++){ //Joint j: joints) {
+            Joint j = joints.get(i);
+            LinAlg.timesEquals(xform, j.getRotation());
+            GLineSegment2D line = armLines.get(i);
+            double[] p1 = new double[]{line.p1[0], line.p1[1], line.p1[2]};
+            double[] p2 = new double[]{line.p2[0], line.p2[1], line.p2[2]};
+            double length = LinAlg.distance(p1,p2);
+            VzCylinder cyl = new VzCylinder(ARM_WIDTH.get(i), length, new VzMesh.Style(Color.red));
+            vb.addBack(new VisChain(LinAlg.copy(xform),
+                                    cyl));
+            LinAlg.timesEquals(xform, j.getTranslation());
+        }
+        vb.swap();
+        */
 
-        for (int seg=0; seg<ARM_WIDTH.size(); seg++){
+        /*for (int seg=0; seg<ARM_WIDTH.size(); seg++){
             GLineSegment2D line = armLines.get(seg);
             double[] p1 = new double[]{line.p1[0], line.p1[1], line.p1[2]};
             double[] p2 = new double[]{line.p2[0], line.p2[1], line.p2[2]};
             double length = LinAlg.distance(p1,p2);
             double[] diff = LinAlg.subtract(p2, p1);
             double[] center = new double[]{p1[0]+diff[0],p1[1]+diff[1],p1[2]+diff[2]};
-            VzCylinder cyl = new VzCylinder(ARM_WIDTH.get(seg), length, meshes[seg]);
+            VzCylinder cyl = new VzCylinder(ARM_WIDTH.get(seg), length, new VzMesh.Style(Color.red));
             vb.addBack(new VisChain(LinAlg.translate(p1),
                                     //LinAlg.rotate(Math.)
                                     cyl));
-        }
-        vb.swap();
-*/
 
-        /* Draw lines corresponding to the segments of the arm.
-        vb.addBack(new VzLines(new VisVertexData(armPoints), 4, new VzLines.Style(Color.red, 1)));
-        vb.swap();
-        */
+        }
+        vb.swap();*/
+
+
+        //Draw lines corresponding to the segments of the arm.
+//        vb.addBack(new VzLines(new VisVertexData(armPoints), 4, new VzLines.Style(Color.red, 1)));
+//          vb.swap();
+
 
         // Remove points that are either on the floor plane, below the plane,
         // or along the arm's position
@@ -344,14 +336,14 @@ public class Segment
         Color c1 = new Color((int)color1);
         Color c2 = new Color((int)color2);
 
-        int rDiff = c1.getRed() - c2.getRed();
-        int gDiff = c1.getGreen() - c2.getGreen();
-        int bDiff = c1.getBlue() - c2.getBlue();
-        double diff = Math.sqrt(rDiff*rDiff + bDiff*bDiff + gDiff*gDiff);
+        //int rDiff = c1.getRed() - c2.getRed();
+        //int gDiff = c1.getGreen() - c2.getGreen();
+        //int bDiff = c1.getBlue() - c2.getBlue();
+        //double diff = Math.sqrt(rDiff*rDiff + bDiff*bDiff + gDiff*gDiff);
 
         float[] hsv1 = Color.RGBtoHSB(c1.getRed(), c1.getGreen(), c1.getBlue(), null);
         float[] hsv2 = Color.RGBtoHSB(c2.getRed(), c2.getGreen(), c2.getBlue(), null);
-        diff = Math.abs((double)hsv1[0] - (double)hsv2[0]);
+        double diff = Math.abs((double)hsv1[0] - (double)hsv2[0]);
 
         return diff;
     }
