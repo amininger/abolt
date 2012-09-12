@@ -104,11 +104,11 @@
 	255 128 0
 	0
 }
-"abolt.sim.SimLocation"
+"abolt.sim.SimScale"
 {
 	vec 2
 	-.2 -.2
-	garbage
+	scale
   	ivec 3
 	0 255 0
 	0

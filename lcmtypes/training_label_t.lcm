@@ -3,4 +3,7 @@ struct training_label_t
     int32_t id; // unique ID referring to a previously detected object in object_data_t
     string label; // Unique Label, e.g "Red1"
     category_t cat; // e.g. "CAT_COLOR"
+		int32_t num_features; // Size of the features array
+		double features[num_features]; // Optional features array
+
 }

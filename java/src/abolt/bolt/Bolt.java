@@ -222,16 +222,28 @@ public class Bolt extends JFrame implements LCMSubscriber
 
                 for(int i=0; i<training.num_labels; i++){
                     training_label_t tl = training.labels[i];
-                    BoltObject obj;
-                    synchronized(objectManager.objects){
-                        obj = objectManager.objects.get(tl.id);
-                    }
-                    if(obj != null){
-                        FeatureCategory cat = Features.getFeatureCategory(tl.cat.cat);
-                        ArrayList<Double> features = obj.getFeatures(cat);
-                        if(features != null){
-                            classifierManager.addDataPoint(cat, features, tl.label);
+               	 	FeatureCategory cat = Features.getFeatureCategory(tl.cat.cat);
+                    BoltObject obj = null;
+                    if(tl.id != -1){
+                    	// Training example using an object
+                    	synchronized(objectManager.objects){
+                            obj = objectManager.objects.get(tl.id);
                         }
+                    	if(obj == null){
+                    		return;
+                    	}
+                         ArrayList<Double> features = obj.getFeatures(cat);
+                         if(features != null){
+                             classifierManager.addDataPoint(cat, features, tl.label);
+                         }
+                    } else if(tl.num_features > 0){
+                    	// Training example using a provided list of features
+                    	ArrayList<Double> features = new ArrayList<Double>();
+                    	for(Double d : tl.features){
+                    		features.add(d);
+                    	}
+                    	classifierManager.addDataPoint(cat, features, tl.label);
+                    	
                     }
                 }
             }catch (IOException e) {

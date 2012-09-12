@@ -248,11 +248,11 @@ public class BoltSimulator implements VisConsole.Listener{
     }
     
     private void changeSelected(int id){
-    	if(id == -1 || id == selectedId){
+    	if(id == -1){
     		return;
     	}
-    	selectedId = id;
     	animation = null;
+    	selectedId = id;
     }
 
     /** Render BOLT-specific content. */
@@ -281,6 +281,11 @@ public class BoltSimulator implements VisConsole.Listener{
                 VisWorld.Buffer selBuffer = vw.getBuffer("selection");
                 drawSelectionAnimation(selBuffer, dt);
                 selBuffer.swap();
+                
+                // Draw the dark rectangle
+                VisWorld.Buffer tableBuffer = vw.getBuffer("table");
+                tableBuffer.addBack(new VisChain(LinAlg.translate(new double[]{0, 0, .00001}), new VzRectangle(.95, .95, new VzMesh.Style(Color.gray))));
+                tableBuffer.swap();
 
                 TimeUtil.sleep(1000/fps);
             }
