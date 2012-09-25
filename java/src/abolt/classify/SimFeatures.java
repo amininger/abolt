@@ -59,6 +59,11 @@ public class SimFeatures {
 			return new CompoundShape(LinAlg.translate(new double[]{0, -scale/2, 0}), bot, 
 									LinAlg.translate(new double[]{0, scale, 0}), top);
 			
+		} else if(shapeStr.equals("l-shape")){
+			Shape top = new BoxShape(LinAlg.scale(new double[]{1, 1, 1}, scale));
+			Shape bot = new BoxShape(LinAlg.scale(new double[]{3, 1, 1}, scale));
+			return new CompoundShape(LinAlg.translate(new double[]{0, scale/2, 0}), bot, 
+									LinAlg.translate(new double[]{scale, -scale, 0}), top);
 		} else {
 			return new SphereShape(scale);
 		}

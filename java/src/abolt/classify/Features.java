@@ -17,7 +17,7 @@ import abolt.lcmtypes.category_t;
  */
 public class Features {
 	public enum FeatureCategory {
-		COLOR, SHAPE, SIZE, WEIGHT
+		COLOR, SHAPE, SIZE, WEIGHT, SQUISHINESS
 	}
 	
 	public static void addFeaturePair(FeatureCategory fcat, Integer lcmcat){
@@ -66,7 +66,8 @@ public class Features {
 			return SizeFeatureExtractor.getFeatures(points);
 		case SHAPE:
 			return ShapeFeatureExtractor.getFeatures(points);
+		default:
+			return null;
 		}
-		return null;
 	}
 }

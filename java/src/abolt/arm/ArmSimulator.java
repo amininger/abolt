@@ -12,11 +12,13 @@ import java.util.TimerTask;
 import abolt.arm.BoltArmController.ActionMode;
 import abolt.bolt.Bolt;
 import abolt.lcmtypes.bolt_arm_command_t;
+import abolt.lcmtypes.category_t;
 import abolt.lcmtypes.observations_t;
 import abolt.lcmtypes.robot_action_t;
 import abolt.lcmtypes.robot_command_t;
 import abolt.objects.BoltObject;
 import abolt.objects.BoltObjectManager;
+import abolt.objects.ObjectEffector;
 import abolt.util.SimUtil;
 import april.jmat.LinAlg;
 import april.util.TimeUtil;
@@ -28,6 +30,10 @@ import april.vis.VzMesh;
 import lcm.lcm.*;
 
 import abolt.bolt.*;
+import abolt.classify.ClassifierManager;
+import abolt.classify.Features;
+import abolt.classify.GKNN;
+import abolt.classify.Features.FeatureCategory;
 
 public class ArmSimulator implements LCMSubscriber{
 	private ActionMode curState = ActionMode.WAIT;
@@ -55,6 +61,23 @@ public class ArmSimulator implements LCMSubscriber{
 
 	public ArmSimulator(BoltSimulator boltSim){
         lcm.subscribe("ROBOT_COMMAND", this);
+
+		Features.addFeaturePair(FeatureCategory.SQUISHINESS, category_t.CAT_SQUISHINESS);
+		ClassifierManager.getSingleton().addClassifier(FeatureCategory.SQUISHINESS, new GKNN(10, .1));
+		
+		BoltObjectManager.getSingleton().addEffector(new ObjectEffector(){
+			// If the object is over the scale, then add its weight as a feature
+			public void effect(BoltObject obj) {
+				if(obj.getID() == grabbedID && curState == ActionMode.WAIT){
+					if(obj.getInfo().createdFrom != null){
+						double squishiness = obj.getInfo().createdFrom.getSquishiness();
+						ArrayList<Double> sqFeatures = new ArrayList<Double>();
+						sqFeatures.add(squishiness);
+						obj.addFeatures(FeatureCategory.SQUISHINESS, sqFeatures);
+					}
+				}
+			}
+		});
 
         this.boltSim = boltSim;
 
@@ -104,6 +127,7 @@ public class ArmSimulator implements LCMSubscriber{
 				obj.getInfo().createdFrom.setPose(LinAlg.xyzrpyToMatrix(objPos));
 			}
 		}
+		
 
 		sendStatusUpdate();
 		drawArm();

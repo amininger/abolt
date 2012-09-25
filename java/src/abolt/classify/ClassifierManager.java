@@ -318,7 +318,7 @@ public class ClassifierManager {
                     cat_dat.cat = new category_t();
                     cat_dat.cat.cat = Features.getLCMCategory(fc);
                     // AM: I don't like this, but I don't want to deal with features from visual properties at the moment
-                    if(fc == FeatureCategory.WEIGHT){
+                    if(fc == FeatureCategory.WEIGHT || fc == FeatureCategory.SQUISHINESS){
                         cat_dat.num_features = features.size();
                         cat_dat.features = new double[features.size()];
                         for(int k = 0; k < features.size(); k++){

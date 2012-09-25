@@ -42,7 +42,9 @@
 	red
 	square
 	small
-  3
+  	3
+	0.05
+
 }
 "abolt.sim.SimBlock"
 {
@@ -50,9 +52,10 @@
 	vec 6
 	-.2 .2 .05 0 0 0
 	blue
-	cylinder
+	sphere
 	medium
-  6
+  	6
+	.9
 }
 "abolt.sim.SimBlock"
 {
@@ -60,9 +63,10 @@
 	vec 6
 	.2 -.2 .05 0 0 0
 	green
-	t-shape
+	l-shape
 	large
-  8
+  	8
+	.2
 }
 "abolt.sim.SimBlock"
 {
@@ -72,7 +76,8 @@
 	red
 	triangle
 	medium
-  7
+  	7
+	.75
 }
 "abolt.sim.SimLocation"
 {

@@ -37,8 +37,5 @@ public class SimScale extends SimLocation{
 				}
 			}
 		});
-		
 	}
-	
-
 }

@@ -26,6 +26,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
     private String shapeStr;
     private String colorStr;
     private double weight;
+    private double squishiness;
     private Color color;
     protected double[][] pose;
     protected int id;
@@ -56,6 +57,10 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
     
     public double getWeight(){
     	return weight;
+    }
+    
+    public double getSquishiness(){
+    	return squishiness;
     }
 
     @Override
@@ -104,6 +109,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
         shapeStr = ins.readString();
         sizeStr = ins.readString();
         weight = ins.readDouble();
+        squishiness = ins.readDouble();
         color = SimFeatures.getColorValue(colorStr);
         double sizeScale = .05 * SimFeatures.getSizeValue(sizeStr);
         aboltShape = SimFeatures.getShape(shapeStr, sizeScale);
@@ -118,6 +124,7 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
         outs.writeString(shapeStr);
         outs.writeString(sizeStr);
         outs.writeDouble(weight);
+        outs.writeDouble(squishiness);
     }
 
 }

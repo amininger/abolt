@@ -63,6 +63,8 @@ public class Bolt extends JFrame implements LCMSubscriber
     JMenu controlMenu, editMenu;
     JMenuItem clearData, reloadData;
     JMenuItem undoAction, redoAction;
+    
+    private String acks = "";
 
     public Bolt(GetOpt opts)
     {
@@ -246,6 +248,12 @@ public class Bolt extends JFrame implements LCMSubscriber
                     	
                     }
                 }
+                synchronized(acks){
+                	if(!acks.isEmpty()){
+                		acks += ",";
+                	}
+                	acks += training.ack_nums;
+                }
             }catch (IOException e) {
                 e.printStackTrace();
                 return;
@@ -266,6 +274,10 @@ public class Bolt extends JFrame implements LCMSubscriber
     {
         observations_t obs = new observations_t();
         obs.utime = TimeUtil.utime();
+        synchronized(acks){
+        	obs.ack_nums = acks;
+        	acks = "";
+        }
         synchronized(objectManager.objects){
         	obs.click_id = simulator.getSelectedId();
         }
