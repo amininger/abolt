@@ -61,6 +61,10 @@ public class SensableStates {
 		setState(keyValPair[0], keyValPair[1]);
 	}
 	
+	public HashMap<String, String> getCurrentState(){
+		return (HashMap<String, String>)currentState.clone();
+	}
+	
 	public String getProperties(){
 		if(currentState.size() == 0){
 			return "";

@@ -5,23 +5,18 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 
 import lcm.lcm.LCM;
 import lcm.lcm.LCMDataInputStream;
 import lcm.lcm.LCMSubscriber;
 
-import abolt.bolt.Bolt;
-import abolt.classify.ColorFeatureExtractor;
 import abolt.lcmtypes.*;
 import april.vis.*;
-import abolt.objects.*;
 
 public class KinectCamera implements IBoltCamera, LCMSubscriber {
     final static int K_WIDTH = kinect_status_t.WIDTH;
     final static int K_HEIGHT = kinect_status_t.HEIGHT;
-
-     private final static double darkThreshold = .35;
 
     // LCM
     static LCM lcm = LCM.getSingleton();
@@ -29,12 +24,11 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     private Segment segment;
     private kinect_status_t kinectData = null;
     private ArrayList<double[]> pointCloudData = null;
+    
+    private HashSet<ObjectInfo> lastObjects = new HashSet<ObjectInfo>();
 
     public KinectCamera(){
-    	//segment = new Segment((int)(KUtils.viewRegion.width),
-        //        (int)(KUtils.viewRegion.height));
         segment = Segment.getSingleton();
-    	lcm.subscribe("KINECT_STATUS", this);
     	lcm.subscribe("ROBOT_ACTION", this);
         lcm.subscribe("BOLT_ARM_COMMAND", this);
     }
@@ -42,9 +36,29 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     public KinectCamera(VisWorld.Buffer vb){
         segment = Segment.getSingleton();
         segment.vb = vb;
-    	lcm.subscribe("KINECT_STATUS", this);
     	lcm.subscribe("ROBOT_ACTION", this);
         lcm.subscribe("BOLT_ARM_COMMAND", this);
+    }
+    
+    public HashSet<ObjectInfo> getLastObjects(){
+    	return lastObjects;
+    }
+    
+    public void update(kinect_status_t newData){
+    	this.kinectData = newData;
+        pointCloudData = extractPointCloudData(kinectData);
+        if(pointCloudData.size() > 0){
+            segment.segmentFrame(pointCloudData,
+                                 KUtils.viewRegion.width,
+                                 KUtils.viewRegion.height);
+            synchronized(segment.objects){
+            	HashSet<ObjectInfo> objects = new HashSet<ObjectInfo>();
+            	for(ObjectInfo info : segment.objects.values()){
+            		objects.add(info);
+                }
+            	lastObjects = objects;
+            }
+        }
     }
 
 
@@ -126,26 +140,8 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
                 e.printStackTrace();
                 return;
             }
-            pointCloudData = extractPointCloudData(kinectData);
-            if(pointCloudData.size() > 0){
-                segment.segmentFrame(pointCloudData,
-                                     KUtils.viewRegion.width,
-                                     KUtils.viewRegion.height);
-                synchronized(segment.objects){
-                	HashMap<Integer, ObjectInfo> objInfoList = new HashMap<Integer, ObjectInfo>();
-                	for(ObjectInfo info : segment.objects.values()){
-                		ArrayList<Double> colorFeatures = ColorFeatureExtractor.getFeatures(info);
-        	        	//if(colorFeatures.get(0) > darkThreshold || colorFeatures.get(1) > darkThreshold ||
-        	        	//		colorFeatures.get(2) > darkThreshold){
-        	        		objInfoList.put(info.repID, info);
-                            //}
-                    }
-                	//Bolt.getObjectManager().updateObjects(objInfoList);
-                    BoltObjectManager.getSingleton().updateObjects(objInfoList);
-                }
-            }
-        }
-        else if(channel.equals("ROBOT_ACTION")){
+            update(kinectData);
+        } else if(channel.equals("ROBOT_ACTION")){
             try{
                 robot_action_t command = new robot_action_t(ins);
                 String action = command.action;

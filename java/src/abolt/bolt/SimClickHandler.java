@@ -1,10 +1,6 @@
 package abolt.bolt;
 
-import abolt.kinect.ObjectInfo;
-import abolt.objects.BoltObject;
-import abolt.sim.SimSensable;
 import abolt.util.SimUtil;
-import april.sim.SimObject;
 
 public interface SimClickHandler {
 	/** 
@@ -13,42 +9,28 @@ public interface SimClickHandler {
 	 * Otherwise (to leave things unchanged) return -1
 	 */
 	int clicked(BoltObject obj);
-	int clicked(SimObject obj);
 	
 	public class SelectObject implements SimClickHandler{
 		public int clicked(BoltObject obj){
 			return obj.getID();
 		}
-		public int clicked(SimObject obj){
-			if(obj instanceof SimSensable){
-				return ((SimSensable)obj).getID();
-			} else {
-				return -1;
-			}	
-		}
 	}
 	
 	public class ChangeId implements SimClickHandler{
 		public int clicked(BoltObject obj){
-			ObjectInfo info = obj.getInfo();
-			if(info.createdFrom != null){
-				int id = SimUtil.nextID();
-				info.createdFrom.setID(id);
-				return id;
+			if(obj.sourceObject != null){
+				obj.sourceObject.setID(SimUtil.nextID());
+				return obj.sourceObject.getID();
 			}
-			return -1;
-		}
-		public int clicked(SimObject obj){
 			return -1;
 		}
 	}
 	
 	public class ToggleVisibility implements SimClickHandler{
 		public int clicked(BoltObject obj){
-			obj.setVisible(!obj.isVisible());
-			return -1;
-		}
-		public int clicked(SimObject obj){
+			if(obj.sourceObject != null){
+				obj.sourceObject.setVisible(!obj.sourceObject.getVisible());
+			}
 			return -1;
 		}
 	}

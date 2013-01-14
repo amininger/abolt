@@ -87,7 +87,7 @@ public class PtsFileConverter
                 }
                 bsr.blockEnd();
                 
-                ArrayList<Double> features = Features.getFeatures(type, points);
+                ArrayList<Double> features = null;//Features.getFeatures(type, points); // XXX: Not working
                 String featureString = FEUtil.featuresToString(features);
                 
                 boolean hasLabel = false;

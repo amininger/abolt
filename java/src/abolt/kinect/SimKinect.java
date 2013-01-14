@@ -2,21 +2,15 @@ package abolt.kinect;
 
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
 
-import abolt.bolt.Bolt;
 import abolt.bolt.BoltSimulator;
-import abolt.classify.ClassifierManager;
 import abolt.collision.*;
-import abolt.objects.BoltObject;
-import abolt.objects.BoltObjectManager;
-import abolt.objects.ISimBoltObject;
+import abolt.sim.SimBoltObject;
 import april.jmat.LinAlg;
-import april.sim.SimObject;
 import april.vis.VisCameraManager.CameraPosition;
 
 public class SimKinect implements IBoltCamera{
@@ -37,9 +31,6 @@ public class SimKinect implements IBoltCamera{
 
 	private double[] screenOrigin;
 
-    private Timer updateTimer;
-    private static final int UPDATE_RATE = 2; // # updates per second
-
     // The world we are generating simulated data on!
     BoltSimulator sim;
 
@@ -55,34 +46,27 @@ public class SimKinect implements IBoltCamera{
 
 		origin = new double[]{0, 0, 0};
 		zAxis = new double[]{0, 0, -1};
-
-		class RefreshTask extends TimerTask{
-			public void run() {
-				update();
-			}
-    	}
-		updateTimer = new Timer();
-		updateTimer.schedule(new RefreshTask(), 1000, 1000/UPDATE_RATE);
 	}
 
-	private void update(){
+	public void update(){
 		updatePosition(sim.getLayer().cameraManager.getCameraTarget());
 		HashMap<Integer, ObjectInfo> info = new HashMap<Integer, ObjectInfo>();
+		
 
-        // XXX This is the offending bit of code. Fakes data on objects from sim world.
-		synchronized(sim.getWorld().objects){
-			for(SimObject obj : sim.getWorld().objects){
-				if(!(obj instanceof ISimBoltObject)){
-					continue;
-				}
-				ObjectInfo objInfo = constructObjectInfo((ISimBoltObject)obj);
-				if(objInfo != null){
-					info.put(objInfo.repID, objInfo);
-				}
-			}
-		}
-		//Bolt.getObjectManager().updateObjects(info);
-        BoltObjectManager.getSingleton().updateObjects(info);
+//        // XXX This is the offending bit of code. Fakes data on objects from sim world.
+//		synchronized(sim.getWorld().objects){
+//			for(SimObject obj : sim.getWorld().objects){
+//				if(!(obj instanceof ISimBoltObject)){
+//					continue;
+//				}
+//				ObjectInfo objInfo = constructObjectInfo((ISimBoltObject)obj);
+//				if(objInfo != null){
+//					info.put(objInfo.repID, objInfo);
+//				}
+//			}
+//		}
+//		//Bolt.getObjectManager().updateObjects(info);
+//        BoltObjectManager.getSingleton().updateObjects(info);
 	}
 
 	private void updatePosition(CameraPosition camPos){
@@ -102,17 +86,14 @@ public class SimKinect implements IBoltCamera{
 		screenOrigin = LinAlg.add(origin, LinAlg.scale(zAxis, DIST_TO_SCREEN));
 	}
 
-	private ObjectInfo constructObjectInfo(ISimBoltObject obj){
-		if(!(obj instanceof ISimBoltObject)){
-			return null;
-		}
-		Shape shape = ((ISimBoltObject)obj).getAboltShape();
-		Color color = ((ISimBoltObject)obj).getColor();
+	public ArrayList<double[]> traceObject(SimBoltObject obj){
+		Shape shape = obj.getAboltShape();
+		Color color = obj.getColor();
 		double[][] T = obj.getPose();
 		double[] pose = LinAlg.matrixToXyzrpy(T);
-
 		int[] pixel = getPixel(pose);
-		if(pixel == null){
+		
+		if(shape == null || pixel == null){
 			return null;
 		}
 
@@ -121,10 +102,6 @@ public class SimKinect implements IBoltCamera{
 			// For some reason there was no collision with the center of the shape, something is odd
 			return null;
 		}
-
-		ObjectInfo info = new ObjectInfo(color.getRGB(), obj.getID(), points.get(0));
-		info.repID = obj.getID();
-		info.createdFrom = obj;
 
 		int START_SIZE = 20;
 		int left = pixel[0] - START_SIZE/2;
@@ -173,10 +150,9 @@ public class SimKinect implements IBoltCamera{
 
 		for(double[] pt : points){
 			pt[3] = new Color(color.getBlue(), color.getGreen(), color.getRed()).getRGB();
-			info.update(pt);
 		}
 
-		return info;
+		return points;
 	}
 
 	// Scan a horizontal row of pixels from left to right inclusive and add collisions to the points array

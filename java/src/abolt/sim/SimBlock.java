@@ -4,112 +4,52 @@ import java.awt.Color;
 import java.io.*;
 import java.util.*;
 
-import lcm.lcm.*;
 
 import april.sim.*;
-import april.jmat.*;
-import april.vis.*;
 import april.util.*;
 
-import abolt.bolt.Bolt;
 import abolt.classify.SimFeatures;
 import abolt.classify.Features.FeatureCategory;
-import abolt.lcmtypes.categorized_data_t;
-import abolt.lcmtypes.category_t;
-import abolt.objects.BoltObject;
-import abolt.objects.ISimBoltObject;
-import abolt.util.*;
 
-public class SimBlock implements SimGrabbable, ISimBoltObject
+public class SimBlock extends SimBoltObject
 {
     private String sizeStr;
     private String shapeStr;
     private String colorStr;
-    private double weight;
-    private double squishiness;
-    private Color color;
-    protected double[][] pose;
-    protected int id;
-    protected Shape shape;
-    protected VisObject model;
+    private HashMap<FeatureCategory, ArrayList<Double>> features;
 
     private abolt.collision.Shape aboltShape;
 
     public SimBlock(SimWorld sw)
     {
-    	id = SimUtil.nextID();
-    }
-
-	@Override
-	public int getID() {
-		return id;
-	}
-	
-	public void setID(int id){
-		this.id = id;
-	}
-
-
-    @Override
-    public Color getColor(){
-    	return color;
+    	features = new HashMap<FeatureCategory, ArrayList<Double>>();
     }
     
-    public double getWeight(){
-    	return weight;
-    }
-    
-    public double getSquishiness(){
-    	return squishiness;
-    }
-
-    @Override
-	public boolean inActionRange(double[] xyt) {
-		return true;
-	}
-
-	@Override
-	public Shape getShape() {
-		return shape;
-	}
-
-	@Override
-	public VisObject getVisObject() {
-		return null;
-	}
-
-	@Override
-	public double[][] getPose() {
-		return pose;
-	}
-
-	@Override
-	public void setPose(double[][] pose) {
-		this.pose = pose;
-	}
-
-	@Override
-	public void setPos(double[] xyzrpy) {
-		this.pose = LinAlg.xyzrpyToMatrix(xyzrpy);
-	}
-
-	@Override
-	public void setRunning(boolean arg0) {
-	}
-
-    @Override
     public abolt.collision.Shape getAboltShape(){
     	return aboltShape;
     }
-
+    
+	@Override
+	public ArrayList<Double> getFeatures(FeatureCategory fc) {
+		return features.get(fc);
+	}
+	
     public void read(StructureReader ins) throws IOException
     {
-    	pose = LinAlg.xyzrpyToMatrix(ins.readDoubles());
+    	pose = ins.readDoubles();
         colorStr = ins.readString();
         shapeStr = ins.readString();
         sizeStr = ins.readString();
-        weight = ins.readDouble();
-        squishiness = ins.readDouble();
+        
+        ArrayList<Double> weightFeatures = new ArrayList<Double>();
+        weightFeatures.add(ins.readDouble());
+        features.put(FeatureCategory.WEIGHT, weightFeatures);
+        
+        ArrayList<Double> squishinessFeatures = new ArrayList<Double>();
+        squishinessFeatures.add(ins.readDouble());
+        features.put(FeatureCategory.SQUISHINESS, squishinessFeatures);
+        
+        isVisible = (ins.readInt() == 1);
         color = SimFeatures.getColorValue(colorStr);
         double sizeScale = .05 * SimFeatures.getSizeValue(sizeStr);
         aboltShape = SimFeatures.getShape(shapeStr, sizeScale);
@@ -119,12 +59,13 @@ public class SimBlock implements SimGrabbable, ISimBoltObject
     public void write(StructureWriter outs) throws IOException
     {
     	outs.writeComment("XYZRPY Truth");
-        outs.writeDoubles(LinAlg.matrixToXyzrpy(pose));
+        outs.writeDoubles(pose);
         outs.writeString(colorStr);
         outs.writeString(shapeStr);
         outs.writeString(sizeStr);
-        outs.writeDouble(weight);
-        outs.writeDouble(squishiness);
+        outs.writeDouble(features.get(FeatureCategory.WEIGHT).get(0));
+        outs.writeDouble(features.get(FeatureCategory.SQUISHINESS).get(0));
+        outs.writeInt(isVisible ? 1 : 0);
     }
 
 }

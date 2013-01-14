@@ -23,6 +23,7 @@ public class SimFeatures {
 		colorValues.put("blue",   new Color(100, 125, 225));
 		colorValues.put("purple", new Color(125, 100, 225));
 		colorValues.put("gray",   new Color(150, 150, 150));
+		colorValues.put("white",  new Color(240, 240, 240));
 	}
 	public static Color getColorValue(String color){
 		return colorValues.get(color.toLowerCase());
@@ -64,6 +65,30 @@ public class SimFeatures {
 			Shape bot = new BoxShape(LinAlg.scale(new double[]{3, 1, 1}, scale));
 			return new CompoundShape(LinAlg.translate(new double[]{0, scale/2, 0}), bot, 
 									LinAlg.translate(new double[]{scale, -scale, 0}), top);
+		} else if(shapeStr.equals("arch")){
+			scale *= 2;
+			double[][] leftV = new double[][]{
+					new double[]{-.2, -.25},
+					new double[]{.2, -.25},
+					new double[]{.4, .25},
+					new double[]{-.2, .25}};
+			Shape left = ShapeFactory.constructFlatPolygon(LinAlg.scale(leftV, scale), scale/2);
+			
+			double[][] rightV = new double[][]{
+					new double[]{-.2, -.25},
+					new double[]{.2, -.25},
+					new double[]{.2, .25},
+					new double[]{-.4, .25}};
+			Shape right = ShapeFactory.constructFlatPolygon(LinAlg.scale(rightV, scale), scale/2);
+			
+			Shape top = new BoxShape(LinAlg.scale(new double[]{2, .6, .5}, scale));
+			
+			return new CompoundShape(LinAlg.translate(new double[]{0, .4*scale, 0}), top,
+									LinAlg.translate(new double[]{-.8*scale, -.55*scale, 0}), left,
+									LinAlg.translate(new double[]{1.6*scale, 0, 0}), right);
+			
+			
+					
 		} else {
 			return new SphereShape(scale);
 		}

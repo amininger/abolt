@@ -7,6 +7,9 @@ struct object_data_t
     int32_t num_cat;
     categorized_data_t cat_dat[num_cat];
 
+		int32_t num_labels;
+		string labels[num_labels];		
+
     double pos[6]; // xytrpy
     double bbox[2][3];// Min max axis aligned, {{x0, y0, z0}, {x1, y1, z1}};
 }

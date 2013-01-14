@@ -3,88 +3,59 @@ package abolt.sim;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-
 import april.jmat.LinAlg;
 import april.sim.BoxShape;
-import april.sim.Shape;
-import april.sim.SimObject;
 import april.sim.SimWorld;
-import april.sim.SphereShape;
 import april.util.StructureReader;
 import april.util.StructureWriter;
 import april.vis.VisChain;
 import april.vis.VisObject;
-import april.vis.VzLines;
 import april.vis.VzMesh;
 import april.vis.VzRectangle;
 import april.vis.VzText;
 
-import abolt.bolt.Bolt;
-import abolt.classify.SimFeatures;
-import abolt.classify.Features.FeatureCategory;
-import abolt.objects.*;
 import abolt.util.SimUtil;
 
-public class SimLocation implements SimSensable, SimObject, SimActionable {
-    protected VisObject model;
-    protected Shape shape;
-
-    protected int id;
-    protected double[] pose;
-
+public class SimLocation extends SimBoltObject implements SimActionable {
     protected String name;
-    protected Color color;
 
     protected double size = .1;
     protected SensableStates sensStates;
+    protected abolt.collision.Shape aboltShape = null;
 
     public SimLocation(SimWorld sw)
     {
     	id = SimUtil.nextID();
     }
-
-    public Shape getShape()
-    {
-        return shape;
-    }
+	
+	public String getName() {
+		return name;
+	}
+	
+	public void setID(int id){}
 
     public VisObject getVisObject()
     {
         return constructModel();
     }
-
-	public String getName() {
-		return name;
+    
+    public abolt.collision.Shape getAboltShape(){
+		return aboltShape;
 	}
+    
+    public double[][] getBBox(){
+    	return new double[][]{
+    			new double[]{-size, -size, -size}, 
+    			new double[]{size, size, size}};
+    }
 
-
-	@Override
-	public double[][] getPose() {
-		return LinAlg.xyzrpyToMatrix(pose);
+	/*** Methods for SimActionable ***/
+	public SensableStates getStates() {
+		return sensStates;
 	}
-
-	@Override
-	public void setPose(double[][] poseMatrix) {
-		pose = LinAlg.matrixToXyzrpy(poseMatrix);
-	}
-
-	@Override
-	public void setRunning(boolean arg0) {
-	}
-
-	@Override
-	public int getID() {
-		return id;
-	}
-
-	public String getProperties() {
-		String props = String.format("ID=%d,NAME=%s,", id, name);
-		props += sensStates.getProperties();
-		props += String.format("POSE=[%f %f %f %f %f %f],", pose[0], pose[1], pose[2], pose[3], pose[4], pose[5]);
-		props += String.format("BBOX=[%f %f %f %f %f %f]", -size, -size, -size, size, size, size);
-
-		return props;
+	
+	public void setState(String keyValString) {
+		sensStates.setState(keyValString);
 	}
 
 	public void read(StructureReader ins) throws IOException
@@ -96,8 +67,6 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
     	
     	int[] colors = ins.readInts();
     	color = new Color(colors[0], colors[1], colors[2]);
-    	
-    	
         
         int numProps = ins.readInt();
         String[] props = new String[numProps];
@@ -105,10 +74,10 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
         	props[i] = ins.readString();
         }	
         sensStates = new SensableStates(props);
+        sensStates.addStateSet("name", new String[]{name});
 
         shape = new BoxShape(new double[]{2*size, 2*size, 0});
-
-        SensableManager.getSingleton().addSensable(this);
+        aboltShape = new abolt.collision.BoxShape(2*size, 2*size, .02);
     }
 	
 
@@ -118,16 +87,6 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
         outs.writeDoubles(new double[]{pose[0], pose[1]});
         outs.writeInts(new int[]{color.getRed(), color.getGreen(), color.getBlue()});
     }
-
-	@Override
-	public void setState(String keyValString) {
-		sensStates.setState(keyValString);
-	}
-	
-	@Override
-	public boolean inSenseRange(double[] xyt) {
-		return true;
-	}
 	
 	private VisObject constructModel(){
 		ArrayList<Object> objs = new ArrayList<Object>();

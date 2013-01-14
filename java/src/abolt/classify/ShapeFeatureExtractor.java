@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import abolt.bolt.BoltObject;
 import abolt.kinect.*;
 /**
  * @author Aaron
@@ -14,14 +15,14 @@ import abolt.kinect.*;
  */
 public class ShapeFeatureExtractor
 {
-	public static ArrayList<Double> getFeatures(ObjectInfo object) {
-		return getFeatures(object.getImage());
+	public static ArrayList<Double> getFeatures(BoltObject obj) {
+		return getFeatures(obj.getProjection());
 	}
-
-	public static ArrayList<Double> getFeatures(ArrayList<double[]> points) {
-		BufferedImage img = ObjectInfo.getImage(points, null);
-		return getFeatures(img);
-	}
+//
+//	public static ArrayList<Double> getFeatures(ArrayList<double[]> points) {
+//		BufferedImage img = ObjectInfo.getImage(points, null);
+//		return getFeatures(img);
+//	}
 
 	public static ArrayList<Double> getFeatures(BufferedImage img){
 		ArrayList<Double> features = PCA.getFeatures(img, 7);

@@ -2,12 +2,10 @@ package abolt.classify;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
 import javax.swing.*;
 
-import april.util.*;
-
-import abolt.objects.*;
+import abolt.bolt.BoltObject;
+import abolt.bolt.Perception;
 import abolt.classify.Features.FeatureCategory;
 
 /** An interface for rapidly training classifier
@@ -90,12 +88,8 @@ public class ClassifyDebugGUI
             }
 
             // Find the object
-            int repID;
-            BoltObject obj;
-            synchronized (BoltObjectManager.getSingleton().objects) {
-                repID = Integer.valueOf(idField.getText());
-                obj = BoltObjectManager.getSingleton().objects.get(repID);
-            }
+            int repID = Integer.valueOf(idField.getText());
+            BoltObject obj = Perception.getSingleton().getCurrentObjects().get(repID);
 
             if (obj == null) {
                 System.err.println("ERR: No object by ID "+repID);

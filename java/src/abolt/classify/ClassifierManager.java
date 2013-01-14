@@ -1,20 +1,26 @@
 package abolt.classify;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
+
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 
 import april.config.*;
 import april.util.*;
 
+import abolt.bolt.BoltObject;
 import abolt.classify.Features.FeatureCategory;
-import abolt.objects.*;
 import abolt.lcmtypes.*;
 
 /**
  * @author aaron
  * Creates the classifiers used in the system and acts as a point of contact to them
  */
-public class ClassifierManager {
+public class ClassifierManager{
 
     // Singleton handling
     private static ClassifierManager singleton = null;
@@ -24,6 +30,11 @@ public class ClassifierManager {
             singleton = new ClassifierManager();
         }
         return singleton;
+    }
+    
+    public static void Initialize(Config config){
+    	singleton = new ClassifierManager();
+    	singleton.addClassifiers(config);
     }
 
     // Undo/redo functionality
@@ -68,19 +79,52 @@ public class ClassifierManager {
             action = ins.readString();
         }
     }
+    
 
     // The classfiers
 	private HashMap<FeatureCategory, IClassifier> classifiers;
+	
+    PeriodicTasks tasks = new PeriodicTasks(2);   // Only one thread for now
+    private static final double BACKUP_RATE = 10.0;
 
     public ClassifierManager()
     {
+        init();
     }
 
 	public ClassifierManager(Config config)
     {
         addClassifiers(config);
+        init();
+        
 	}
-
+	
+	private void init(){
+		tasks.addFixedDelay(new AutoSaveTask() , BACKUP_RATE);
+    	tasks.setRunning(true);
+	}
+    
+	/** 
+	 * Creates a menu for options involving the classifiers
+	 * 
+	 * @return A menu for classifier functionality
+	 */
+    public JMenu generateMenu(){
+    	return new ClassifierMenu();
+    }
+    
+    /**
+     * Creates classifiers according to the specifications in the given config file
+     * <p>
+     * Expects 3 files to be specified containing training data:
+     * <ul>
+     * <li>training.color_data</li>
+     * <li>training.shape_data</li>
+     * <li>training.size_data</li>
+     * </ul>
+     * 
+     * @param config The config file from while the parameters are taken
+     */
     public void addClassifiers(Config config)
     {
         String colorDataFile = null, shapeDataFile = null, sizeDataFile = null;
@@ -108,9 +152,32 @@ public class ClassifierManager {
         reloadData();
     }
     
+    /**
+     * Adds a single custom classifier to the manager
+     * 
+     * @param cat The category of the classifier
+     * @param classifier The classifier itself
+     */
     public void addClassifier(FeatureCategory cat, IClassifier classifier){
     	classifiers.put(cat, classifier);
     }
+
+    /**
+     * Adds a custom data point to the classifiers 
+     * 
+     * @param cat The feature category to use
+     * @param features A representation of the features (array of doubles)
+     * @param label The label of the given data point
+     */
+	public void addDataPoint(FeatureCategory cat, ArrayList<Double> features, String label){
+		IClassifier classifier = classifiers.get(cat);
+		synchronized(stateLock){
+            CPoint point = new CPoint(label, features);
+            StackEntry entry = new StackEntry(point, cat, "ADD");
+			classifier.add(point);
+            undoStack.add(entry);
+		}
+	}
 
 	public Classifications classify(FeatureCategory cat, BoltObject obj){
 		IClassifier classifier = classifiers.get(cat);
@@ -124,18 +191,31 @@ public class ClassifierManager {
 		}
 		return classifications;
 	}
+    
+    public object_data_t getObjectData(BoltObject bo){
+    	object_data_t objData = new object_data_t();
+    	objData.utime = TimeUtil.utime();
+    	objData.id = bo.getID();
+    	objData.pos = bo.getPos();
+    	objData.bbox = bo.getBBox();
+    	objData.labels = bo.getLabels();
+    	objData.num_labels = objData.labels.length;
+    	ArrayList<categorized_data_t> cat_dats = new ArrayList<categorized_data_t>();
+        int j = 0;
+        for (FeatureCategory fc: classifiers.keySet()) {
+            ArrayList<Double> features = bo.getFeatures(fc);
+            categorized_data_t cat_dat = getCategorizedData(fc, features);
+            if(cat_dat != null){
+                cat_dats.add(cat_dat);
+            }
+        }
 
-	public void addDataPoint(FeatureCategory cat, ArrayList<Double> features, String label){
-		IClassifier classifier = classifiers.get(cat);
-		synchronized(stateLock){
-            CPoint point = new CPoint(label, features);
-            StackEntry entry = new StackEntry(point, cat, "ADD");
-			classifier.add(point);
-            undoStack.add(entry);
-		}
-	}
+        objData.num_cat = cat_dats.size();
+        objData.cat_dat = cat_dats.toArray(new categorized_data_t[cat_dats.size()]);
+        return objData;
+    }
 
-	public void clearData(){
+	private void clearData(){
 		for(IClassifier classifier : classifiers.values()){
 			synchronized(stateLock){
 				classifier.clearData();
@@ -152,18 +232,18 @@ public class ClassifierManager {
 		}
 	}
 
-    public boolean hasUndo()
+    private boolean hasUndo()
     {
         return undoStack.size() > 0;
     }
 
-    public boolean hasRedo()
+    private boolean hasRedo()
     {
         return redoStack.size() > 0;
     }
 
     /** Undo function. Undoes the last action taken by the user */
-    public void undo()
+    private void undo()
     {
         synchronized (stateLock) {
             if (undoStack.size() < 1)
@@ -180,7 +260,7 @@ public class ClassifierManager {
     }
 
     /** Redo function. Takes the last undone action and redoes it */
-    public void redo()
+    private void redo()
     {
         synchronized (stateLock) {
             if (redoStack.size() < 1)
@@ -195,10 +275,11 @@ public class ClassifierManager {
             }
         }
     }
+    
 
     // XXX Might want to spawn a backup thread to do this...
     /** Write out a backup file of our current state. */
-    public void writeState(String filename) throws IOException
+    private void writeState(String filename) throws IOException
     {
         synchronized (stateLock) {
             // As it stands, the undo/redo stacks possess all of the
@@ -281,75 +362,150 @@ public class ClassifierManager {
             ins.close();
         }
     }
-
-    /** Build up the object_data_t describing the observed objects
-     *  in the world. Runs classifiers on the objects and builds
-     *  the appropriate lcmtypes to return.
-     */
-    public object_data_t[] getObjectData()
-    {
-        BoltObjectManager objManager = BoltObjectManager.getSingleton();
-        object_data_t[] od;
-        long utime = TimeUtil.utime();
-    	ArrayList<object_data_t> objectDatas = new ArrayList<object_data_t>();
-
-        int i = 0;
-        synchronized (objManager.objects) {
-            od = new object_data_t[objManager.objects.size()];
-            for (BoltObject bo: objManager.objects.values()) {
-            	if(!bo.isVisible()){
-            		continue;
-            	}
-            	object_data_t objData = new object_data_t();
-            	objData.utime = utime;
-            	objData.id = bo.getID();
-            	objData.pos = bo.getPose();
-            	objData.bbox = bo.getBBox();
-            	ArrayList<categorized_data_t> cat_dats = new ArrayList<categorized_data_t>();
-                int j = 0;
-                for (FeatureCategory fc: classifiers.keySet()) {
-                    ArrayList<Double> features = bo.getFeatures(fc);
-                    IClassifier classifier = classifiers.get(fc);
-                    if(features == null || classifier == null){
-                    	continue;
-                    }
-                	categorized_data_t cat_dat = new categorized_data_t();
-                    cat_dat = new categorized_data_t();
-                    cat_dat.cat = new category_t();
-                    cat_dat.cat.cat = Features.getLCMCategory(fc);
-                    // AM: I don't like this, but I don't want to deal with features from visual properties at the moment
-                    if(fc == FeatureCategory.WEIGHT || fc == FeatureCategory.SQUISHINESS){
-                        cat_dat.num_features = features.size();
-                        cat_dat.features = new double[features.size()];
-                        for(int k = 0; k < features.size(); k++){
-                        	cat_dat.features[k] = features.get(k);
-                        }
-                    } else {
-                    	cat_dat.num_features = 0;
-                    	cat_dat.features = new double[0];
-                    }
-                    Classifications cs = classifier.classify(features);
-                    cs.sortLabels();    // Just to be nice
-                    cat_dat.len = cs.size();
-                    cat_dat.confidence = new double[cat_dat.len];
-                    cat_dat.label = new String[cat_dat.len];
-                    int k = 0;
-                    for (Classifications.Label label: cs.labels) {
-                        cat_dat.confidence[k] = label.weight;
-                        cat_dat.label[k] = label.label;
-
-                        k++;
-                    }
-                    
-                    cat_dats.add(cat_dat);
-                }
-
-                objData.num_cat = cat_dats.size();
-                objData.cat_dat = cat_dats.toArray(new categorized_data_t[cat_dats.size()]);
-                objectDatas.add(objData);
+    
+    private categorized_data_t getCategorizedData(FeatureCategory fc, ArrayList<Double> features){
+        IClassifier classifier = classifiers.get(fc);
+        if(features == null || classifier == null){
+        	return null;
+        }
+    	categorized_data_t cat_dat = new categorized_data_t();
+        cat_dat = new categorized_data_t();
+        cat_dat.cat = new category_t();
+        cat_dat.cat.cat = Features.getLCMCategory(fc);
+        // XXX: AM: I don't like this, but I don't want to deal with features from visual properties at the moment
+        if(fc == FeatureCategory.WEIGHT || fc == FeatureCategory.SQUISHINESS){
+            cat_dat.num_features = features.size();
+            cat_dat.features = new double[features.size()];
+            for(int k = 0; k < features.size(); k++){
+            	cat_dat.features[k] = features.get(k);
             }
+        } else {
+        	cat_dat.num_features = 0;
+        	cat_dat.features = new double[0];
+        }
+        
+        Classifications cs = classifier.classify(features);
+        cs.sortLabels();    // Just to be nice
+        cat_dat.len = cs.size();
+        cat_dat.confidence = new double[cat_dat.len];
+        cat_dat.label = new String[cat_dat.len];
+        int k = 0;
+        for (Classifications.Label label: cs.labels) {
+            cat_dat.confidence[k] = label.weight;
+            cat_dat.label[k] = label.label;
+
+            k++;
+        }
+        return cat_dat;
+    }
+    
+
+
+    /** AutoSave the classifier state */
+    class AutoSaveTask implements PeriodicTasks.Task
+    {
+        String filename;
+
+        public AutoSaveTask()
+        {
+            Date date = new Date(System.currentTimeMillis());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
+            filename = "/tmp/bolt_autosave_"+sdf.format(date);
         }
 
-        return objectDatas.toArray(new object_data_t[objectDatas.size()]);
+        public void run(double dt)
+        {
+            try {
+                writeState(filename);
+            } catch (IOException ioex)  {
+                System.err.println("ERR: Could not save to autosave file");
+                ioex.printStackTrace();
+            }
+        }
+    }
+    
+    private class ClassifierMenu extends JMenu{
+    	JMenuItem clearData;
+    	JMenuItem reloadData;
+    	JMenuItem undoAction;
+    	JMenuItem redoAction;
+    	
+        // Periodic tasks
+        PeriodicTasks menuTasks = new PeriodicTasks(2);   // Only one thread for now
+        
+        private static final double REFRESH_RATE = .2;
+    	
+    	public ClassifierMenu(){
+    		super("Classifiers");
+    		init();
+    		
+    		menuTasks.addFixedDelay(new MenuUpdateTask(), REFRESH_RATE);
+    		menuTasks.setRunning(true);
+    	}
+    	
+    	public void init(){
+            // Remove all data (no built in info)
+            clearData = new JMenuItem("Clear All Data");
+            clearData.addActionListener(new ActionListener(){
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        System.out.println("CLEARED DATA");
+                        clearData();
+                    }
+                });
+            add(clearData);
+
+            // Remove all data (including training)
+            reloadData = new JMenuItem("Reload Data");
+            reloadData.addActionListener(new ActionListener(){
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        reloadData();
+                    }
+                });
+            add(reloadData);
+
+            // Undo & redo actions
+            undoAction = new JMenuItem("Undo");
+            undoAction.addActionListener(new ActionListener()
+                {
+                    public void actionPerformed(ActionEvent e) {
+                        undo();
+                    }
+                });
+            add(undoAction);
+
+            redoAction = new JMenuItem("Redo");
+            redoAction.addActionListener(new ActionListener()
+                {
+                    public void actionPerformed(ActionEvent e) {
+                        redo();
+                    }
+                });
+            add(redoAction);
+    	}
+
+        /** Update the status of menu entries to ensure only the
+         *  appropriate ones are marked as active
+         */
+        class MenuUpdateTask implements PeriodicTasks.Task
+        {
+            public MenuUpdateTask() {}
+
+            public void run(double dt)
+            {
+                if (hasUndo()) {
+                    undoAction.setEnabled(true);
+                } else {
+                    undoAction.setEnabled(false);
+                }
+
+                if (hasRedo()) {
+                    redoAction.setEnabled(true);
+                } else {
+                    redoAction.setEnabled(false);
+                }
+            }
+        }
     }
 }

@@ -1,23 +1,7 @@
 package abolt.kinect;
 
-import java.io.*;
-import java.nio.*;
-import javax.swing.*;
 import java.awt.*;
 import java.util.*;
-import java.awt.image.*;
-
-import lcm.lcm.*;
-
-import april.vis.*;
-import april.jmat.*;
-import april.util.UnionFindSimple;
-
-import abolt.bolt.Bolt;
-import abolt.classify.*;
-import abolt.classify.Features.FeatureCategory;
-import abolt.lcmtypes.*;
-import abolt.objects.ISimBoltObject;
 import abolt.util.*;
 
 public class ObjectInfo{
@@ -28,16 +12,11 @@ public class ObjectInfo{
     private double[] center;
     private int[] avgColor; // Red, Green, Blue
     public int[] sumColor;
-    public BufferedImage image = null;
-    public Rectangle projBBox = null;
-    public ISimBoltObject createdFrom = null;
 
     public ArrayList<double[]> points;
-    private HashMap<FeatureCategory, ArrayList<Double> > features;
 
     public ObjectInfo(){
         center = null;
-    	features = new HashMap<FeatureCategory, ArrayList<Double> >();
     }
 
     /** Create a new object with info about it. Objects begin with a single point.**/
@@ -50,7 +29,6 @@ public class ObjectInfo{
         sumColor = new int[]{c.getRed(), c.getGreen(), c.getBlue()};
         points = new ArrayList<double[]>();
         points.add(point);
-    	features = new HashMap<FeatureCategory, ArrayList<Double>>();
     }
 
     public void createRepID()
@@ -68,20 +46,6 @@ public class ObjectInfo{
 
         this.points.add(point);
     }
-
-    public ArrayList<Double> getFeatures(FeatureCategory cat){
-    	if(features.containsKey(cat)){
-    		return features.get(cat);
-    	} else {
-    		ArrayList<Double> fts = Features.getFeatures(cat, points);
-    		features.put(cat, fts);
-    		return fts;
-    	}
-    }
-    
-    public void addFeatures(FeatureCategory cat, ArrayList<Double> features){
-		this.features.put(cat, features);
-	}
 
     /** Get the center of the object (mean x, y,z). **/
     public double[] getCenter()
@@ -101,8 +65,6 @@ public class ObjectInfo{
             for(int i=0; i<3; i++){
                 center[i] = (min[i]+max[i])/2.0;
             }
-            // For Aaron
-            center = Bolt.getCamera().getWorldCoords(center);
             //center = KUtils.getWorldCoordinates(center);
         }
         return center;
@@ -145,60 +107,5 @@ public class ObjectInfo{
         avgColor = newColor;
     }
 
-    public static BufferedImage getImage(ArrayList<double[]> points, Rectangle projBBox){
-    	BufferedImage image;
-		int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
-		int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
-		IBoltCamera camera = Bolt.getCamera();
-		for(double[] pt : points){
-			int[] pixel = camera.getPixel(pt);
-			if(pixel == null){
-				continue;
-			}
-			minX = (pixel[0] < minX ? pixel[0] : minX);
-			maxX = (pixel[0] > maxX ? pixel[0] : maxX);
-			minY = (pixel[1] < minY ? pixel[1] : minY);
-			maxY = (pixel[1] > maxY ? pixel[1] : maxY);
-		}
-		int margin = 5;
-		if(projBBox != null){
-			projBBox.setBounds(minX - margin, minY - margin,
-                               maxX - minX + 1 + margin*2,
-                               maxY - minY + 1 + margin*2);
-		}
-		image = new BufferedImage((maxX - minX + 1) + 2*margin,
-                                  (maxY - minY + 1) + 2*margin,
-                                  BufferedImage.TYPE_3BYTE_BGR);
-		for(int i = 0; i < points.size(); i++){
-			int[] pixel = Bolt.getCamera().getPixel(points.get(i));
-			if(pixel == null){
-				continue;
-			}
-			try{
-				Color c =  new Color((int)points.get(i)[3]);
-				Color rc = new Color(c.getBlue(), c.getGreen(), c.getRed());
-    			image.setRGB(pixel[0]+margin-minX,
-                             pixel[1]+margin-minY,
-                             rc.getRGB());
-			} catch (Exception e){
-                e.printStackTrace();
-			}
-		}
-    	return image;
-    }
 
-    public Rectangle getProjectedBBox(){
-    	if(projBBox == null){
-    		getImage();
-    	}
-    	return projBBox;
-    }
-
-    public BufferedImage getImage(){
-    	if(image == null){
-    		projBBox = new Rectangle();
-    		image = getImage(points, projBBox);
-    	}
-    	return image;
-    }
 }

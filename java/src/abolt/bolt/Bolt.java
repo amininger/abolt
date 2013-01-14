@@ -2,69 +2,31 @@ package abolt.bolt;
 
 import java.io.*;
 import javax.swing.*;
-import java.util.*;
-import java.util.Timer;
-import java.awt.event.*;
-import java.text.*;
-
-import lcm.lcm.*;
-
 import april.config.*;
-import april.jmat.LinAlg;
-import april.sim.*;
 import april.util.*;
 
 import abolt.arm.*;
-import abolt.lcmtypes.*;
-import abolt.objects.BoltObject;
-import abolt.objects.BoltObjectManager;
-import abolt.objects.SensableManager;
 import abolt.kinect.*;
 import abolt.arm.ArmSimulator;
 import abolt.arm.BoltArmCommandInterpreter;
 import abolt.classify.*;
-import abolt.classify.Features.FeatureCategory;
 
 
-public class Bolt extends JFrame implements LCMSubscriber
+public class Bolt extends JFrame
 {
 	private static Bolt boltInstance;
 	public static Bolt getSingleton(){
 		return boltInstance;
 	}
 
-	public static IBoltCamera getCamera(){
-		if(boltInstance == null){
-			return null;
-		}
-		return boltInstance.camera;
-	}
-
-    private BoltObjectManager objectManager;
-    private SensableManager sensableManager;
-    private ClassifierManager classifierManager;
-    private IBoltCamera camera;
     private KinectView kinectView;
 
     // objects for visualization
     private BoltSimulator simulator;
     private ArmSimulator armSimulator;
 
-    // LCM
-    static LCM lcm = LCM.getSingleton();
-    private Timer sendObservationTimer;
-    private static final int OBSERVATION_RATE = 4; // # sent per second
-
-    // Periodic tasks
-    PeriodicTasks tasks = new PeriodicTasks(2);   // Only one thread for now
-
     // GUI Stuff
     JMenuBar menuBar;
-    JMenu controlMenu, editMenu;
-    JMenuItem clearData, reloadData;
-    JMenuItem undoAction, redoAction;
-    
-    private String acks = "";
 
     public Bolt(GetOpt opts)
     {
@@ -93,44 +55,33 @@ public class Bolt extends JFrame implements LCMSubscriber
         }
 
         // Initialize classifier manager
-        classifierManager = ClassifierManager.getSingleton();
-        classifierManager.addClassifiers(config); // XXX Auto-coded config stuff here. Meh
-
+        ClassifierManager.Initialize(config);
         if (opts.getString("backup") != null) {
             try {
                 System.out.println("ATTN: Loading from autosave file");
-                classifierManager.readState(opts.getString("backup"));
+                ClassifierManager.getSingleton().readState(opts.getString("backup"));
                 System.out.println("ATTN: Successfully restored from autosave file");
             } catch (IOException ioex) {
                 System.err.println("ERR: Failure to load from autosave file");
                 ioex.printStackTrace();
             }
         }
+        
+        // Initialize LCM
+        LCMReceiver.Initialize();
+        LCMBroadcaster.Initialize();
 
-        // Initialize sensable manager
-        sensableManager = SensableManager.getSingleton();
-
-        // Initialize object manager
-    	objectManager = BoltObjectManager.getSingleton();
-
-        // If we specify that we would like to use an actual kinect,
-        // initialize a kinect camera to process incoming kinect_status
-        // messages. Otherwise, initialize a simulated kinect to generate
-        // virtual point clouds based on the sim environment
-
+        
     	// Initialize the simulator
         simulator = new BoltSimulator(opts);
-
-
-        if(opts.getBoolean("kinect")){
-        	camera = new KinectCamera(simulator.getVisWorld()); // Lauren
-        	kinectView = new KinectView();
-            // XXX We'd like to remove this middleman to the arm
-            //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
-        } else {
-        	camera = new SimKinect(400, 300, simulator);
-        	armSimulator = new ArmSimulator(simulator);
+        
+        // Initialize the arm simulator (if needed)
+        if(!opts.getBoolean("arm")){
+        	ArmSimulator.Initialize(simulator);
         }
+
+        Perception.Initialize();
+
 
         // Initialize the JMenuBar
         createMenuBar();
@@ -138,204 +89,16 @@ public class Bolt extends JFrame implements LCMSubscriber
         this.setJMenuBar(menuBar);
     	this.add(simulator.getCanvas());
 
-        // Subscribe to LCM
-        lcm.subscribe("TRAINING_DATA", this);
-        lcm.subscribe("ROBOT_COMMAND", this);
-
-
         // TODO: arm stuff here
-
         this.setVisible(true);
-        class SendObservationTask extends TimerTask{
-			public void run() {
-        		sendMessage();
-			}
-        }
-        sendObservationTimer = new Timer();
-        sendObservationTimer.schedule(new SendObservationTask(), 1000, 1000/OBSERVATION_RATE);
-
-        // Write to file task
-        tasks.addFixedDelay(new AutoSaveTask(), 10.0);
-        tasks.addFixedDelay(new MenuUpdateTask(), 0.2);
-        tasks.setRunning(true);
+        LCMBroadcaster.getSingleton().start();
     }
 
 
     public void createMenuBar()
     {
     	menuBar = new JMenuBar();
-        controlMenu = new JMenu("Control");
-
-        menuBar.add(controlMenu);
-
-        // Remove all data (no built in info)
-        clearData = new JMenuItem("Clear All Data");
-        clearData.addActionListener(new ActionListener(){
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    System.out.println("CLEARED DATA");
-                    ClassifierManager.getSingleton().clearData();
-                }
-            });
-        controlMenu.add(clearData);
-
-        // Remove all data (including training)
-        reloadData = new JMenuItem("Reload Data");
-        reloadData.addActionListener(new ActionListener(){
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    ClassifierManager.getSingleton().reloadData();
-                }
-            });
-        controlMenu.add(reloadData);
-
-        // Edit menu XXX
-        editMenu = new JMenu("Edit");
-
-        menuBar.add(editMenu);
-
-        // Undo & redo actions
-        undoAction = new JMenuItem("Undo");
-        undoAction.addActionListener(new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e) {
-                    classifierManager.undo();
-                }
-            });
-        editMenu.add(undoAction);
-
-        redoAction = new JMenuItem("Redo");
-        redoAction.addActionListener(new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e) {
-                    classifierManager.redo();
-                }
-            });
-        editMenu.add(redoAction);
-    }
-
-
-    @Override
-    public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)
-    {
-       if(channel.equals("TRAINING_DATA")){
-            try{
-                training_data_t training = new training_data_t(ins);
-
-                for(int i=0; i<training.num_labels; i++){
-                    training_label_t tl = training.labels[i];
-               	 	FeatureCategory cat = Features.getFeatureCategory(tl.cat.cat);
-                    BoltObject obj = null;
-                    if(tl.id != -1){
-                    	// Training example using an object
-                    	synchronized(objectManager.objects){
-                            obj = objectManager.objects.get(tl.id);
-                        }
-                    	if(obj == null){
-                    		return;
-                    	}
-                         ArrayList<Double> features = obj.getFeatures(cat);
-                         if(features != null){
-                             classifierManager.addDataPoint(cat, features, tl.label);
-                         }
-                    } else if(tl.num_features > 0){
-                    	// Training example using a provided list of features
-                    	ArrayList<Double> features = new ArrayList<Double>();
-                    	for(Double d : tl.features){
-                    		features.add(d);
-                    	}
-                    	classifierManager.addDataPoint(cat, features, tl.label);
-                    	
-                    }
-                }
-                synchronized(acks){
-                	if(!acks.isEmpty()){
-                		acks += ",";
-                	}
-                	acks += training.ack_nums;
-                }
-            }catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
-        } else if(channel.equals("ROBOT_COMMAND")){
-        	try{
-        		robot_command_t command = new robot_command_t(ins);
-        		sensableManager.performAction(command.action);
-        	}catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
-        }
-    }
-
-
-    public void sendMessage()
-    {
-        observations_t obs = new observations_t();
-        obs.utime = TimeUtil.utime();
-        synchronized(acks){
-        	obs.ack_nums = acks;
-        	acks = "";
-        }
-        synchronized(objectManager.objects){
-        	obs.click_id = simulator.getSelectedId();
-        }
-        obs.sensables = sensableManager.getSensableStrings();
-        obs.nsens = obs.sensables.length;
-        obs.observations = classifierManager.getObjectData();
-        obs.nobs = obs.observations.length;
-
-        lcm.publish("OBSERVATIONS",obs);
-    }
-
-    /** AutoSave the classifier state */
-    class AutoSaveTask implements PeriodicTasks.Task
-    {
-        String filename;
-
-        public AutoSaveTask()
-        {
-            Date date = new Date(System.currentTimeMillis());
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
-            filename = "/tmp/bolt_autosave_"+sdf.format(date);
-        }
-
-        public void run(double dt)
-        {
-            try {
-                classifierManager.writeState(filename);
-            } catch (IOException ioex)  {
-                System.err.println("ERR: Could not save to autosave file");
-                ioex.printStackTrace();
-            }
-        }
-    }
-
-    /** Update the status of menu entries to ensure only the
-     *  appropriate ones are marked as active
-     */
-    class MenuUpdateTask implements PeriodicTasks.Task
-    {
-        public MenuUpdateTask()
-        {
-
-        }
-
-        public void run(double dt)
-        {
-            if (classifierManager.hasUndo()) {
-                undoAction.setEnabled(true);
-            } else {
-                undoAction.setEnabled(false);
-            }
-
-            if (classifierManager.hasRedo()) {
-                redoAction.setEnabled(true);
-            } else {
-                redoAction.setEnabled(false);
-            }
-        }
+    	menuBar.add(ClassifierManager.getSingleton().generateMenu());
     }
 
     public static void main(String args[])
@@ -346,7 +109,6 @@ public class Bolt extends JFrame implements LCMSubscriber
         opts.addBoolean('h', "help", false, "Show this help screen");
         opts.addString('c', "config", null, "Specify the configuration file for Bolt");
         opts.addBoolean('d', "debug", false, "Toggle debugging mode");
-        opts.addBoolean('k', "kinect", false, "Use kinect data to create objects");
         opts.addBoolean('a', "arm", false, "Run with the actual arm");
         opts.addBoolean('\0', "seg", false, "Show the segmentation instead of the simulator");
         opts.addString('w', "world", null, "World file");

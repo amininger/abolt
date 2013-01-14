@@ -2,8 +2,6 @@ package abolt.classify;
 
 import java.util.*;
 
-import abolt.objects.*;
-
 public interface IClassifier {
     /**
      * @param object

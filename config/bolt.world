@@ -34,51 +34,6 @@
 	vec 4
 	0.196078434586525 0.196078434586525 0.196078434586525 1.00000000000000
 }
-"abolt.sim.SimBlock"
-{
-	# XYZRPY 
-	vec 6
-	.2 .2 .05 0 0 0
-	red
-	square
-	small
-  	3
-	0.05
-
-}
-"abolt.sim.SimBlock"
-{
-	# XYZRPY 
-	vec 6
-	-.2 .2 .05 0 0 0
-	blue
-	sphere
-	medium
-  	6
-	.9
-}
-"abolt.sim.SimBlock"
-{
-	# XYZRPY 
-	vec 6
-	.2 -.2 .05 0 0 0
-	green
-	l-shape
-	large
-  	8
-	.2
-}
-"abolt.sim.SimBlock"
-{
-	# XYZRPY 
-	vec 6
-	-.2 -.2 .05  0 0 0
-	red
-	triangle
-	medium
-  	7
-	.75
-}
 "abolt.sim.SimLocation"
 {
 	vec 2
@@ -116,5 +71,77 @@
 	scale
   	ivec 3
 	0 255 0
+	0
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.2 .2 .05 0 0 0
+	red
+	square
+	small
+  	3
+	0.05
+	1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	-.2 .2 .05 0 0 0
+	blue
+	sphere
+	medium
+  	6
+	.9
+	1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.2 -.2 .05 0 0 0
+	white
+	sphere
+	medium
+  	8
+	.2
+	1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	-.2 -.2 .05  0 0 0
+	red
+	arch
+	medium
+  	7
+	.75
+	1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	-.6 -.2 .05  0 0 0
+	blue
+	triangle
+	medium
+  	7
+	.75
+	0
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.6 -.2 .05  0 0 0
+	yellow
+	sphere
+	large
+  	7
+	.75
 	0
 }

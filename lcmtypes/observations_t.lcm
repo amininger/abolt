@@ -8,8 +8,5 @@ struct observations_t
     int32_t nobs;
     object_data_t observations[nobs];
 
-    int32_t nsens;
-    string sensables[nsens]; // Each entry is a set of comma separated values the form "NAME=SWITCH,STATE=ON,POS=[1.2 3.5]"
-
     string ack_nums;
 }

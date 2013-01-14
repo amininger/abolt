@@ -3,6 +3,7 @@ package abolt.classify;
 import java.util.ArrayList;
 
 import abolt.bolt.Bolt;
+import abolt.bolt.BoltObject;
 import abolt.kinect.KUtils;
 import abolt.kinect.ObjectInfo;
 import april.jmat.LinAlg;
@@ -11,9 +12,9 @@ import april.jmat.LinAlg;
  * Contains methods for extracting size features from an object or point cloud
  */
 public class SizeFeatureExtractor{
-	public static ArrayList<Double> getFeatures(ObjectInfo object)
+	public static ArrayList<Double> getFeatures(BoltObject obj)
     {
-		return getFeatures(object.points);
+		return getFeatures(obj.getPoints());
 	}
 
 	public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
@@ -70,20 +71,20 @@ public class SizeFeatureExtractor{
 		return new double[] { min[0], min[1], min[2], max[0], max[1], max[2] };
 	}
 
-	public static double[] boundingBoxWorld(ArrayList<double[]> points) {
-		double[] max = new double[] { -1000, -1000, -1000 };
-		double[] min = new double[] { 1000, 1000, 1000 };
-		for (double[] p : points) {
-            p = Bolt.getCamera().getWorldCoords(p);
-			for (int i = 0; i < 3; i++) {
-				if (p[i] < min[i])
-					min[i] = p[i];
-				if (p[i] > max[i])
-					max[i] = p[i];
-			}
-		}
-		return new double[] { min[0], min[1], min[2], max[0], max[1], max[2] };
-	}
+//	public static double[] boundingBoxWorld(ArrayList<double[]> points) {
+//		double[] max = new double[] { -1000, -1000, -1000 };
+//		double[] min = new double[] { 1000, 1000, 1000 };
+//		for (double[] p : points) {
+//            p = Bolt.getCamera().getWorldCoords(p);
+//			for (int i = 0; i < 3; i++) {
+//				if (p[i] < min[i])
+//					min[i] = p[i];
+//				if (p[i] > max[i])
+//					max[i] = p[i];
+//			}
+//		}
+//		return new double[] { min[0], min[1], min[2], max[0], max[1], max[2] };
+//	}
 
 
 	/**

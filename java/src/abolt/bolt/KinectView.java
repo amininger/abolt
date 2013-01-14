@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -15,8 +16,6 @@ import lcm.lcm.LCMSubscriber;
 
 import abolt.kinect.KinectCamera;
 import abolt.lcmtypes.kinect_status_t;
-import abolt.objects.BoltObject;
-import abolt.objects.BoltObjectManager;
 import april.jmat.LinAlg;
 import april.vis.*;
 
@@ -84,15 +83,13 @@ public class KinectView extends JFrame implements LCMSubscriber{
     
     private void update(){
     	VisWorld.Buffer buffer = visWorld.getBuffer("objects");
-		BoltObjectManager objManager = BoltObjectManager.getSingleton();
-    	synchronized(objManager.objects){
-    		for(BoltObject obj : objManager.objects.values()){
-    			double[][] bbox = obj.getBBox();
-    			double[][] scale = LinAlg.scale(bbox[1][0] - bbox[0][0], bbox[1][1] - bbox[0][1], bbox[1][2] - bbox[0][2]);
-    			VzBox box = new VzBox(new VzMesh.Style(new Color(0,0,0,0)), new VzLines.Style(Color.cyan, 2));
-    			buffer.addBack(new VisChain(LinAlg.translate(obj.getPose()), scale, box));
-    		}
-    	}
+    	HashMap<Integer, BoltObject> objects = Perception.getSingleton().getCurrentObjects();
+		for(BoltObject obj : objects.values()){
+			double[][] bbox = obj.getBBox();
+			double[][] scale = LinAlg.scale(bbox[1][0] - bbox[0][0], bbox[1][1] - bbox[0][1], bbox[1][2] - bbox[0][2]);
+			VzBox box = new VzBox(new VzMesh.Style(new Color(0,0,0,0)), new VzLines.Style(Color.cyan, 2));
+			buffer.addBack(new VisChain(LinAlg.translate(obj.getPos()), scale, box));
+		}
 		buffer.swap();
     }
     
@@ -103,7 +100,7 @@ public class KinectView extends JFrame implements LCMSubscriber{
 			VisColorData colors = new VisColorData();
 			VisVertexData vertexData = new VisVertexData();
 			for(int i = 0; i < points.size(); i++){
-				double[] pt = Bolt.getCamera().getWorldCoords(points.get(i));
+				double[] pt = points.get(i);
 				vertexData.add(new double[]{pt[0], pt[1], pt[2]});
     			colors.add((int)points.get(i)[3]);
 			}

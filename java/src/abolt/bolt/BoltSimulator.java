@@ -8,28 +8,26 @@ import java.util.*;
 
 import javax.swing.*;
 
-import abolt.objects.*;
 import abolt.kinect.*;
-import abolt.bolt.SimView.SoarView;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
-import abolt.collision.ShapeToVisObject;
-import abolt.sim.SimSensable;
-import abolt.util.SimUtil;
-import abolt.objects.SensableManager;
 import abolt.vis.SelectionAnimation;
 import april.config.*;
 import april.jmat.*;
 import april.jmat.geom.*;
 import april.sim.*;
+import april.sim.Shape;
 import april.util.*;
 import april.vis.*;
-import april.vis.VisCameraManager.CameraPosition;
-import april.vis.VzMesh.Style;
 
 public class BoltSimulator implements VisConsole.Listener{
     private final static int K_HEIGHT = 480;
     private final static int K_WIDTH = 640;
+    
+    static BoltSimulator singleton = null;
+    public static BoltSimulator getSingleton(){
+    	return singleton;
+    }
 
 	// Sim stuff
     private SimWorld world;
@@ -50,6 +48,8 @@ public class BoltSimulator implements VisConsole.Listener{
     private SimClickHandler clickHandler;
 
     public BoltSimulator(GetOpt opts) {
+    	singleton = this;
+    	
 		vw = new VisWorld();
 		vl = new VisLayer(vw);
 	    vc = new VisCanvas(vl);
@@ -63,7 +63,7 @@ public class BoltSimulator implements VisConsole.Listener{
 
         loadWorld(opts);
         sim = new Simulator(vw, vl, console, world);
-        simView = new SimView.SoarView();
+        simView = new SimView.PointCloudView();
         clickHandler = new SimClickHandler.SelectObject();
 
         // Render updates about the world
@@ -201,46 +201,27 @@ public class BoltSimulator implements VisConsole.Listener{
             double bestd = Double.MAX_VALUE;
 
             synchronized(world) {
-            	BoltObjectManager objManager = BoltObjectManager.getSingleton();
-                synchronized(objManager.objects){
-                	BoltObject selected = null;
-                	for (BoltObject obj : objManager.objects.values()) {
-                        double d = Collisions.collisionDistance(ray.getSource(), ray.getDir(), obj.getShape(), obj.getPoseMatrix());
-                        if (d < bestd) {
-                            synchronized (selectionLock) {
-                            	selected = obj;
-                                bestd = d;
-                            }
+            	HashMap<Integer, BoltObject> objects = Perception.getSingleton().getCurrentObjects();
+            	BoltObject selected = null;
+            	for (BoltObject obj : objects.values()) {
+            		double d;
+            		double[][] poseMatrix = LinAlg.xyzrpyToMatrix(obj.getPos());
+            		if(obj.sourceObject != null && obj.sourceObject.getAboltShape() != null){
+                        d = abolt.collision.Collisions.collisionDistance(ray.getSource(), ray.getDir(), obj.sourceObject.getAboltShape(), poseMatrix);
+            		} else {
+                		Shape sphere = new SphereShape(obj.getRadius());
+                        d = Collisions.collisionDistance(ray.getSource(), ray.getDir(), sphere, poseMatrix);
+            		}
+                    if (d < bestd) {
+                        synchronized (selectionLock) {
+                        	selected = obj;
+                            bestd = d;
                         }
                     }
-                	if(selected != null){
-                		changeSelected(clickHandler.clicked(selected));
-                	}
                 }
-
-                if(bestd == Double.MAX_VALUE){
-                	HashMap<Integer, SimSensable> sensables = SensableManager.getSingleton().getSensables();
-	                synchronized(sensables){
-	                	SimObject selected = null;
-	                	for (SimSensable sens : sensables.values()) {
-	                		if(!(sens instanceof SimObject)){
-	                			continue;
-	                		}
-	                		SimObject obj = (SimObject)sens;
-	                        double d = Collisions.collisionDistance(ray.getSource(), ray.getDir(), obj.getShape(), obj.getPose());
-
-	                        if (d < bestd) {
-	                            synchronized (selectionLock) {
-	                            	selected = obj;
-	                                bestd = d;
-	                            }
-	                        }
-	                    }
-	                	if(selected != null){
-	                		changeSelected(clickHandler.clicked(selected));
-	                	}
-	                }
-                }
+            	if(selected != null){
+            		changeSelected(clickHandler.clicked(selected));
+            	}
             }
 
             return false;
@@ -264,7 +245,11 @@ public class BoltSimulator implements VisConsole.Listener{
         {
             Tic tic = new Tic();
             while (true) {
+                TimeUtil.sleep(1000/fps);
                 double dt = tic.toctic();
+                if(Perception.getSingleton() == null){
+                	continue;
+                }
 
                 // Object drawing
             	VisWorld.Buffer objBuffer = vw.getBuffer("objects");
@@ -287,36 +272,22 @@ public class BoltSimulator implements VisConsole.Listener{
                 tableBuffer.addBack(new VisChain(LinAlg.translate(new double[]{0, 0, .00001}), new VzRectangle(.95, .95, new VzMesh.Style(Color.gray))));
                 tableBuffer.swap();
 
-                TimeUtil.sleep(1000/fps);
             }
         }
     }
 	
 	private void drawSelectionAnimation(VisWorld.Buffer buffer, double dt){
-		BoltObjectManager objManager = BoltObjectManager.getSingleton();
+		HashMap<Integer, BoltObject> objects = Perception.getSingleton().getCurrentObjects();
 		boolean isSelected = false;
-		synchronized(objManager.objects){
-			if(objManager.objects.containsKey(selectedId)){
-				isSelected = true;
-	    		if(animation == null){
-	        		BoltObject selectedObject = objManager.objects.get(selectedId);
-	                double[] xyz = LinAlg.resize(LinAlg.matrixToXyzrpy(selectedObject.getPoseMatrix()), 3);
-	                double br = Math.abs(selectedObject.getShape().getBoundingRadius());
-	                animation = new SelectionAnimation(xyz, br*1.2);
-	    		}
-	    	}
-		}
-		SensableManager sensManager = SensableManager.getSingleton();
-		synchronized(sensManager.getSensables()){
-			if(sensManager.getSensables().containsKey(selectedId)){
-				isSelected = true;
-				SimSensable obj = sensManager.getSensables().get(selectedId);
-				if(animation == null && obj instanceof SimObject){
-	                double[] xyz = LinAlg.resize(LinAlg.matrixToXyzrpy(((SimObject)obj).getPose()), 3);
-	                double br = Math.abs(((SimObject)obj).getShape().getBoundingRadius());
-	                animation = new SelectionAnimation(xyz, br*1.2);
-				}
+		for(BoltObject obj : objects.values()){
+			if(obj.getID() != selectedId){
+				continue;
 			}
+			isSelected = true;
+    		if(animation == null){
+    			double[] animationCenter = LinAlg.add(obj.getPos(), new double[]{0, 0, .02, 0, 0, 0});
+                animation = new SelectionAnimation(animationCenter, obj.getRadius()*1.2);
+    		}
 		}
 		if(!isSelected){
 			animation = null;
@@ -329,26 +300,25 @@ public class BoltSimulator implements VisConsole.Listener{
 	}
 	
 	private void drawTextLabels(VisWorld.Buffer buffer, double[][] faceCamera){
-		BoltObjectManager objManager = BoltObjectManager.getSingleton();
+		HashMap<Integer, BoltObject> objects = Perception.getSingleton().getCurrentObjects();
         ClassifierManager clManager = ClassifierManager.getSingleton();
-        synchronized(objManager.objects){
-            for(BoltObject obj : objManager.objects.values()){
-            	String labelString = "";
-        		String tf="<<monospaced,black,dropshadow=false>>";
-        		labelString += String.format("%s%d\n", tf, obj.getID());
-            	if(obj.isVisible()){
-            		for(FeatureCategory cat : FeatureCategory.values()){
-                        Classifications cs = clManager.classify(cat, obj);
-                        if(cs == null){
-                        	continue;
-                        }
-                		labelString += String.format("%s%s:%.2f\n", tf, cs.getBestLabel().label, cs.getBestLabel().weight);
-            		}
-            	}
-        		VzText text = new VzText(labelString);
-        		double[] textLoc = new double[]{obj.getPose()[0], obj.getPose()[1], obj.getPose()[2] + .1};
-        		buffer.addBack(new VisChain(LinAlg.translate(textLoc), faceCamera, LinAlg.scale(.002), text));
-            }
+        for(BoltObject obj : objects.values()){
+        	if(!obj.isVisible()){
+        		continue;
+        	}
+        	String labelString = "";
+    		String tf="<<monospaced,black,dropshadow=false>>";
+    		labelString += String.format("%s%d\n", tf, obj.getID());
+    		for(FeatureCategory cat : FeatureCategory.values()){
+                Classifications cs = clManager.classify(cat, obj);
+                if(cs == null){
+                	continue;
+                }
+        		labelString += String.format("%s%s:%.2f\n", tf, cs.getBestLabel().label, cs.getBestLabel().weight);
+    		}
+    		VzText text = new VzText(labelString);
+    		double[] textLoc = new double[]{obj.getPos()[0], obj.getPos()[1], obj.getPos()[2] + .1};
+    		buffer.addBack(new VisChain(LinAlg.translate(textLoc), faceCamera, LinAlg.scale(.002), text));
         }
 	}
 
@@ -359,4 +329,30 @@ public class BoltSimulator implements VisConsole.Listener{
     	}
     	buffer.swap();
     }
+
+
+//	public void performAction(String action){
+//		// Expecting the form 'ID=234,DOOR=OPEN'
+//		String[] args = action.toUpperCase().split(",");
+//		if(args.length < 2){
+//			return;
+//		}
+//		String[] idArg = args[0].split("=");
+//		if(idArg.length < 2 || !idArg[0].equals("ID")){
+//			return;
+//		}
+//		int id = Integer.parseInt(idArg[1]);
+//		for(BoltObject obj : currentObjects){
+//			if(obj instanceof SimActionable){
+//				
+//			}
+//		}
+//		synchronized(sensables){
+//			SimSensable sens = sensables.get(id);
+//			if(sens == null || !(sens instanceof SimActionable)){
+//				return;
+//			}
+//			((SimActionable)sens).setState(args[1]);
+//		}
+//	}
 }

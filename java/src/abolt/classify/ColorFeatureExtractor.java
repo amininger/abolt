@@ -3,6 +3,7 @@ package abolt.classify;
 import java.awt.Color;
 import java.util.ArrayList;
 
+import abolt.bolt.BoltObject;
 import abolt.kinect.ObjectInfo;
 
 /**
@@ -10,8 +11,8 @@ import abolt.kinect.ObjectInfo;
  * @purpose Contains methods for extracting color features from an object or point cloud
  */
 public class ColorFeatureExtractor{
-	public static ArrayList<Double> getFeatures(ObjectInfo object) {
-		return getFeatures(object.points);
+	public static ArrayList<Double> getFeatures(BoltObject obj) {
+		return getFeatures(obj.getPoints());
 	}
 
 	public static ArrayList<Double> getFeatures(ArrayList<double[]> points) {
