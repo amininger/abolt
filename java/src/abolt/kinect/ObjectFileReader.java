@@ -22,10 +22,10 @@ public class ObjectFileReader
     {
         assert (opts.getString("file") != null);
         FileInputStream fin = null;
-        DataInputStream ins = null;
+        BufferedInputStream ins = null;
         try {
             fin = new FileInputStream(opts.getString("file"));
-            ins = new DataInputStream(fin);
+            ins = new BufferedInputStream(fin);
         } catch (Exception ex) {
             System.err.println("ERR: Problem construction input stream");
             ex.printStackTrace();
@@ -36,13 +36,13 @@ public class ObjectFileReader
         }
     }
 
-    public ObjectFileReader(DataInputStream ins)
+    public ObjectFileReader(BufferedInputStream ins)
     {
         readInputFile(ins);
     }
 
     // Parse .pts file
-    private void readInputFile(DataInputStream ins)
+    private void readInputFile(BufferedInputStream ins)
     {
         BinaryStructureReader bsr = new BinaryStructureReader(ins);
         try {

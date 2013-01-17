@@ -206,7 +206,7 @@ public class ObjectTracking
             justDroppedCount ++;
 
         // Make sure there are previous objects
-        if(lastFrame.size() <= 0){
+        /*if(lastFrame.size() <= 0){
             for(Object id : currentFrame.values()){
                 ObjectInfo oi = (ObjectInfo) id;
                 oi.createRepID();
@@ -217,7 +217,7 @@ public class ObjectTracking
                 currentFrame.put(heldObject.ufsID, heldObject);
             }
             return currentFrame;
-        }
+        }*/
 
         // Keep track of which objects haven't been paired yet
         HashMap<Integer, Integer> unusedNew = new HashMap<Integer, Integer>();

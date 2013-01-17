@@ -27,7 +27,7 @@ public class BoltArm implements LCMSubscriber
     private ArrayList<Joint> joints = new ArrayList<Joint>();
     private ArrayList<Double> armWidths = new ArrayList<Double>();
 
-    private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(0.5, true);
+    private ExpiringMessageCache<dynamixel_status_list_t> statuses = new ExpiringMessageCache<dynamixel_status_list_t>(1.0, true);
 
     private BoltArm()
     {
@@ -135,8 +135,8 @@ public class BoltArm implements LCMSubscriber
         j4 = new RevoluteJoint(p4);
         */
         joints.add(new HandJoint(new HandJoint.Parameters()));
-        armWidths.add(.08);
-        armWidths.add(.08);
+        armWidths.add(.05);
+        armWidths.add(.05);
     }
 
     public void messageReceived(LCM lcm, String channel, LCMDataInputStream ins)

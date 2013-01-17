@@ -21,7 +21,7 @@ public class PtsFileConverter
     public PtsFileConverter(GetOpt opts)
     {
         FileInputStream fin;
-        DataInputStream ins = null;
+        BufferedInputStream ins = null;
         FileWriter fout = null;
         try {
         	
@@ -30,7 +30,7 @@ public class PtsFileConverter
             fout = new FileWriter(opts.getString("outfile"), false);
         	for(int i = 0; i < inFiles.length; i++){
                 fin = new FileInputStream(inFiles[i]);
-                ins = new DataInputStream(fin);
+                ins = new BufferedInputStream(fin);
 
                 FeatureCategory type;
                 if(opts.getString("type").equals("color")){
@@ -55,7 +55,7 @@ public class PtsFileConverter
 
     }
 
-    private void convertFile(DataInputStream ins, FileWriter fout, FeatureCategory type)
+    private void convertFile(BufferedInputStream ins, FileWriter fout, FeatureCategory type)
     {
         BinaryStructureReader bsr = new BinaryStructureReader(ins);
         PrintWriter pwout;

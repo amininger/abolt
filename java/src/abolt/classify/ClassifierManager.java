@@ -130,7 +130,7 @@ public class ClassifierManager{
         String colorDataFile = null, shapeDataFile = null, sizeDataFile = null;
         colorDataFile = config.getString("training.color_data");
         shapeDataFile = config.getString("training.shape_data");
-        sizeDataFile = config.getString("training.size_data");
+        //sizeDataFile = config.getString("training.size_data");
 
 		classifiers = new HashMap<FeatureCategory, IClassifier>();
 

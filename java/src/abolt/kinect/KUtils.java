@@ -1,9 +1,8 @@
 package abolt.kinect;
 
-import java.awt.Rectangle;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.*;
+import java.awt.*;
+import java.io.*;
 
 import abolt.lcmtypes.*;
 
@@ -76,6 +75,15 @@ public class KUtils
     	double[] pt = new double[]{kinectCoordinates[0], kinectCoordinates[1], kinectCoordinates[2], 1};
     	double[] wc = LinAlg.matrixAB(pt, kinectToWorldXForm);
     	return new double[]{wc[0], wc[1], wc[2]};
+    }
+
+    public static ArrayList<double[]> k2wConvert(ArrayList<double[]> points)
+    {
+        ArrayList<double[]> k2wPoints = new ArrayList<double[]>();
+        for (double[] p: points) {
+            k2wPoints.add(getWorldCoordinates(p));
+        }
+        return k2wPoints;
     }
 
 

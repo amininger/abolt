@@ -225,4 +225,11 @@ public class SimKinect implements IBoltCamera{
 	public double[] getWorldCoords(double[] cameraPt) {
 		return cameraPt;
 	}
+
+    @Override
+    // XXX For simulation, we currently don't care about arm collisions
+    public double getHeight(double[] xy)
+    {
+        return 0;
+    }
 }

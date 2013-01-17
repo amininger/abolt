@@ -255,7 +255,7 @@ class ObjectLabeler // implements LCMSubscriber
             boolean append = true;
             // Write out po9int clouds for each object
             FileOutputStream fos = new FileOutputStream(labelsFile+".pts", append);
-            DataOutputStream dos = new DataOutputStream(fos);
+            BufferedOutputStream dos = new BufferedOutputStream(fos);
             BinaryStructureWriter w = new BinaryStructureWriter(dos);
             // Write number of features, then all the features in their own block
             w.writeInt(labels.size());

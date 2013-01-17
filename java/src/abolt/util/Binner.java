@@ -19,7 +19,7 @@ public class Binner
             binMap.put(bin, p);
         }
 
-        System.out.printf("Shrank %d pts to %d\n", points.size(), binMap.size());
+        //System.out.printf("Shrank %d pts to %d\n", points.size(), binMap.size());
         ArrayList<double[]> newPoints = new ArrayList<double[]>();
         newPoints.addAll(binMap.values());
 

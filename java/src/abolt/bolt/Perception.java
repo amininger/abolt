@@ -29,6 +29,14 @@ public class Perception {
 	private SimKinect simKinect;
 	private KinectCamera kinectCamera;
 	
+	public SimKinect getSimKinect(){
+		return simKinect;
+	}
+	
+	public KinectCamera getKinect(){
+		return kinectCamera;
+	}
+	
 	private HashMap<Integer, BoltObject> currentObjects = new HashMap<Integer, BoltObject>();
 
     PeriodicTasks sendTasks = new PeriodicTasks(2);
