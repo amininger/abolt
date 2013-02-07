@@ -114,6 +114,13 @@ public class BoltArmDemo implements LCMSubscriber
             // Grid
             VzGrid.addGrid(vw);
 
+            // Board outlines
+            VisWorld.Buffer vbBoards = vw.getBuffer("boards");
+            double f2m = 0.3048;
+            vbBoards.addBack(new VzRectangle(2*f2m, 2*f2m, new VzLines.Style(Color.cyan, 2)));
+            vbBoards.addBack(new VzRectangle(3*f2m, 3*f2m, new VzLines.Style(Color.white, 2)));
+            vbBoards.swap();
+
             // Default zoom
             vl.cameraManager.fit2D(new double[] {-1,-1}, new double[] {1,1}, true);
 

@@ -127,6 +127,9 @@ public class Bolt extends JFrame implements LCMSubscriber
             //BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(getSegment(), opts.getBoolean("debug"));
         } else {
         	camera = new SimKinect(400, 300, simulator);
+        }
+
+        if (!opts.getBoolean("arm")) {
         	armSimulator = new ArmSimulator(simulator);
         }
 
@@ -358,8 +361,9 @@ public class Bolt extends JFrame implements LCMSubscriber
         Bolt bolt = new Bolt(opts);
 
         BoltArmCommandInterpreter interpreter = new BoltArmCommandInterpreter(opts.getBoolean("debug"));
-        BoltArmController controller = new BoltArmController();
+        //BoltArmController controller = new BoltArmController();
         if (opts.getBoolean("arm")) {
+            BoltArmController controller = new BoltArmController();
             ArmDriver armDriver = new ArmDriver(config);
             (new Thread(armDriver)).start();
             if (opts.getBoolean("debug")) {

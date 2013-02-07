@@ -10,8 +10,12 @@ struct kinect_status_t
     // Image buffers. rgb contains RGB channel triplets.
     // depth contains 11 bit depth values packed into
     // 2 bytes, the lower bytes then upper
-    int8_t rgb[921600]; // R G B R G B ...
-    int8_t depth[614400]; // LD UD LD UD ...
+    int32_t rgblen;
+    int32_t depthlen;
+    int8_t rgb[rgblen];
+    int8_t depth[depthlen];
+    //int8_t rgb[921600]; // R G B R G B ...
+    //int8_t depth[614400]; // LD UD LD UD ...
 
     // Accelerometer data in m/s^2
     // If looking in the same direction as the kinect,

@@ -383,11 +383,11 @@ public class BoltArmController implements LCMSubscriber
                     }
                     break;
                 case GRAB_START_GRIP:
-                    gripper_status = arm.getStatus(5);
-                    if (gripper_status == null) {
-                        arm.setPos(5, defGrip);
-                        break;
-                    }
+                    //gripper_status = arm.getStatus(5);
+                    //if (gripper_status == null) {
+                    //    arm.setPos(5, defGrip);
+                    //    break;
+                    //}
 
                     // Start the hand closing
                     arm.setPos(5, 112.0);

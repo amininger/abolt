@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <sys/time.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <lcm/lcm.h>
 #include "lcmtypes/kinect_status_t.h"
 
@@ -25,9 +26,9 @@ pthread_t lcm_thread;
 int got_rgb = 0;
 int got_depth = 0;
 
-pthread_mutex_t frame_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t accel_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t frame_signal;
+pthread_mutex_t frame_lock;// = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t accel_lock;// = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t frame_signal;// = PTHREAD_COND_INITIALIZER;
 
 // Data buffers
 uint8_t *d_buf;
@@ -45,6 +46,7 @@ freenect_device *f_dev;
 // LCM
 lcm_t *k_lcm;
 int max_count = 1;
+int usecs = 1000000/30;
 
 void video_cb(freenect_device *dev, void *rgb, uint32_t ts)
 {
@@ -101,6 +103,7 @@ void *process(void *arg)
     // XXX No clean way to quit, yet
     while (freenect_process_events(f_ctx) >= 0) {
         // Process callbacks
+        //usleep(usecs);
     }
 
     // Close everything down
@@ -122,14 +125,16 @@ void *process(void *arg)
 // === Accelerometer Function =========================
 void *accelup(void *arg)
 {
-    printf("Being accelerometer update thread...\n");
+    int hz = 30;
+    printf("Begin accelerometer update thread...\n");
     while (true) {
-        // Get the positional state. mks_accel interprets raw acceleration
-        // numbers to
+        // Get the accelerometer state in mks units
         freenect_raw_tilt_state* state;
         freenect_update_tilt_state(f_dev);
         state = freenect_get_tilt_state(f_dev);
         freenect_get_mks_accel(state,&x,&y,&z);
+        usleep(1000000/hz);
+
         //printf("%f %f %f\n", x, y, z);
         //fflush(stdout);
     }
@@ -145,22 +150,27 @@ void *publcm(void *arg)
     int num_sent = 0;
     int depth_bytes = (DEPTH_WIDTH*DEPTH_HEIGHT*2);
     int rgb_bytes = (RGB_WIDTH*RGB_HEIGHT*3);
-    ks.rgb;
-    ks.depth;
+    ks.rgblen = rgb_bytes;
+    ks.depthlen = depth_bytes;
+    //ks.rgb;
+    //ks.depth;
 
     // XXX No clean way to quit, yet
-    pthread_mutex_lock(&frame_lock);
+    int herp = pthread_mutex_lock(&frame_lock);
     while (true) {
         while (!got_rgb || !got_depth) {
             pthread_cond_wait(&frame_signal, &frame_lock);
         }
+
         timeval time;
         gettimeofday(&time, NULL);
         ks.utime = time.tv_sec*1000 + time.tv_usec/1000;
 
         // Copy in arrays
-        memcpy(ks.depth, d_buf, depth_bytes);
-        memcpy(ks.rgb, rgb_buf, rgb_bytes);
+        //memcpy(ks.depth, d_buf, depth_bytes);
+        //memcpy(ks.rgb, rgb_buf, rgb_bytes);
+        ks.depth = (int8_t*)d_buf;
+        ks.rgb = (int8_t*)rgb_buf;
 
         // Update accelerometer data
         ks.dx = x;
@@ -185,7 +195,13 @@ int main(int argc, char **argv)
     // Specified FPS
     if (argc == 2) {
         max_count = 30/atoi(argv[1]);
+        usecs = 1000000/atoi(argv[1]);
     }
+
+    // Init pthreads
+    pthread_mutex_init(&frame_lock, NULL);
+    pthread_mutex_init(&accel_lock, NULL);
+    pthread_cond_init(&frame_signal, NULL);
 
     // Init LCM
     printf("Initializing LCM...\n");
