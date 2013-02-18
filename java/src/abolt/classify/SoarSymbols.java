@@ -58,8 +58,8 @@ public class SoarSymbols {
 		shapeSymbols.put("triangular", "shape-triangle");
 		shapeSymbols.put("rectangular", "shape-rectangle");
 		shapeSymbols.put("square", "shape-square");
-		shapeSymbols.put("l-shaped", "shape-lblock");
-		shapeSymbols.put("t-shaped", "shape-tblock");
+		shapeSymbols.put("l-shaped", "shape-l-block");
+		shapeSymbols.put("t-shaped", "shape-t-block");
 		shapeSymbols.put("arch", "shape-arch");
 		//shapeSymbols.put("doughnut", "shape-doughnut");
 		shapeSymbols.put("half-cylinder", "shape-halfcylinder");

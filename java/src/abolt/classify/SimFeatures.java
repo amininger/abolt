@@ -16,13 +16,13 @@ public class SimFeatures {
 	private static HashMap<String, Color> colorValues;
 	static{
 		colorValues = new HashMap<String, Color>();
-		colorValues.put("red",    new Color(225, 50, 50));
+		colorValues.put("red",    new Color(211, 0, 50));
 		colorValues.put("orange", new Color(215, 85, 55));
 		colorValues.put("yellow", new Color(240, 240, 100));
 		colorValues.put("green",  new Color(100, 200, 75));
 		colorValues.put("blue",   new Color(100, 125, 225));
-		colorValues.put("purple", new Color(125, 100, 225));
-		colorValues.put("gray",   new Color(150, 150, 150));
+		colorValues.put("purple", new Color(172, 133, 206));
+		colorValues.put("gray",   new Color(172, 150, 150));
 	}
 	public static Color getColorValue(String color){
 		return colorValues.get(color.toLowerCase());
@@ -58,6 +58,21 @@ public class SimFeatures {
 			Shape bot = new BoxShape(LinAlg.scale(new double[]{3, 1, 1}, scale));
 			return new CompoundShape(LinAlg.translate(new double[]{0, -scale/2, 0}), bot, 
 									LinAlg.translate(new double[]{0, scale, 0}), top);
+			
+		} else if(shapeStr.equals("l-shape")){
+			scale *= .8;
+			Shape top = new BoxShape(LinAlg.scale(new double[]{1, 1, 1}, scale));
+			Shape bot = new BoxShape(LinAlg.scale(new double[]{3, 1, 1}, scale));
+			return new CompoundShape(LinAlg.translate(new double[]{-scale, -scale/2, 0}), bot, 
+									LinAlg.translate(new double[]{scale, scale, 0}), top);
+		} else if(shapeStr.equals("arch")){
+			scale *= .8;
+			Shape leg1 = new BoxShape(LinAlg.scale(new double[]{1, 1, 1}, scale));
+			Shape leg2 = new BoxShape(LinAlg.scale(new double[]{1, 1, 1}, scale));
+			Shape top = new BoxShape(LinAlg.scale(new double[]{3, 1, 1}, scale));
+			return new CompoundShape(LinAlg.translate(new double[]{scale, -scale/2, 0}), leg1, 
+									LinAlg.translate(new double[]{-2*scale, 0, 0}), leg2,
+									LinAlg.translate(new double[]{scale, scale, 0}), top);
 			
 		} else {
 			return new SphereShape(scale);

@@ -40,8 +40,8 @@
 	vec 6
 	.2 .2 .05 0 0 0
 	red
-	square
-	small
+	triangle
+	medium
   3
 }
 "abolt.sim.SimBlock"
@@ -50,7 +50,7 @@
 	vec 6
 	-.2 .2 .05 0 0 0
 	blue
-	arch
+	sphere
 	medium
   6
 }
@@ -60,19 +60,9 @@
 	vec 6
 	.2 -.2 .05 0 0 0
 	green
-	l-shape
-	large
-  8
-}
-"abolt.sim.SimBlock"
-{
-	# XYZRPY 
-	vec 6
-	-.2 -.2 .05  0 0 0
-	red
-	triangle
+	arch
 	medium
-  7
+  8
 }
 "abolt.sim.SimLocation"
 {
