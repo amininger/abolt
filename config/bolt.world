@@ -41,6 +41,7 @@
 	stove
   	ivec 3
 	255 0 0
+	.1
 	2
 	door=closed,open
 	heat=off,on
@@ -52,6 +53,7 @@
 	pantry
   	ivec 3
 	128 0 255
+	.1
 	1
 	door=closed,open
 }
@@ -62,6 +64,7 @@
 	table
   	ivec 3
 	255 128 0
+	.1
 	0
 }
 "abolt.sim.SimScale"
@@ -71,6 +74,7 @@
 	scale
   	ivec 3
 	0 255 0
+	.1
 	0
 }
 "abolt.sim.SimBlock"
