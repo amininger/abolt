@@ -32,6 +32,9 @@ public class LCMReceiver implements LCMSubscriber {
 	public String consumeAcks(){
 		String a;
 		synchronized(acks){
+			if(!acks.isEmpty()){
+				System.out.println("ABOLT: " + acks);
+			}
 			a = acks;
 			acks = "";
 		}

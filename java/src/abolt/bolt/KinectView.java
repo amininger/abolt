@@ -10,11 +10,13 @@ import java.util.TimerTask;
 
 import javax.swing.JFrame;
 
+import com.sun.org.apache.xml.internal.security.keys.KeyUtils;
+
 import lcm.lcm.LCM;
 import lcm.lcm.LCMDataInputStream;
 import lcm.lcm.LCMSubscriber;
 
-import abolt.kinect.KinectCamera;
+import abolt.kinect.*;
 import abolt.lcmtypes.kinect_status_t;
 import april.jmat.LinAlg;
 import april.vis.*;
@@ -82,15 +84,15 @@ public class KinectView extends JFrame implements LCMSubscriber{
 	}
     
     private void update(){
-    	VisWorld.Buffer buffer = visWorld.getBuffer("objects");
-    	HashMap<Integer, BoltObject> objects = Perception.getSingleton().getCurrentObjects();
-		for(BoltObject obj : objects.values()){
-			double[][] bbox = obj.getBBox();
-			double[][] scale = LinAlg.scale(bbox[1][0] - bbox[0][0], bbox[1][1] - bbox[0][1], bbox[1][2] - bbox[0][2]);
-			VzBox box = new VzBox(new VzMesh.Style(new Color(0,0,0,0)), new VzLines.Style(Color.cyan, 2));
-			buffer.addBack(new VisChain(LinAlg.translate(obj.getPos()), scale, box));
-		}
-		buffer.swap();
+//    	VisWorld.Buffer buffer = visWorld.getBuffer("objects");
+//    	HashMap<Integer, BoltObject> objects = Perception.getSingleton().getCurrentObjects();
+//		for(BoltObject obj : objects.values()){
+//			double[][] bbox = obj.getBBox();
+//			double[][] scale = LinAlg.scale(bbox[1][0] - bbox[0][0], bbox[1][1] - bbox[0][1], bbox[1][2] - bbox[0][2]);
+//			VzBox box = new VzBox(new VzMesh.Style(new Color(0,0,0,0)), new VzLines.Style(Color.cyan, 2));
+//			buffer.addBack(new VisChain(LinAlg.translate(obj.getPos()), scale, box));
+//		}
+//		buffer.swap();
     }
     
     private void redrawKinectData(){
@@ -101,11 +103,12 @@ public class KinectView extends JFrame implements LCMSubscriber{
 			VisVertexData vertexData = new VisVertexData();
 			for(int i = 0; i < points.size(); i++){
 				double[] pt = points.get(i);
-				vertexData.add(new double[]{pt[0], pt[1], pt[2]});
+				vertexData.add(KUtils.getWorldCoordinates(new double[]{pt[0], pt[1], pt[2]}));
     			colors.add((int)points.get(i)[3]);
 			}
 			VzPoints visPts = new VzPoints(vertexData, new VzPoints.Style(colors, 2));
-			buffer.addBack(visPts);
+			VisLighting vl = new VisLighting(false, visPts);
+			buffer.addBack(vl);
 		}
 		buffer.swap();
     }

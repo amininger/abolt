@@ -11,6 +11,7 @@ import javax.swing.*;
 import abolt.kinect.*;
 import abolt.classify.*;
 import abolt.classify.Features.FeatureCategory;
+import abolt.sim.SimLocation;
 import abolt.vis.SelectionAnimation;
 import april.config.*;
 import april.jmat.*;
@@ -239,13 +240,13 @@ public class BoltSimulator implements VisConsole.Listener{
     /** Render BOLT-specific content. */
     class RenderThread extends Thread
     {
-        int fps = 20;
+        int fps = 40;
 
         public void run()
         {
             Tic tic = new Tic();
             while (true) {
-                TimeUtil.sleep(1000/fps);
+                TimeUtil.sleep(10);
                 double dt = tic.toctic();
                 if(Perception.getSingleton() == null){
                 	continue;
@@ -305,6 +306,9 @@ public class BoltSimulator implements VisConsole.Listener{
         for(BoltObject obj : objects.values()){
         	if(!obj.isVisible()){
         		continue;
+        	}
+        	if(obj.sourceObject != null && obj.sourceObject instanceof SimLocation){
+        		continue;	// Don't print locations
         	}
         	String labelString = "";
     		String tf="<<monospaced,black,dropshadow=false>>";

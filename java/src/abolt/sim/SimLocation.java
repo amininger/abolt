@@ -96,13 +96,13 @@ public class SimLocation extends SimBoltObject implements SimActionable {
 				LinAlg.scale(size), new VzRectangle(new VzMesh.Style(color))));
 		
 		// The name of the location
-		objs.add(new VisChain(LinAlg.rotateZ(Math.PI/2), LinAlg.translate(0,-.8*size,.007),
+		objs.add(new VisChain(LinAlg.rotateZ(Math.PI/2), LinAlg.translate(0,-.8*size,.012),
                 LinAlg.scale(0.002),
-                new VzText(VzText.ANCHOR.CENTER, String.format("<<black>> %s", name))));
+                new VzText(VzText.ANCHOR.CENTER, String.format("<<black>> [%d] %s", id, name))));
 	
 		if(sensStates.getState("door") != null && sensStates.getState("door").equals("open")){
 			// The smaller inner box is only drawn if it is open
-			objs.add(new VisChain(LinAlg.translate(0,0,.004),
+			objs.add(new VisChain(LinAlg.translate(0,0,.014),
 					LinAlg.scale(size*.9), new VzRectangle(new VzMesh.Style(Color.DARK_GRAY))));
 		}
 		

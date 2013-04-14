@@ -31,6 +31,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
 
     public KinectCamera(){
         segment = Segment.getSingleton();
+        lcm.subscribe("KINECT_STATUS", this);
     	lcm.subscribe("ROBOT_ACTION", this);
         lcm.subscribe("BOLT_ARM_COMMAND", this);
     }
@@ -38,6 +39,7 @@ public class KinectCamera implements IBoltCamera, LCMSubscriber {
     public KinectCamera(VisWorld.Buffer vb){
         segment = Segment.getSingleton();
         segment.vb = vb;
+        lcm.subscribe("KINECT_STATUS", this);
     	lcm.subscribe("ROBOT_ACTION", this);
         lcm.subscribe("BOLT_ARM_COMMAND", this);
     }

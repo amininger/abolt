@@ -129,12 +129,11 @@ public class KUtils
         int i = pixel_y*kstat.WIDTH+pixel_x;
         int d = ((kstat.depth[2*i + 1]&0xff) << 8) | (kstat.depth[2*i]&0xff);
         double depth = d / 1000.0;
+        
         int c = 0xff000000 |
             ((kstat.rgb[3*i+0]&0xff) << 0) |
             ((kstat.rgb[3*i+1]&0xff) << 8) |
             ((kstat.rgb[3*i+2]&0xff) << 16);
-
-
 
         double[] xyzc = new double[4];
         xyzc[0] = (pixel_x - Cirx) * depth / Firx;

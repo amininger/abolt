@@ -80,7 +80,9 @@ public class Bolt extends JFrame
         	ArmSimulator.Initialize(simulator);
         }
 
-        Perception.Initialize();
+        new Perception();
+        
+        kinectView = new KinectView();
 
         // Initialize the JMenuBar
         createMenuBar();

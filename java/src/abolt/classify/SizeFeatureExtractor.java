@@ -68,11 +68,14 @@ public class SizeFeatureExtractor{
 			features.add(0.0);
 			return features;
 		}
+		long time = System.currentTimeMillis();
 
         // First, put the points into a canonical orientation
         // XXX Where does this conversion happen?
-        ArrayList<double[]> worldPoints = KUtils.k2wConvert(points);
-        ArrayList<double[]> canonical = BoltUtil.getCanonical(worldPoints);
+       // ArrayList<double[]> worldPoints = KUtils.k2wConvert(points);
+        ArrayList<double[]> canonical = BoltUtil.getCanonical(points);
+        
+        
 
 		// Feature: Length of bbox diagonal
 		//double[] bbox = boundingBox(canonical);

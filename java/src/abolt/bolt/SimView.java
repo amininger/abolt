@@ -28,7 +28,7 @@ public interface SimView {
 		    			colors.add((int)points.get(i)[3]);
 	    			}
 	    			VzPoints visPts = new VzPoints(vertexData, new VzPoints.Style(colors, 2));
-	    			buffer.addBack(visPts);
+	    			buffer.addBack(new VisLighting(false, LinAlg.translate(0, 0, 0), visPts));
 				}
 			}
 		}

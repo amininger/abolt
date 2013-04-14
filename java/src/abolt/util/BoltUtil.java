@@ -106,21 +106,31 @@ public class BoltUtil
         double minArea = Double.MAX_VALUE;
         double xlen = 0;
         double theta = 0;
-        for (double r = 0; r < 360.0; r += 0.25)
+        
+        // Aaron: Made an optimization here
+        // Previously it was creating a new array every iteration and transforming all the points
+        // This instead directly calculates the rotation using sin and cos and doesn't
+        // Require multiplying by a matrix or creating a new array
+        for (double r = 0; r < 360.0; r += 0.5)
         {
-            ArrayList<double[]> rotated = LinAlg.transform(LinAlg.rotateZ(Math.toRadians(r)),
-                                                           centered);
+        	double sin = Math.sin(Math.toRadians(r));
+        	double cos = Math.cos(Math.toRadians(r));
 
             // Find the area of the bounding box
             double minX = Double.MAX_VALUE;
             double maxX = Double.MIN_VALUE;
+            for (double[] p: centered) {
+            	double x = p[0]*cos - p[1]*sin;
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+            }
+
             double minY = Double.MAX_VALUE;
             double maxY = Double.MIN_VALUE;
-            for (double[] p: rotated) {
-                minX = Math.min(minX, p[0]);
-                maxX = Math.max(maxX, p[0]);
-                minY = Math.min(minY, p[1]);
-                maxY = Math.max(maxY, p[1]);
+            for(double[] p : centered){
+            	double y = p[0]*sin + p[1]*cos;
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
             }
 
             double area = (maxX - minX) * (maxY - minY);

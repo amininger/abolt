@@ -18,17 +18,36 @@ import april.util.PeriodicTasks;
 import april.util.TimeUtil;
 
 public class Perception {
-	static Perception singleton = null;
+	/// Singleton
+	private static Perception singleton = null;
 	public static Perception getSingleton(){
 		return singleton;
 	}
-	public static void Initialize(){
-		singleton = new Perception();
-	}
 	
+	/// Consts
+    private static final double UPDATE_RATE = .1;
+    
+    /// Variables
 	private SimKinect simKinect;
 	private KinectCamera kinectCamera;
 	
+	private HashMap<Integer, BoltObject> currentObjects = new HashMap<Integer, BoltObject>();
+
+    PeriodicTasks sendTasks = new PeriodicTasks(2);
+    
+    long time = 0;
+	
+    /// Constructor
+	public Perception(){		
+		singleton = this;
+		
+		simKinect = new SimKinect(400, 300, BoltSimulator.getSingleton());
+		kinectCamera = new KinectCamera(BoltSimulator.getSingleton().getVisWorld());
+		sendTasks.addFixedDelay(new UpdatePerceptionTask(), UPDATE_RATE);
+		sendTasks.setRunning(true);
+	}
+	
+	/// Accessors/Mutators
 	public SimKinect getSimKinect(){
 		return simKinect;
 	}
@@ -36,23 +55,18 @@ public class Perception {
 	public KinectCamera getKinect(){
 		return kinectCamera;
 	}
-	
-	private HashMap<Integer, BoltObject> currentObjects = new HashMap<Integer, BoltObject>();
 
-    PeriodicTasks sendTasks = new PeriodicTasks(2);
-    private static final double UPDATE_RATE = .2;
-	
-	public Perception(){		
-		simKinect = new SimKinect(400, 300, BoltSimulator.getSingleton());
-		kinectCamera = new KinectCamera(BoltSimulator.getSingleton().getVisWorld());
-		sendTasks.addFixedDelay(new UpdatePerceptionTask(), UPDATE_RATE);
-		sendTasks.setRunning(true);
-	}
-	
 	public HashMap<Integer, BoltObject> getCurrentObjects(){
 		return currentObjects;
 	}
 	
+	/// Methods
+	
+	/***
+	 * This is the main processing cycle for perception
+	 * First add the objects from both the simulator and actual kinect
+	 * Then determine the features for those objects
+	 */
 	class UpdatePerceptionTask implements PeriodicTasks.Task{
 		public UpdatePerceptionTask() {}
 
@@ -89,7 +103,8 @@ public class Perception {
 					
 					// Transform the points into world coordinates
 					for(int i = 0; i < points.size(); i++){
-						points.set(i, simKinect.getWorldCoords(points.get(i)));
+						double[] pt = simKinect.getWorldCoords(points.get(i));
+						points.set(i, new double[]{pt[0], pt[1], pt[2], points.get(i)[3]});
 					}
 					
 					// Create a new bolt object and add it to the list
@@ -108,17 +123,20 @@ public class Perception {
 		synchronized(objectInfos){
 			for(ObjectInfo obj : objectInfos){
 				ArrayList<double[]> points = obj.points;
+				ArrayList<double[]> worldPts = new ArrayList<double[]>(points.size());
 
 				// Project the points onto a 2D image
 				BufferedImage projection = Features.getImage(kinectCamera, points);
 				
 				// Transform the points into world coordinates
 				for(int i = 0; i < points.size(); i++){
-					points.set(i, kinectCamera.getWorldCoords(points.get(i)));
+					double[] pt = kinectCamera.getWorldCoords(points.get(i));
+					worldPts.add(new double[]{pt[0], pt[1], pt[2], points.get(i)[3]});
 				}
 				
 				// Create a new bolt object and add it to the list
-				objects.put(obj.repID, new BoltObject(obj.repID, points, projection));
+				BoltObject bo = new BoltObject(obj.repID, worldPts, projection);
+				objects.put(obj.repID, bo);
 			}
 		}
 	}
