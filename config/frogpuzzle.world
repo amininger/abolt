@@ -1,0 +1,107 @@
+
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.53 -.35 .05 0 0 0
+# -.4 .25 .05 0 0 0
+	green
+	square
+	small
+1
+}
+
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.21 -.165 .05 0 0 0
+# -.4 .25 .05 0 0 0
+	red
+	square
+	small
+1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.37 -.165 .05 0 0 0
+#	-.4 .15 .05 0 0 0
+	red
+	square
+	small
+1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.69 -.165 .05 0 0 0
+	blue
+	square
+	small
+1
+}
+"abolt.sim.SimBlock"
+{
+	# XYZRPY 
+	vec 6
+	.85 -.165 .05 0 0 0
+	blue
+	square
+	small
+1
+}
+
+
+"abolt.sim.SimLocation"
+{
+	vec 2
+	.21 -.165
+	grid-red
+	ivec 3
+	0 255 0
+0.075
+	0
+}
+"abolt.sim.SimLocation"
+{
+	vec 2
+	.37 -.165
+	grid-red
+	ivec 3
+	0 255 0
+0.075
+	0
+}
+"abolt.sim.SimLocation"
+{
+	vec 2
+	.53 -.165
+	home
+	ivec 3
+	0 255 0
+0.075
+	0
+}
+"abolt.sim.SimLocation"
+{
+	vec 2
+	.69 -.165
+	grid-blue
+	ivec 3
+	0 255 0
+0.075
+	0
+}
+"abolt.sim.SimLocation"
+{
+	vec 2
+	.85 -.165
+	grid-blue
+	ivec 3
+	0 255 0
+0.075
+	0
+}
