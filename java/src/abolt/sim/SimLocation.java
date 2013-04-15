@@ -97,7 +97,7 @@ public class SimLocation implements SimSensable, SimObject, SimActionable {
     	int[] colors = ins.readInts();
     	color = new Color(colors[0], colors[1], colors[2]);
     	
-    	
+    	size = ins.readFloat();
         
         int numProps = ins.readInt();
         String[] props = new String[numProps];

@@ -19,7 +19,7 @@ public class SizeFeatureExtractor{
 	}
 
     // XXX Original size features
-	/*public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
+	public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
     {
 		ArrayList<Double> features = new ArrayList<Double>();
 		if(points.size() == 0){
@@ -50,42 +50,43 @@ public class SizeFeatureExtractor{
 		features.add(distSum);
 
 		return features;
-	}*/
+	}
 
-    // Slightly improved (???) size features
-    public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
-    {
-        // Now extract the appropriate values
-        ArrayList<Double> features = new ArrayList<Double>();
-		if(points.size() == 0){
-			//features.add(0.0);
-			features.add(0.0);
-			return features;
-		}
-
-        // First, put the points into a canonical orientation
-        // XXX Where does this conversion happen?
-        ArrayList<double[]> worldPoints = KUtils.k2wConvert(points);
-        ArrayList<double[]> canonical = BoltUtil.getCanonical(worldPoints);
-
-		// Feature: Length of bbox diagonal
-		//double[] bbox = boundingBox(canonical);
-		//features.add(Math.sqrt(LinAlg.normF(new double[]{bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2]})));
-
-        // Feature: average distance from the mean
-        double[] mean = BoltUtil.getCentroid(canonical);
-
-		double distSum = 0;
-		for(double[] pt : canonical){
-			distSum += LinAlg.distance(pt, mean);
-		}
-		distSum /= points.size();
-
-		features.add(distSum);
-
-		return features;
-
-    }
+//    // Slightly improved (???) size features
+//    public static ArrayList<Double> getFeatures(ArrayList<double[]> points)
+//    {
+//        // Now extract the appropriate values
+//        ArrayList<Double> features = new ArrayList<Double>();
+//		if(points.size() == 0){
+//			//features.add(0.0);
+//			features.add(0.0);
+//			return features;
+//		}
+//
+//		// Feature: Length of bbox diagonal
+//		double[] bbox = boundingBox(points);
+//		features.add(Math.sqrt(LinAlg.normF(new double[]{bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2]})));
+//
+////
+////        // First, put the points into a canonical orientation
+////        // XXX Where does this conversion happen?
+////        ArrayList<double[]> worldPoints = KUtils.k2wConvert(points);
+////        ArrayList<double[]> canonical = BoltUtil.getCanonical(worldPoints);
+////
+////        // Feature: average distance from the mean
+////        double[] mean = BoltUtil.getCentroid(canonical);
+////
+////		double distSum = 0;
+////		for(double[] pt : canonical){
+////			distSum += LinAlg.distance(pt, mean);
+////		}
+////		distSum /= points.size();
+////
+////		features.add(distSum);
+//
+//		return features;
+//
+//    }
 
 	/**
 	 * Find the bounding box for a group of pixels by finding the extreme values
