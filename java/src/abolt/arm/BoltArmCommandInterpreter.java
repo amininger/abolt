@@ -19,6 +19,7 @@ import abolt.bolt.*;
 import abolt.kinect.Segment;
 import abolt.kinect.ObjectInfo;
 import abolt.kinect.KUtils;
+import abolt.sim.SimLocation;
 
 /** The command interpreter takes in a robot_command_t from
  *  Soar and then processes it for consumption by the
@@ -86,6 +87,18 @@ public class BoltArmCommandInterpreter implements LCMSubscriber
                         bolt_cmd = processResetCommand(last_cmd);
                     } else if (last_cmd.action.contains("HOME")) {
                         bolt_cmd = processHomeCommand(last_cmd);
+                    } else if (last_cmd.action.toLowerCase().contains("id")){
+                    	HashMap<Integer, BoltObject> currentObjects = Perception.getSingleton().getCurrentObjects();
+                    	synchronized(currentObjects){
+                    		String[] parts = last_cmd.action.split(",");
+                    		Integer id = new Integer(parts[0].split("=")[1]);
+                    		if(currentObjects.containsKey(id)){
+                    			BoltObject obj = currentObjects.get(id);
+                    			if(obj.sourceObject != null && obj.sourceObject instanceof SimLocation){
+                    				((SimLocation)obj.sourceObject).setState(parts[1]);
+                    			}
+                    		}
+                    	}
                     } else {
                         System.err.println("ERR: Unknown command - "+last_cmd.action);
                     }
